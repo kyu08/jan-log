@@ -1,8 +1,9 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, div, h1, img, text)
-import Html.Attributes exposing (src)
+import Html exposing (Html, button, div, h1, img, text)
+import Html.Attributes exposing (class, src)
+import Html.Events exposing (onClick)
 
 
 
@@ -23,12 +24,18 @@ init =
 
 
 type Msg
-    = NoOp
+    = ClickedHistoryButton
+    | ClickedNewButton
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        ClickedHistoryButton ->
+            ( Debug.log "model" model, Cmd.none )
+
+        ClickedNewButton ->
+            ( model, Cmd.none )
 
 
 
@@ -37,9 +44,16 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ img [ src "/logo.svg" ] []
-        , h1 [] [ text "deployment test" ]
+    div [ class "main_container" ]
+        [ viewButton "今までの結果をみる" ClickedHistoryButton
+        , viewButton "新規作成" ClickedNewButton
+        ]
+
+
+viewButton : String -> Msg -> Html Msg
+viewButton phrase clickedMsg =
+    div [ class "button_container", onClick clickedMsg ]
+        [ div [ class "button_primary" ] [ text phrase ]
         ]
 
 

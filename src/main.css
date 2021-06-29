@@ -24,3 +24,29 @@ img {
   margin: 20px 0;
   max-width: 200px;
 }
+
+/* Main.elm 用のスタイル */
+.main_container {
+  margin-top: 30px;
+  display: flex;
+  flex-flow: column;
+  padding: 10px;
+  width: 100%;
+  max-width: 500px;
+  align-items: center;
+}
+
+.button_primary {
+  display: flex;
+  color: white;
+  background-color: #6C733D;
+  border-radius: 25px;
+  height: 50px;
+  width: 250px;
+  align-items: center;
+  justify-content: center;
+}
+
+.button_container {
+  margin: 10px 5px;
+}
