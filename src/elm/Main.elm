@@ -4,23 +4,26 @@ import Browser
 import Html exposing (Html, button, div, h1, img, text)
 import Html.Attributes exposing (class, src)
 import Html.Events exposing (onClick)
+import Route exposing (Route)
 
 
 
 ---- MODEL ----
 
 
-type alias Model =
-    {}
+type Model
+    = NotFound
+    | Home
+    | NewGame
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( {}, Cmd.none )
+    ( Home, Cmd.none )
 
 
 
----- UPDATE ----
+---- MSG, UPDATE ----
 
 
 type Msg
@@ -36,6 +39,25 @@ update msg model =
 
         ClickedNewButton ->
             ( model, Cmd.none )
+
+
+changeToRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
+changeToRoute maybeRoute model =
+    case maybeRoute of
+        Nothing ->
+            ( NotFound, Cmd.none )
+
+        Just Route.NotFound ->
+            ( NotFound, Cmd.none )
+
+        Just Route.History ->
+            ( NotFound, Cmd.none )
+
+        Just Route.NewGame ->
+            ( NotFound, Cmd.none )
+
+        Just Route.Home ->
+            ( NotFound, Cmd.none )
 
 
 
