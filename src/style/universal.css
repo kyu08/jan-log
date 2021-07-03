@@ -1,10 +1,4 @@
-/*
-  elm-hot creates an additional div wrapper around the app to make HMR possible.
-  This could break styling in development mode if you are using Elm UI.
-
-  More context in the issue:
-    https://github.com/halfzebra/create-elm-app/issues/320
-*/
+/* ビルトインクラスの共通スタイル */
 [data-elm-hot="true"] {
   height: inherit;
 }
@@ -24,3 +18,9 @@ img {
   margin: 20px 0;
   max-width: 200px;
 }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
