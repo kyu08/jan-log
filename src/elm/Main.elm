@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import EditGame
 import Home
 import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
@@ -16,7 +17,7 @@ import Url
 type Model
     = NotFound Nav.Key
     | Home Nav.Key
-    | NewGame Nav.Key
+    | EditGame Nav.Key
     | History Nav.Key
 
 
@@ -29,13 +30,15 @@ toKey model =
         Home nav ->
             nav
 
-        NewGame nav ->
+        EditGame nav ->
             nav
 
         History nav ->
             nav
 
 
+{-| TODO: init で現在の path を見て適切にルーティングする
+-}
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ _ key =
     ( Home key, Cmd.none )
@@ -85,8 +88,8 @@ changeRouteTo maybeRoute model =
         Just Route.History ->
             History key
 
-        Just Route.NewGame ->
-            NewGame key
+        Just Route.EditGame ->
+            EditGame key
 
         Just Route.Home ->
             Home key
@@ -112,12 +115,9 @@ view model =
                 viewContainer <|
                     Home.view
 
-            NewGame _ ->
+            EditGame _ ->
                 viewContainer <|
-                    div
-                        [ class "main_container" ]
-                        [ text "newGame"
-                        ]
+                    EditGame.view
 
             History _ ->
                 viewContainer <|

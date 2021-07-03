@@ -7,7 +7,7 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
 type Route
     = NotFound
     | Home
-    | NewGame
+    | EditGame
     | History
 
 
@@ -15,7 +15,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map NewGame (s routes.newGame)
+        , Parser.map EditGame (s routes.newGame)
         , Parser.map History (s routes.history)
         ]
 
@@ -28,7 +28,7 @@ fromUrl url =
 
 
 routes =
-    { newGame = "newGame"
+    { newGame = "editGame"
     , history = "history"
     }
 
