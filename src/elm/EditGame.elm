@@ -4,6 +4,14 @@ import Html exposing (Html, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (class, disabled, maxlength, value)
 
 
+{-| TODO:
+
+1.  model に状態として持つ -> view に表示
+2.  Total ~ ゲーム代込み まで計算結果を表示できるようにする
+3.  rate などのconfig を表示する(いったんは固定値でOK)
+4.  rate などのconfig を変更できるようにする
+
+-}
 view : Html msg
 view =
     let
