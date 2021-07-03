@@ -37,11 +37,9 @@ toKey model =
             nav
 
 
-{-| TODO: init で現在の path を見て適切にルーティングする
--}
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ _ key =
-    ( Home key, Cmd.none )
+init _ url key =
+    ( maybeRouteToModel (Route.fromUrl url) key, Cmd.none )
 
 
 
@@ -72,27 +70,28 @@ update msg model =
                     ( model, Nav.load href )
 
 
-changeRouteTo : Maybe Route.Route -> Model -> Model
-changeRouteTo maybeRoute model =
-    let
-        key =
-            toKey model
-    in
+maybeRouteToModel : Maybe Route.Route -> (Nav.Key -> Model)
+maybeRouteToModel maybeRoute =
     case maybeRoute of
         Nothing ->
-            NotFound key
+            NotFound
 
         Just Route.NotFound ->
-            NotFound key
+            NotFound
 
         Just Route.History ->
-            History key
+            History
 
         Just Route.EditGame ->
-            EditGame key
+            EditGame
 
         Just Route.Home ->
-            Home key
+            Home
+
+
+changeRouteTo : Maybe Route.Route -> Model -> Model
+changeRouteTo maybeRoute model =
+    maybeRouteToModel maybeRoute <| toKey model
 
 
 
