@@ -98,32 +98,33 @@ changeRouteTo maybeRoute model =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        viewContainer content =
+            [ div [ class "container" ] [ content ] ]
+    in
     { title = "Jan-Log"
     , body =
         case model of
             NotFound _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "not found"
-                    ]
-                ]
+                viewContainer <| text "not found"
 
             Home _ ->
-                [ Home.view ]
+                viewContainer <|
+                    Home.view
 
             NewGame _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "newGame"
-                    ]
-                ]
+                viewContainer <|
+                    div
+                        [ class "main_container" ]
+                        [ text "newGame"
+                        ]
 
             History _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "history"
-                    ]
-                ]
+                viewContainer <|
+                    div
+                        [ class "main_container" ]
+                        [ text "history"
+                        ]
     }
 
 

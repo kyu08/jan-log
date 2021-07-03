@@ -19,7 +19,7 @@ view =
             Route.phrases
     in
     div
-        [ class "container" ]
+        []
         [ viewButton phrases.history routes.history
         , viewButton phrases.newGame routes.newGame
         ]
