@@ -2,10 +2,10 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (Html, a, button, div, h1, img, text)
-import Html.Attributes exposing (class, href, src)
-import Html.Events exposing (onClick)
-import Route exposing (Route(..))
+import Home
+import Html exposing (div, text)
+import Html.Attributes exposing (class, href)
+import Route
 import Url
 
 
@@ -37,7 +37,7 @@ toKey model =
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flag url key =
+init _ _ key =
     ( Home key, Cmd.none )
 
 
@@ -46,54 +46,50 @@ init flag url key =
 
 
 type Msg
-    = ClickedHistoryButton
-    | ClickedNewButton
-    | UrlChanged Url.Url
+    = UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedHistoryButton ->
-            ( model, Cmd.none )
-
-        ClickedNewButton ->
-            ( model, Cmd.none )
-
         UrlChanged url ->
-            changeToRoute (Route.fromUrl url) model
+            ( changeRouteTo (Route.fromUrl url) model, Cmd.none )
 
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl (toKey model) (Url.toString url) )
+                    let
+                        cmd =
+                            Nav.pushUrl (toKey model) (Url.toString url)
+                    in
+                    ( changeRouteTo (Route.fromUrl url) model, cmd )
 
                 Browser.External href ->
                     ( model, Nav.load href )
 
 
-changeToRoute : Maybe Route -> Model -> ( Model, Cmd Msg )
-changeToRoute maybeRoute model =
+changeRouteTo : Maybe Route.Route -> Model -> Model
+changeRouteTo maybeRoute model =
     let
         key =
             toKey model
     in
     case maybeRoute of
         Nothing ->
-            ( NotFound key, Cmd.none )
+            NotFound key
 
         Just Route.NotFound ->
-            ( NotFound key, Cmd.none )
+            NotFound key
 
         Just Route.History ->
-            ( History key, Cmd.none )
+            History key
 
         Just Route.NewGame ->
-            ( NewGame key, Cmd.none )
+            NewGame key
 
         Just Route.Home ->
-            ( Home key, Cmd.none )
+            Home key
 
 
 
@@ -104,28 +100,31 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Jan-Log"
     , body =
-        [ div
-            [ class "main_container" ]
-            [ viewButton "今までの結果をみる"
-            , viewButton "新規作成"
-            ]
-        ]
+        case model of
+            NotFound _ ->
+                [ div
+                    [ class "main_container" ]
+                    [ text "not found"
+                    ]
+                ]
+
+            Home _ ->
+                [ Home.view ]
+
+            NewGame _ ->
+                [ div
+                    [ class "main_container" ]
+                    [ text "newGame"
+                    ]
+                ]
+
+            History _ ->
+                [ div
+                    [ class "main_container" ]
+                    [ text "history"
+                    ]
+                ]
     }
-
-
-
--- TODO: a tag ベースで実装しなおす！
-
-
-viewButton : String -> Html Msg
-viewButton phrase =
-    div
-        [ class "button_container" ]
-        [ div
-            [ class "button_primary" ]
-            [ a [ href "/hoge" ] [ text phrase ]
-            ]
-        ]
 
 
 main : Program () Model Msg

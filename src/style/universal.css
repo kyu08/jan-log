@@ -1,4 +1,4 @@
-/* 共通スタイル */
+/* ビルトインクラスの共通スタイル */
 [data-elm-hot="true"] {
   height: inherit;
 }
@@ -23,3 +23,4 @@ a {
   color: inherit;
   text-decoration: none;
 }
+

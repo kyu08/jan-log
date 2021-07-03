@@ -1,22 +1,40 @@
 module Home exposing (view)
 
+import Html exposing (Html, a, div, text)
+import Html.Attributes exposing (class, href)
+import Route
+
+
+
 -- VIEW
 
 
 view : Html msg
 view =
-    div [ class "main_container" ]
-        [ viewButton "今までの結果をみる" ClickedHistoryButton
-        , viewButton "新規作成" ClickedNewButton
+    let
+        routes =
+            Route.routes
+
+        phrases =
+            Route.phrases
+    in
+    div
+        [ class "container" ]
+        [ viewButton phrases.history routes.history
+        , viewButton phrases.newGame routes.newGame
         ]
 
 
-viewButton : String -> Msg -> Html Msg
-viewButton phrase clickedMsg =
-    div [ class "button_container", onClick clickedMsg ]
-        [ div [ class "button_primary" ] [ text phrase ]
+type alias PathString =
+    String
+
+
+viewButton : String -> PathString -> Html msg
+viewButton phrase pathString =
+    div
+        [ class "home_button_container" ]
+        [ div
+            [ class "home_button_primary" ]
+            [ a [ href pathString ] [ text phrase ]
+            ]
         ]
-
-
-
--- MSG AND UPDATE

@@ -1,4 +1,4 @@
-module Route exposing (Route(..), fromUrl, parser)
+module Route exposing (Route(..), fromUrl, parser, phrases, routes)
 
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
@@ -15,12 +15,25 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map NewGame (s "newGame")
-        , Parser.map History (s "history")
+        , Parser.map NewGame (s routes.newGame)
+        , Parser.map History (s routes.history)
         ]
 
 
 fromUrl : Url -> Maybe Route
 fromUrl url =
-    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
-        |> Parser.parse parser
+    Parser.parse
+        parser
+        url
+
+
+routes =
+    { newGame = "newGame"
+    , history = "history"
+    }
+
+
+phrases =
+    { newGame = "新規作成"
+    , history = "今までの成績をみる"
+    }

@@ -1,6 +1,5 @@
-/* TODO: ファイルごとに prefix をつけて一意になるようにする...? */
-/* Main.elm 用のスタイル */
-.main_container {
+/* Home.elm 用のスタイル */
+.container {
   margin-top: 30px;
   display: flex;
   flex-flow: column;
@@ -10,7 +9,7 @@
   align-items: center;
 }
 
-.button_primary {
+.home_button_primary {
   display: flex;
   color: white;
   background-color: #6C733D;
@@ -22,6 +21,7 @@
   cursor: pointer;
 }
 
-.button_container {
+.home_button_container {
   margin: 10px 5px;
 }
+
