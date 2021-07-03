@@ -1,14 +1,4 @@
 /* Home.elm 用のスタイル */
-.container {
-  margin-top: 30px;
-  display: flex;
-  flex-flow: column;
-  padding: 10px;
-  width: 100%;
-  max-width: 500px;
-  align-items: center;
-}
-
 .home_button_primary {
   display: flex;
   color: white;
