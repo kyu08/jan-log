@@ -6,8 +6,10 @@ import EditGame
 import Home
 import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
+import Random
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UUID exposing (UUID)
 import Url
 
 
@@ -40,7 +42,7 @@ toKey model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    maybeRouteToModel (Route.fromUrl url) (Home key)
+    maybeRouteToModel url (Home key)
 
 
 
@@ -48,40 +50,44 @@ init _ url key =
 
 
 type Msg
-    = UrlChanged Url.Url
-    | LinkClicked Browser.UrlRequest
+    = ClickedLink Browser.UrlRequest
+    | ChangedUrl Url.Url
     | GotEditGameMsg EditGame.Msg
+    | UUIDGenerated UUID
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
-        ( UrlChanged url, _ ) ->
-            maybeRouteToModel (Route.fromUrl url) model
-
-        ( LinkClicked urlRequest, _ ) ->
+        ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    let
-                        cmd =
-                            Nav.pushUrl (toKey model) (Url.toString url)
-                    in
-                    maybeRouteToModel (Route.fromUrl url) model
+                    ( model
+                    , Nav.pushUrl (toKey model) (Url.toString url)
+                    )
 
                 Browser.External href ->
                     ( model, Nav.load href )
+
+        ( ChangedUrl url, _ ) ->
+            maybeRouteToModel url model
 
         ( GotEditGameMsg subMsg, EditGame subModel ) ->
             EditGame.update subMsg subModel
                 |> updateWith EditGame GotEditGameMsg
 
+        -- ( UUIDGenerated value, Home _ ) ->
+        --     ( model, Cmd.none )
         ( _, _ ) ->
             ( model, Cmd.none )
 
 
-maybeRouteToModel : Maybe Route.Route -> Model -> ( Model, Cmd Msg )
-maybeRouteToModel maybeRoute model =
+maybeRouteToModel : Url.Url -> Model -> ( Model, Cmd Msg )
+maybeRouteToModel url model =
     let
+        maybeRoute =
+            Route.fromUrl url
+
         session =
             toSession model
     in
@@ -96,11 +102,10 @@ maybeRouteToModel maybeRoute model =
             ( History session, Cmd.none )
 
         Just (Route.EditGame gameId) ->
-            updateWith
-                EditGame
-                GotEditGameMsg
-                (EditGame.init gameId session)
+            ( EditGame (EditGame.initModel gameId session), Cmd.none )
 
+        -- Just Route.Home ->
+        --     ( Home session "", Random.generate UUIDGenerated UUID.generator )
         Just Route.Home ->
             ( Home session, Cmd.none )
 
@@ -168,6 +173,6 @@ main =
         , init = init
         , update = update
         , subscriptions = always Sub.none
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClicked
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         }

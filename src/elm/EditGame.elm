@@ -1,4 +1,4 @@
-module EditGame exposing (GameId, Model(..), Msg, init, toSession, update, view)
+module EditGame exposing (GameId, Model(..), Msg, init, initModel, toSession, update, view)
 
 import Array exposing (Array)
 import Html exposing (Html, table, td, text, textarea, th, tr)
@@ -103,10 +103,11 @@ type alias GameId =
     String
 
 
-type alias InitConfig =
-    { key : Session
-    , gameId : GameId
-    }
+
+-- type alias InitConfig =
+--     { key : Session
+--     , gameId : GameId
+--     }
 
 
 initGameInfo : GameInfo
@@ -135,9 +136,9 @@ initRounds =
     }
 
 
-init : GameId -> Session -> ( Model, Cmd Msg )
-init gameId session =
-    ( FourPlayersGame
+initModel : GameId -> Session -> Model
+initModel gameId session =
+    FourPlayersGame
         { session = session
         , gameId = gameId
         , gameInfo = initGameInfo
@@ -147,6 +148,11 @@ init gameId session =
             Array.repeat 4
                 initRounds
         }
+
+
+init : GameId -> Session -> ( Model, Cmd Msg )
+init gameId session =
+    ( initModel gameId session
     , Cmd.none
     )
 
