@@ -8,14 +8,20 @@ import Session exposing (Session)
 
 {-| TODO:
 
-1.  model に状態として持つ -> view に表示
+1.  model に状態として持つ -> view に表示(いまここ)
 
-2.  Total ~ ゲーム代込み まで計算結果を表示できるようにする
+2.  編集 -> model 更新できるようにする
 
-3.  rate などのconfig を表示する(いったんは固定値でOK)
+3.  Total ~ ゲーム代込み まで計算結果を表示できるようにする
 
-4.  rate などのconfig を変更できるようにする
-      - 4人うちと5人うちどうやって状態もつ？
+4.  rate などのconfig を表示する(いったんは固定値でOK)
+
+5.  rate などのconfig を変更できるようにする
+
+
+## memo
+
+  - 3人うちと4人うちと5人うちどうやって状態もつ？
 
 -}
 type alias ThreePlayersRound =
