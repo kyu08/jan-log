@@ -1,4 +1,4 @@
-module Home exposing (init, update, view)
+module Home exposing (Model, Msg, init, initModel, toSession, update, view)
 
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, href)
@@ -24,9 +24,23 @@ initModel session =
     { session = session, newGameId = Generating }
 
 
+initCmd : Cmd Msg
+initCmd =
+    Random.generate UUIDGenerated UUID.generator
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( initModel session, Random.generate UUIDGenerated UUID.generator )
+    ( initModel session, initCmd )
+
+
+toSession : Model -> Session
+toSession model =
+    model.session
+
+
+
+-- MSG, UPDATE
 
 
 type Msg
@@ -56,7 +70,7 @@ view model =
     div
         []
         [ viewButton phrases.history routes.history
-        , viewButton phrases.editGame (toNewRoomUrl routes.editGame model)
+        , viewButton phrases.newGame (toNewRoomUrl routes.editGame model)
         ]
 
 

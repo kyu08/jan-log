@@ -35,6 +35,6 @@ routes =
 
 
 phrases =
-    { editGame = "新規作成"
+    { newGame = "新規作成"
     , history = "今までの成績をみる"
     }

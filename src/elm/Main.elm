@@ -6,7 +6,6 @@ import EditGame
 import Home
 import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
-import Random
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UUID exposing (UUID)
@@ -19,30 +18,30 @@ import Url
 
 type Model
     = NotFound Session
-    | Home Session
+    | Home Home.Model
     | EditGame EditGame.Model
     | History Session
 
 
-toKey : Model -> Nav.Key
-toKey model =
-    case model of
-        NotFound nav ->
-            nav
-
-        Home nav ->
-            nav
-
-        EditGame model_ ->
-            EditGame.toSession model_
-
-        History nav ->
-            nav
-
-
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    maybeRouteToModel url (Home key)
+    maybeRouteToModel url (Home <| Home.initModel key)
+
+
+toSession : Model -> Session
+toSession model =
+    case model of
+        NotFound session ->
+            session
+
+        Home subModel ->
+            Home.toSession subModel
+
+        EditGame subModel ->
+            EditGame.toSession subModel
+
+        History session ->
+            session
 
 
 
@@ -53,6 +52,7 @@ type Msg
     = ClickedLink Browser.UrlRequest
     | ChangedUrl Url.Url
     | GotEditGameMsg EditGame.Msg
+    | GotHomeMsg Home.Msg
     | UUIDGenerated UUID
 
 
@@ -63,7 +63,7 @@ update msg model =
             case urlRequest of
                 Browser.Internal url ->
                     ( model
-                    , Nav.pushUrl (toKey model) (Url.toString url)
+                    , Nav.pushUrl (toSession model) (Url.toString url)
                     )
 
                 Browser.External href ->
@@ -76,8 +76,10 @@ update msg model =
             EditGame.update subMsg subModel
                 |> updateWith EditGame GotEditGameMsg
 
-        -- ( UUIDGenerated value, Home _ ) ->
-        --     ( model, Cmd.none )
+        ( GotHomeMsg subMsg, Home subModel ) ->
+            Home.update subMsg subModel
+                |> updateWith Home GotHomeMsg
+
         ( _, _ ) ->
             ( model, Cmd.none )
 
@@ -104,10 +106,15 @@ maybeRouteToModel url model =
         Just (Route.EditGame gameId) ->
             ( EditGame (EditGame.initModel gameId session), Cmd.none )
 
-        -- Just Route.Home ->
-        --     ( Home session "", Random.generate UUIDGenerated UUID.generator )
         Just Route.Home ->
-            ( Home session, Cmd.none )
+            let
+                ( model_, cmd ) =
+                    updateWith
+                        Home
+                        GotHomeMsg
+                        (Home.init session)
+            in
+            ( model_, cmd )
 
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
@@ -115,22 +122,6 @@ updateWith toModel toMsg ( subModel, subCmd ) =
     ( toModel subModel
     , Cmd.map toMsg subCmd
     )
-
-
-toSession : Model -> Session
-toSession model =
-    case model of
-        NotFound session ->
-            session
-
-        Home session ->
-            session
-
-        EditGame subModel ->
-            EditGame.toSession subModel
-
-        History session ->
-            session
 
 
 
@@ -149,9 +140,9 @@ view model =
             NotFound _ ->
                 viewContainer <| text "not found"
 
-            Home _ ->
+            Home subModel ->
                 viewContainer <|
-                    Home.view
+                    Home.view subModel
 
             EditGame subModel ->
                 viewContainer <|
@@ -164,6 +155,10 @@ view model =
                         [ text "history"
                         ]
     }
+
+
+
+-- MAIN
 
 
 main : Program () Model Msg
