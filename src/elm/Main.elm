@@ -6,7 +6,8 @@ import EditGame
 import Home
 import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
-import Route
+import Route exposing (Route(..))
+import Session exposing (Session)
 import Url
 
 
@@ -15,10 +16,10 @@ import Url
 
 
 type Model
-    = NotFound Nav.Key
-    | Home Nav.Key
-    | EditGame Nav.Key
-    | History Nav.Key
+    = NotFound Session
+    | Home Session
+    | EditGame EditGame.Model
+    | History Session
 
 
 toKey : Model -> Nav.Key
@@ -30,8 +31,8 @@ toKey model =
         Home nav ->
             nav
 
-        EditGame nav ->
-            nav
+        EditGame model_ ->
+            EditGame.toSession model_
 
         History nav ->
             nav
@@ -39,7 +40,7 @@ toKey model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( maybeRouteToModel (Route.fromUrl url) key, Cmd.none )
+    maybeRouteToModel (Route.fromUrl url) (Home key)
 
 
 
@@ -49,49 +50,82 @@ init _ url key =
 type Msg
     = UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
+    | GotEditGameMsg EditGame.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        UrlChanged url ->
-            ( changeRouteTo (Route.fromUrl url) model, Cmd.none )
+    case ( msg, model ) of
+        ( UrlChanged url, _ ) ->
+            maybeRouteToModel (Route.fromUrl url) model
 
-        LinkClicked urlRequest ->
+        ( LinkClicked urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
                     let
                         cmd =
                             Nav.pushUrl (toKey model) (Url.toString url)
                     in
-                    ( changeRouteTo (Route.fromUrl url) model, cmd )
+                    maybeRouteToModel (Route.fromUrl url) model
 
                 Browser.External href ->
                     ( model, Nav.load href )
 
+        ( GotEditGameMsg subMsg, EditGame subModel ) ->
+            EditGame.update subMsg subModel
+                |> updateWith EditGame GotEditGameMsg
 
-maybeRouteToModel : Maybe Route.Route -> (Nav.Key -> Model)
-maybeRouteToModel maybeRoute =
+        ( _, _ ) ->
+            ( model, Cmd.none )
+
+
+maybeRouteToModel : Maybe Route.Route -> Model -> ( Model, Cmd Msg )
+maybeRouteToModel maybeRoute model =
+    let
+        session =
+            toSession model
+    in
     case maybeRoute of
         Nothing ->
-            NotFound
+            ( NotFound session, Cmd.none )
 
         Just Route.NotFound ->
-            NotFound
+            ( NotFound session, Cmd.none )
 
         Just Route.History ->
-            History
+            ( History session, Cmd.none )
 
-        Just Route.EditGame ->
-            EditGame
+        Just (Route.EditGame gameId) ->
+            updateWith
+                EditGame
+                GotEditGameMsg
+                (EditGame.init gameId session)
 
         Just Route.Home ->
-            Home
+            ( Home session, Cmd.none )
 
 
-changeRouteTo : Maybe Route.Route -> Model -> Model
-changeRouteTo maybeRoute model =
-    maybeRouteToModel maybeRoute <| toKey model
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
+
+toSession : Model -> Session
+toSession model =
+    case model of
+        NotFound session ->
+            session
+
+        Home session ->
+            session
+
+        EditGame subModel ->
+            EditGame.toSession subModel
+
+        History session ->
+            session
 
 
 
@@ -114,9 +148,9 @@ view model =
                 viewContainer <|
                     Home.view
 
-            EditGame _ ->
+            EditGame subModel ->
                 viewContainer <|
-                    EditGame.view
+                    EditGame.view subModel
 
             History _ ->
                 viewContainer <|

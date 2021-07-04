@@ -21,7 +21,7 @@ view =
     div
         []
         [ viewButton phrases.history routes.history
-        , viewButton phrases.newGame routes.newGame
+        , viewButton phrases.editGame routes.editGame
         ]
 
 
