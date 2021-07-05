@@ -18,48 +18,13 @@ import Session exposing (Session)
 
 5.  rate などのconfig を変更できるようにする
 
-
-## memo
-
-  - 3人うちと4人うちと5人うちどうやって状態もつ？
-
 -}
-type alias Hogr =
+type alias Points =
     Array Int
 
 
-type alias FourPlayersRound =
-    { player1Point : Int
-    , player2Point : Int
-    , player3Point : Int
-    , player4Point : Int
-    }
-
-
-type alias FourPlayers =
-    { player1Name : String
-    , player2Name : String
-    , player3Name : String
-    , player4Name : String
-    }
-
-
-type alias FivePlayersRound =
-    { player1Point : Int
-    , player2Point : Int
-    , player3Point : Int
-    , player4Point : Int
-    , player5Point : Int
-    }
-
-
-type alias FivePlayers =
-    { player1Name : String
-    , player2Name : String
-    , player3Name : String
-    , player4Name : String
-    , player5Name : String
-    }
+type alias Players =
+    Array String
 
 
 type alias GameConfig =
@@ -69,21 +34,17 @@ type alias GameConfig =
     }
 
 
-type Model
-    = FourPlayersGame
-        { session : Session
-        , gameId : GameId
-        , gameConfig : GameConfig
-        , players : FourPlayers
-        , rounds : Array FourPlayersRound
-        }
-    | FivePlayersGame
-        { session : Session
-        , gameId : GameId
-        , gameConfig : GameConfig
-        , players : FivePlayers
-        , rounds : Array FivePlayersRound
-        }
+type alias Rounds =
+    Array Points
+
+
+type alias Model =
+    { session : Session
+    , gameId : GameId
+    , gameConfig : GameConfig
+    , players : Players
+    , rounds : Rounds
+    }
 
 
 {-| UUID
@@ -100,71 +61,33 @@ initGameInfo =
     }
 
 
-initPlayers : FourPlayers
+{-| TODO: Players.elm をつくってファクトリーメソッドをつくる
+-}
+initPlayers : Players
 initPlayers =
-    { player1Name = "player1"
-    , player2Name = "player2"
-    , player3Name = "player3"
-    , player4Name = "player4"
-    }
+    Array.fromList [ "player1", "player2", "player3", "player4" ]
 
 
-initRounds : FourPlayersRound
+{-| TODO: Players.elm をつくってファクトリーメソッドをつくる
+-}
+initRounds : Rounds
 initRounds =
-    { player1Point = 0
-    , player2Point = 0
-    , player3Point = 0
-    , player4Point = 0
-    }
+    Array.repeat 4 <| Array.fromList [ 0, 0, 0, 0 ]
 
 
 initModel : GameId -> Session -> Model
 initModel gameId session =
-    FourPlayersGame
-        { session = session
-        , gameId = gameId
-        , gameConfig = initGameInfo
-        , players =
-            initPlayers
-        , rounds =
-            Array.repeat 4
-                initRounds
-        }
+    { session = session
+    , gameId = gameId
+    , gameConfig = initGameInfo
+    , players = initPlayers
+    , rounds = initRounds
+    }
 
 
 toSession : Model -> Session
 toSession model =
-    case model of
-        FourPlayersGame model_ ->
-            model_.session
-
-        FivePlayersGame model_ ->
-            model_.session
-
-
-
--- toViewConfig : Model -> ViewConfig
--- toViewConfig model =
---     case model of
---         FivePlayersGame gameInfo ->
---             let
---                 { gameConfig, players, rounds } =
---                     gameInfo
---             in
---             { gameConfig = gameConfig
---             , players = players
---             , rounds = rounds
---             }
---         FivePlayersGame gameInfo ->
---             let
---                 { gameConfig, players, rounds } =
---                     gameInfo
---             in
---             { gameConfig = gameConfig
---             , players = players
---             , rounds = rounds
---             }
--- UPDATE, MSG
+    model.session
 
 
 type Msg
@@ -234,7 +157,7 @@ view model =
     in
     table
         [ class "editGame_table" ]
-        [ viewEditableTrTh "" model.players
+        [ viewEditableTrTh "" "player" "player" "player" "player" "player"
         , viewEditableTrTd "1" "12000" "12000" "120000" "12000" "12000"
         , viewEditableTrTd "2" "12000" "12000" "12000" "12000" "12000"
         , viewEditableTrTd "3" "12000" "12000" "12000" "12000" "12000"
