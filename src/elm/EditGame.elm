@@ -24,18 +24,8 @@ import Session exposing (Session)
   - 3人うちと4人うちと5人うちどうやって状態もつ？
 
 -}
-type alias ThreePlayersRound =
-    { player1Point : Int
-    , player2Point : Int
-    , player3Point : Int
-    }
-
-
-type alias ThreePlayers =
-    { player1Name : String
-    , player2Name : String
-    , player3Name : String
-    }
+type alias Hogr =
+    Array Int
 
 
 type alias FourPlayersRound =
@@ -72,7 +62,7 @@ type alias FivePlayers =
     }
 
 
-type alias GameInfo =
+type alias GameConfig =
     { rate : Int
     , chipRate : Int
     , gameFee : Int
@@ -80,24 +70,17 @@ type alias GameInfo =
 
 
 type Model
-    = ThreePlayersGame
+    = FourPlayersGame
         { session : Session
         , gameId : GameId
-        , gameInfo : GameInfo
-        , players : ThreePlayers
-        , rounds : Array ThreePlayersRound
-        }
-    | FourPlayersGame
-        { session : Session
-        , gameId : GameId
-        , gameInfo : GameInfo
+        , gameConfig : GameConfig
         , players : FourPlayers
         , rounds : Array FourPlayersRound
         }
     | FivePlayersGame
         { session : Session
         , gameId : GameId
-        , gameInfo : GameInfo
+        , gameConfig : GameConfig
         , players : FivePlayers
         , rounds : Array FivePlayersRound
         }
@@ -109,7 +92,7 @@ type alias GameId =
     String
 
 
-initGameInfo : GameInfo
+initGameInfo : GameConfig
 initGameInfo =
     { rate = 0
     , chipRate = 0
@@ -140,7 +123,7 @@ initModel gameId session =
     FourPlayersGame
         { session = session
         , gameId = gameId
-        , gameInfo = initGameInfo
+        , gameConfig = initGameInfo
         , players =
             initPlayers
         , rounds =
@@ -152,9 +135,6 @@ initModel gameId session =
 toSession : Model -> Session
 toSession model =
     case model of
-        ThreePlayersGame model_ ->
-            model_.session
-
         FourPlayersGame model_ ->
             model_.session
 
@@ -163,6 +143,27 @@ toSession model =
 
 
 
+-- toViewConfig : Model -> ViewConfig
+-- toViewConfig model =
+--     case model of
+--         FivePlayersGame gameInfo ->
+--             let
+--                 { gameConfig, players, rounds } =
+--                     gameInfo
+--             in
+--             { gameConfig = gameConfig
+--             , players = players
+--             , rounds = rounds
+--             }
+--         FivePlayersGame gameInfo ->
+--             let
+--                 { gameConfig, players, rounds } =
+--                     gameInfo
+--             in
+--             { gameConfig = gameConfig
+--             , players = players
+--             , rounds = rounds
+--             }
 -- UPDATE, MSG
 
 
@@ -179,6 +180,11 @@ update msg model =
 
 
 -- VIEW
+-- type alias ViewConfig =
+--     { gameConfig : GameConfig
+--     , players : FourPlayers
+--     , rounds : Array FourPlayersRound
+--     }
 
 
 view : Model -> Html msg
@@ -190,17 +196,20 @@ view model =
         viewNotEditableTd content =
             td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value content, disabled True ] [] ]
 
-        viewTh content =
+        viewEditableTh content =
+            th [ class "editGame_th" ] [ textarea [ class "editGame_input", value content ] [] ]
+
+        viewNotEditableTh content =
             th [ class "editGame_th" ] [ text content ]
 
-        viewTrTh property player1Name player2Name player3Name player4Name player5Name =
+        viewEditableTrTh property player1Name player2Name player3Name player4Name player5Name =
             tr [ class "editGame_tr" ]
-                [ viewTh property
-                , viewTh player1Name
-                , viewTh player2Name
-                , viewTh player3Name
-                , viewTh player4Name
-                , viewTh player5Name
+                [ viewNotEditableTh property
+                , viewEditableTh player1Name
+                , viewEditableTh player2Name
+                , viewEditableTh player3Name
+                , viewEditableTh player4Name
+                , viewEditableTh player5Name
                 ]
 
         viewEditableTrTd roundNumber player1Point player2Point player3Point player4Point player5Point =
@@ -225,7 +234,7 @@ view model =
     in
     table
         [ class "editGame_table" ]
-        [ viewTrTh "" "player1" "player2" "player3" "player4" "player5"
+        [ viewEditableTrTh "" model.players
         , viewEditableTrTd "1" "12000" "12000" "120000" "12000" "12000"
         , viewEditableTrTd "2" "12000" "12000" "12000" "12000" "12000"
         , viewEditableTrTd "3" "12000" "12000" "12000" "12000" "12000"
