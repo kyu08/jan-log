@@ -146,7 +146,8 @@ view model =
 
             EditGame subModel ->
                 viewContainer <|
-                    EditGame.view subModel
+                    EditGame.view <|
+                        EditGame.toViewConfig subModel
 
             History _ ->
                 viewContainer <|

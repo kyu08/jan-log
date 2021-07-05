@@ -1,4 +1,4 @@
-module EditGame exposing (GameId, Model, Msg, initModel, toSession, update, view)
+module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig, update, view)
 
 import Array exposing (Array)
 import Html exposing (Html, table, td, text, textarea, th, tr)
@@ -94,6 +94,14 @@ type Msg
     = UpdatedPoint Int Int
 
 
+toViewConfig : Model -> ViewConfig
+toViewConfig { gameConfig, players, rounds } =
+    { gameConfig = gameConfig
+    , players = players
+    , rounds = rounds
+    }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -103,15 +111,17 @@ update msg model =
 
 
 -- VIEW
--- type alias ViewConfig =
---     { gameConfig : GameConfig
---     , players : FourPlayers
---     , rounds : Array FourPlayersRound
---     }
 
 
-view : Model -> Html msg
-view model =
+type alias ViewConfig =
+    { gameConfig : GameConfig
+    , players : Players
+    , rounds : Rounds
+    }
+
+
+view : ViewConfig -> Html msg
+view { gameConfig, players, rounds } =
     let
         viewEditableTd content =
             td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value content ] [] ]
@@ -125,16 +135,15 @@ view model =
         viewNotEditableTh content =
             th [ class "editGame_th" ] [ text content ]
 
-        viewEditableTrTh property player1Name player2Name player3Name player4Name player5Name =
+        viewEditableTrTh : String -> Players -> Html msg
+        viewEditableTrTh property players_ =
             tr [ class "editGame_tr" ]
-                [ viewNotEditableTh property
-                , viewEditableTh player1Name
-                , viewEditableTh player2Name
-                , viewEditableTh player3Name
-                , viewEditableTh player4Name
-                , viewEditableTh player5Name
-                ]
+                ([ viewNotEditableTh property ]
+                    ++ List.map viewEditableTh
+                        (Array.toList players_)
+                )
 
+        -- TODO: ここから
         viewEditableTrTd roundNumber player1Point player2Point player3Point player4Point player5Point =
             tr [ class "editGame_tr" ]
                 [ td [ class "editGame_td" ] [ text roundNumber ]
@@ -157,7 +166,9 @@ view model =
     in
     table
         [ class "editGame_table" ]
-        [ viewEditableTrTh "" "player" "player" "player" "player" "player"
+        [ viewEditableTrTh "" players
+
+        -- [ viewEditableTrTh "" "player" "player" "player" "player" "player"
         , viewEditableTrTd "1" "12000" "12000" "120000" "12000" "12000"
         , viewEditableTrTd "2" "12000" "12000" "12000" "12000" "12000"
         , viewEditableTrTd "3" "12000" "12000" "12000" "12000" "12000"
