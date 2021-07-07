@@ -8,7 +8,7 @@ import Session exposing (Session)
 
 {-| TODO:
 
-1.  model に状態として持つ -> view に表示(いまここ)
+1.  (done)model に状態として持つ -> view に表示
 
 2.  編集 -> model 更新できるようにする
 
@@ -72,7 +72,7 @@ initPlayers =
 -}
 initRounds : Rounds
 initRounds =
-    Array.repeat 4 <| Array.fromList [ 0, 0, 0, 0 ]
+    Array.repeat 4 <| Array.fromList [ 30000, 7000, 20000, 43000 ]
 
 
 initModel : GameId -> Session -> Model
@@ -88,6 +88,13 @@ initModel gameId session =
 toSession : Model -> Session
 toSession model =
     model.session
+
+
+{-| TODO: これ撲滅したい
+-}
+toIntArray : Rounds -> Array (Array Int)
+toIntArray rounds =
+    rounds
 
 
 type Msg
@@ -124,10 +131,10 @@ view : ViewConfig -> Html msg
 view { gameConfig, players, rounds } =
     let
         viewEditableTd content =
-            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value content ] [] ]
+            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value <| String.fromInt content ] [] ]
 
         viewNotEditableTd content =
-            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value content, disabled True ] [] ]
+            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value <| String.fromInt content, disabled True ] [] ]
 
         viewEditableTh content =
             th [ class "editGame_th" ] [ textarea [ class "editGame_input", value content ] [] ]
@@ -143,42 +150,39 @@ view { gameConfig, players, rounds } =
                         (Array.toList players_)
                 )
 
-        -- TODO: ここから
-        viewEditableTrTd roundNumber player1Point player2Point player3Point player4Point player5Point =
+        viewEditableTrTd roundNumber round_ =
             tr [ class "editGame_tr" ]
-                [ td [ class "editGame_td" ] [ text roundNumber ]
-                , viewEditableTd player1Point
-                , viewEditableTd player2Point
-                , viewEditableTd player3Point
-                , viewEditableTd player4Point
-                , viewEditableTd player5Point
-                ]
+                ([ td [ class "editGame_td" ] [ text <| String.fromInt roundNumber ] ]
+                    ++ List.map viewEditableTd (Array.toList round_)
+                )
 
-        viewNotEditableTrTd roundNumber player1Point player2Point player3Point player4Point player5Point =
+        viewNotEditableTrTd roundNumber numbers =
             tr [ class "editGame_tr" ]
-                [ td [ class "editGame_td_notEditable" ] [ text roundNumber ]
-                , viewNotEditableTd player1Point
-                , viewNotEditableTd player2Point
-                , viewNotEditableTd player3Point
-                , viewNotEditableTd player4Point
-                , viewNotEditableTd player5Point
-                ]
+                ([ td [ class "editGame_td_notEditable" ]
+                    [ text roundNumber ]
+                 ]
+                    ++ (List.map viewNotEditableTd <|
+                            Array.toList numbers
+                       )
+                )
     in
     table
         [ class "editGame_table" ]
-        [ viewEditableTrTh "" players
+        ([ viewEditableTrTh "" players ]
+            ++ List.map
+                (\( roundNumber, round ) -> viewEditableTrTd roundNumber round)
+                (List.indexedMap Tuple.pair (Array.toList <| toIntArray rounds))
+            ++ [ viewNotEditableTrTd phrase.pointBalance (Array.repeat 4 100)
+               , viewNotEditableTrTd phrase.chip (Array.repeat 4 100)
+               , viewNotEditableTrTd phrase.balance (Array.repeat 4 100)
+               , viewNotEditableTrTd phrase.totalBalance (Array.repeat 4 100)
+               ]
+        )
 
-        -- [ viewEditableTrTh "" "player" "player" "player" "player" "player"
-        , viewEditableTrTd "1" "12000" "12000" "120000" "12000" "12000"
-        , viewEditableTrTd "2" "12000" "12000" "12000" "12000" "12000"
-        , viewEditableTrTd "3" "12000" "12000" "12000" "12000" "12000"
-        , viewEditableTrTd "4" "12000" "12000" "12000" "12000" "12000"
-        , viewEditableTrTd "5" "12000" "12000" "120000" "12000" "12000"
-        , viewEditableTrTd "6" "12000" "12000" "12000" "12000" "12000"
-        , viewEditableTrTd "7" "12000" "12000" "12000" "12000" "12000"
-        , viewEditableTrTd "8" "12000" "12000" "12000" "12000" "12000"
-        , viewNotEditableTrTd "Total" "12000" "12000" "12000" "12000" "12000"
-        , viewNotEditableTrTd "チップ" "12000" "12000" "12000" "12000" "12000"
-        , viewNotEditableTrTd "収支" "12000" "12000" "12000" "12000" "12000"
-        , viewNotEditableTrTd "ゲーム代込" "12000" "12000" "12000" "12000" "12000"
-        ]
+
+phrase =
+    { pointBalance = "ポイント収支"
+    , chip = "チップ"
+    , balance = "収支"
+    , totalBalance = "トータル収支"
+    }
