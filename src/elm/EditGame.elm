@@ -38,6 +38,16 @@ type alias Rounds =
     Array Points
 
 
+{-| 当初は
+
+    type Model
+        = FourPlayersGame Info
+        | FivePlayersGame Info
+
+のように実装していたが、分岐が増えて大変なので players, rounds をあえて Array で持つことにした。
+詳しくはこちら <https://github.com/kyu08/jan-log/issues/15>
+
+-}
 type alias Model =
     { session : Session
     , gameId : GameId
