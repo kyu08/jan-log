@@ -1,8 +1,8 @@
 module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig, update, view)
 
 import Array exposing (Array)
-import Html exposing (Html, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (class, disabled, maxlength, value)
+import Html exposing (Html, input, table, td, text, textarea, th, tr)
+import Html.Attributes exposing (class, disabled, maxlength, type_, value)
 import Session exposing (Session)
 
 
@@ -10,7 +10,7 @@ import Session exposing (Session)
 
 1.  (done)model に状態として持つ -> view に表示
 
-2.  編集 -> model 更新できるようにする
+2.  (いまここ)編集 -> model 更新できるようにする
 
 3.  Total ~ ゲーム代込み まで計算結果を表示できるようにする
 
@@ -137,17 +137,21 @@ type alias ViewConfig =
     }
 
 
+
+-- 2.  (いまここ)編集 -> model 更新できるようにする
+
+
 view : ViewConfig -> Html msg
 view { gameConfig, players, rounds } =
     let
         viewEditableTd content =
-            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value <| String.fromInt content ] [] ]
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", maxlength 6, value <| String.fromInt content ] [] ]
 
         viewNotEditableTd content =
-            td [ class "editGame_td" ] [ textarea [ class "editGame_input", maxlength 6, value <| String.fromInt content, disabled True ] [] ]
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", maxlength 6, value <| String.fromInt content, disabled True ] [] ]
 
         viewEditableTh content =
-            th [ class "editGame_th" ] [ textarea [ class "editGame_input", value content ] [] ]
+            th [ class "editGame_th" ] [ input [ class "editGame_input", value content ] [] ]
 
         viewNotEditableTh content =
             th [ class "editGame_th" ] [ text content ]
