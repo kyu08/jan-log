@@ -145,10 +145,10 @@ view : ViewConfig -> Html msg
 view { gameConfig, players, rounds } =
     let
         viewEditableTd content =
-            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", maxlength 6, value <| String.fromInt content ] [] ]
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content ] [] ]
 
         viewNotEditableTd content =
-            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", maxlength 6, value <| String.fromInt content, disabled True ] [] ]
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content, disabled True ] [] ]
 
         viewEditableTh content =
             th [ class "editGame_th" ] [ input [ class "editGame_input", value content ] [] ]
