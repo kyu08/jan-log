@@ -139,51 +139,58 @@ type alias ViewConfig =
 
 
 -- 2.  (いまここ)編集 -> model 更新できるようにする
+--  1. player を編集
+--  2. rounds を編集
 
 
 view : ViewConfig -> Html msg
 view { gameConfig, players, rounds } =
     let
-        viewEditableTd content =
-            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content ] [] ]
-
-        viewNotEditableTd content =
-            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content, disabled True ] [] ]
-
-        viewEditableTh content =
-            th [ class "editGame_th" ] [ input [ class "editGame_input", value content ] [] ]
-
+        -- 左上の空白マス
         viewNotEditableTh content =
             th [ class "editGame_th" ] [ text content ]
 
+        -- プレイヤー名入力マス
+        viewEditableTh content =
+            th [ class "editGame_th" ] [ input [ class "editGame_input", value content ] [] ]
+
+        -- 点数入力マス
+        viewEditableTd content =
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content ] [] ]
+
+        -- 計算結果マス
+        viewNotEditableTd content =
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content, disabled True ] [] ]
+
+        -- プレイヤー名入力行
         viewEditableTrTh : String -> Players -> Html msg
         viewEditableTrTh property players_ =
             tr [ class "editGame_tr" ]
-                ([ viewNotEditableTh property ]
-                    ++ List.map viewEditableTh
+                (viewNotEditableTh property
+                    :: List.map viewEditableTh
                         (Array.toList players_)
                 )
 
+        -- 点数入力行
         viewEditableTrTd roundNumber round_ =
             tr [ class "editGame_tr" ]
-                ([ td [ class "editGame_td" ] [ text <| String.fromInt roundNumber ] ]
-                    ++ List.map viewEditableTd (Array.toList round_)
+                (td [ class "editGame_td" ] [ text <| String.fromInt roundNumber ]
+                    :: List.map viewEditableTd (Array.toList round_)
                 )
 
+        -- 計算結果行
         viewNotEditableTrTd roundNumber numbers =
             tr [ class "editGame_tr" ]
-                ([ td [ class "editGame_td_notEditable" ]
-                    [ text roundNumber ]
-                 ]
-                    ++ (List.map viewNotEditableTd <|
+                (td [ class "editGame_td_notEditable" ] [ text roundNumber ]
+                    :: (List.map viewNotEditableTd <|
                             Array.toList numbers
                        )
                 )
     in
     table
         [ class "editGame_table" ]
-        ([ viewEditableTrTh "" players ]
-            ++ List.map
+        (viewEditableTrTh "" players
+            :: List.map
                 (\( roundNumber, round ) -> viewEditableTrTd roundNumber round)
                 (List.indexedMap Tuple.pair (Array.toList <| toIntArray rounds))
             ++ [ viewNotEditableTrTd phrase.pointBalance (Array.repeat 4 100)
