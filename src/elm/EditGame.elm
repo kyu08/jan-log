@@ -11,9 +11,9 @@ import Session exposing (Session)
 
 1.  (done)model に状態として持つ -> view に表示
 
-2.  (いまここ)編集 -> model 更新できるようにする
+2.  編集 -> model 更新できるようにする
 
-3.  Total ~ ゲーム代込み まで計算結果を表示できるようにする
+3.  (いまここ)Total ~ ゲーム代込み まで計算結果を表示できるようにする
 
 4.  rate などのconfig を表示する(いったんは固定値でOK)
 
@@ -101,16 +101,10 @@ toSession model =
     model.session
 
 
-{-| TODO: これ撲滅したい
--}
-toIntArray : Rounds -> Array (Array Int)
-toIntArray rounds =
-    rounds
-
-
 type Msg
     = UpdatedPoint Int Int
     | ChangedPlayerName Int String
+    | ChangedRound Int Int String
 
 
 toViewConfig : Model -> ViewConfig
@@ -132,7 +126,34 @@ update msg model =
                 players =
                     Array.set index playerName model.players
             in
-            ( { model | players = Debug.log "a" players }, Cmd.none )
+            ( { model | players = players }, Cmd.none )
+
+        ChangedRound gameNumber playerIndex point ->
+            let
+                updateRound point_ round =
+                    Array.set gameNumber
+                        (Array.set
+                            playerIndex
+                            point_
+                            round
+                        )
+                        model.rounds
+
+                maybeUpdatedRound =
+                    Maybe.map2
+                        updateRound
+                        (String.toInt point)
+                        (Array.get gameNumber model.rounds)
+
+                nextModel =
+                    case maybeUpdatedRound of
+                        Just updatedRound ->
+                            { model | rounds = updatedRound }
+
+                        Nothing ->
+                            model
+            in
+            ( Debug.log "model " nextModel, Cmd.none )
 
 
 
@@ -162,8 +183,8 @@ view { gameConfig, players, rounds } =
             th [ class "editGame_th" ] [ input [ class "editGame_input", value content, onInput <| ChangedPlayerName index ] [] ]
 
         -- 点数入力マス
-        viewEditableTd content =
-            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content ] [] ]
+        viewEditableTd roundNumber ( playerIndex, content ) =
+            td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content, onInput <| ChangedRound roundNumber playerIndex ] [] ]
 
         -- 計算結果マス
         viewNotEditableTd content =
@@ -174,24 +195,25 @@ view { gameConfig, players, rounds } =
         viewEditableTrTh property players_ =
             tr [ class "editGame_tr" ]
                 (viewNotEditableTh property
-                    :: List.indexedMap viewEditableTh
-                        (Array.toList players_)
+                    :: List.indexedMap viewEditableTh (Array.toList players_)
                 )
 
         -- 点数入力行
         viewEditableTrTd roundNumber round_ =
             tr [ class "editGame_tr" ]
-                (td [ class "editGame_td" ] [ text <| String.fromInt roundNumber ]
-                    :: List.map viewEditableTd (Array.toList round_)
+                (td [ class "editGame_td" ] [ text <| String.fromInt (roundNumber + 1) ]
+                    :: List.indexedMap viewEditableTd
+                        (Array.toIndexedList round_)
                 )
+
+        toIndexedTuple round =
+            List.indexedMap Tuple.pair round
 
         -- 計算結果行
         viewNotEditableTrTd roundNumber numbers =
             tr [ class "editGame_tr" ]
                 (td [ class "editGame_td_notEditable" ] [ text roundNumber ]
-                    :: (List.map viewNotEditableTd <|
-                            Array.toList numbers
-                       )
+                    :: (List.map viewNotEditableTd <| Array.toList numbers)
                 )
     in
     table
@@ -199,7 +221,7 @@ view { gameConfig, players, rounds } =
         (viewEditableTrTh "" players
             :: List.map
                 (\( roundNumber, round ) -> viewEditableTrTd roundNumber round)
-                (List.indexedMap Tuple.pair (Array.toList <| toIntArray rounds))
+                (List.indexedMap Tuple.pair (Array.toList rounds))
             ++ [ viewNotEditableTrTd phrase.pointBalance (Array.repeat 4 100)
                , viewNotEditableTrTd phrase.chip (Array.repeat 4 100)
                , viewNotEditableTrTd phrase.balance (Array.repeat 4 100)
