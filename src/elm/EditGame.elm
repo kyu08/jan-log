@@ -1,8 +1,9 @@
 module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig, update, view)
 
 import Array exposing (Array)
-import Html exposing (Html, input, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (class, disabled, maxlength, type_, value)
+import Html exposing (Html, input, table, td, text, th, tr)
+import Html.Attributes exposing (class, disabled, type_, value)
+import Html.Events exposing (onInput)
 import Session exposing (Session)
 
 
@@ -109,6 +110,7 @@ toIntArray rounds =
 
 type Msg
     = UpdatedPoint Int Int
+    | ChangedPlayerName Int String
 
 
 toViewConfig : Model -> ViewConfig
@@ -125,6 +127,13 @@ update msg model =
         UpdatedPoint roundNumber point ->
             ( model, Cmd.none )
 
+        ChangedPlayerName index playerName ->
+            let
+                players =
+                    Array.set index playerName model.players
+            in
+            ( { model | players = Debug.log "a" players }, Cmd.none )
+
 
 
 -- VIEW
@@ -138,12 +147,10 @@ type alias ViewConfig =
 
 
 
--- 2.  (いまここ)編集 -> model 更新できるようにする
---  1. player を編集
 --  2. rounds を編集
 
 
-view : ViewConfig -> Html msg
+view : ViewConfig -> Html Msg
 view { gameConfig, players, rounds } =
     let
         -- 左上の空白マス
@@ -151,8 +158,8 @@ view { gameConfig, players, rounds } =
             th [ class "editGame_th" ] [ text content ]
 
         -- プレイヤー名入力マス
-        viewEditableTh content =
-            th [ class "editGame_th" ] [ input [ class "editGame_input", value content ] [] ]
+        viewEditableTh index content =
+            th [ class "editGame_th" ] [ input [ class "editGame_input", value content, onInput <| ChangedPlayerName index ] [] ]
 
         -- 点数入力マス
         viewEditableTd content =
@@ -163,11 +170,11 @@ view { gameConfig, players, rounds } =
             td [ class "editGame_td" ] [ input [ class "editGame_input", type_ "number", value <| String.fromInt content, disabled True ] [] ]
 
         -- プレイヤー名入力行
-        viewEditableTrTh : String -> Players -> Html msg
+        viewEditableTrTh : String -> Players -> Html Msg
         viewEditableTrTh property players_ =
             tr [ class "editGame_tr" ]
                 (viewNotEditableTh property
-                    :: List.map viewEditableTh
+                    :: List.indexedMap viewEditableTh
                         (Array.toList players_)
                 )
 

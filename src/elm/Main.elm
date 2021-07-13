@@ -146,8 +146,9 @@ view model =
 
             EditGame subModel ->
                 viewContainer <|
-                    EditGame.view <|
-                        EditGame.toViewConfig subModel
+                    Html.map GotEditGameMsg <|
+                        EditGame.view <|
+                            EditGame.toViewConfig subModel
 
             History _ ->
                 viewContainer <|
