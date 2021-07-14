@@ -1,6 +1,6 @@
 module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig, update, view)
 
-import Array exposing (Array)
+import Array exposing (Array, foldl)
 import Html exposing (Html, input, table, td, text, th, tr)
 import Html.Attributes exposing (class, disabled, type_, value)
 import Html.Events exposing (onInput)
@@ -20,8 +20,12 @@ import Session exposing (Session)
 5.  rate などのconfig を変更できるようにする
 
 -}
+type alias Point =
+    Int
+
+
 type alias Points =
-    Array Int
+    Array Point
 
 
 type alias Players =
@@ -252,6 +256,27 @@ viewNotEditableTrTd roundNumber numbers =
         (td [ class "editGame_td_notEditable" ] [ text roundNumber ]
             :: (List.map viewNotEditableTd <| Array.toList numbers)
         )
+
+
+{-| fold とかすれば reduce みたいなことできそう
+-}
+calculateTotalPoint : Rounds -> Array Int
+calculateTotalPoint rounds =
+    Array.foldl imcrementPointByPlayer
+        (Array.repeat (Array.length rounds) 0)
+        rounds
+
+
+imcrementPointByPlayer : Round ->  Round-> Array Int
+imcrementPointByPlayer round1 round2  =
+  
+
+
+
+
+
+
+-- Const
 
 
 phrase : { pointBalance : String, chip : String, balance : String, totalBalance : String }
