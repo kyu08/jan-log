@@ -1,4 +1,12 @@
-module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig, update, view)
+module EditGame exposing
+    ( GameId
+    , Model
+    , Msg
+    , initModel
+    , toSession
+    , update
+    , view
+    )
 
 {-| TODO:
 
@@ -8,15 +16,17 @@ module EditGame exposing (GameId, Model, Msg, initModel, toSession, toViewConfig
 
 3.  (いまここ)Total ~ ゲーム代込み まで計算結果を表示できるようにする
 
-4.  rate などのconfig を表示する(いったんは固定値でOK)
+4.  チップを model にもたせる & 編集できるようにする
 
-5.  rate などのconfig を変更できるようにする
+5.  rate などのconfig を表示する(いったんは固定値でOK)
+
+6.  rate などのconfig を変更できるようにする
 
 -}
 
-import Array exposing (Array, foldl)
-import Html exposing (Html, div, input, table, td, text, th, tr)
-import Html.Attributes exposing (class, disabled, type_, value)
+import Array exposing (Array)
+import Html exposing (Html, input, table, td, text, th, tr)
+import Html.Attributes exposing (class, disabled, value)
 import Html.Events exposing (onInput)
 import Session exposing (Session)
 
@@ -68,7 +78,7 @@ type alias Round =
 
 
 type alias Point =
-    Int
+    String
 
 
 initGameInfo : GameConfig
@@ -93,7 +103,7 @@ initRounds =
     Array.initialize
         4
         -- 4
-        (\_ -> Array.initialize 4 (always 0))
+        (\_ -> Array.initialize 4 (always ""))
 
 
 initModel : GameId -> Session -> Model
@@ -111,26 +121,29 @@ toSession model =
     model.session
 
 
+
+-- MSG, UPDATE
+
+
 type Msg
-    = UpdatedPoint Int Int
-    | ChangedPlayerName Int String
+    = ChangedPlayerName Int String
     | ChangedPoint Int Int String
 
 
-toViewConfig : Model -> ViewConfig
-toViewConfig { gameConfig, players, rounds } =
-    { gameConfig = gameConfig
-    , players = players
-    , rounds = rounds
-    }
+toIntRounds : Rounds -> Array (Array Int)
+toIntRounds rounds =
+    Array.map
+        (\round ->
+            Array.map
+                (\point -> Maybe.withDefault 0 (String.toInt point))
+                round
+        )
+        rounds
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdatedPoint roundNumber point ->
-            ( model, Cmd.none )
-
         ChangedPlayerName index playerName ->
             let
                 players =
@@ -150,9 +163,8 @@ update msg model =
                         model.rounds
 
                 maybeUpdatedRound =
-                    Maybe.map2
-                        updateRound
-                        (String.toInt point)
+                    Maybe.map
+                        (updateRound point)
                         (Array.get gameNumber model.rounds)
 
                 nextModel =
@@ -186,8 +198,6 @@ view { gameConfig, players, rounds } =
                 (\( roundNumber, round ) -> viewEditableTrTd roundNumber round)
                 (List.indexedMap Tuple.pair (Array.toList rounds))
             ++ [ viewNotEditableTrTd phrase.pointBalance (calculateTotalPoints rounds)
-
-               -- ++ [ viewNotEditableTrTd phrase.pointBalance (Array.repeat 4 100)
                , viewNotEditableTrTd phrase.chip (Array.repeat 4 100)
                , viewNotEditableTrTd phrase.balance (Array.repeat 4 100)
                , viewNotEditableTrTd phrase.totalBalance (Array.repeat 4 100)
@@ -208,17 +218,25 @@ viewEditableTh : Int -> String -> Html Msg
 viewEditableTh index content =
     th
         [ class "editGame_th" ]
-        [ input [ class "editGame_input", value content, onInput <| ChangedPlayerName index ] [] ]
+        [ input
+            [ class "editGame_input"
+            , value content
+            , onInput <| ChangedPlayerName index
+            ]
+            []
+        ]
 
 
 type alias EditableTdConfig =
     { roundNumber : Int
     , playerIndex : Int
-    , point : Int
+    , point : String
     }
 
 
 {-| 点数入力マス
+Point: String でもたないと、input の中身を空にできない
+String <-> Int の変換関数をつくっておいて model では常に String でもつ？
 -}
 viewEditableTd : EditableTdConfig -> Html Msg
 viewEditableTd { roundNumber, playerIndex, point } =
@@ -226,8 +244,7 @@ viewEditableTd { roundNumber, playerIndex, point } =
         [ class "editGame_td" ]
         [ input
             [ class "editGame_input"
-            , type_ "number"
-            , value <| String.fromInt point
+            , value point
             , onInput <| ChangedPoint roundNumber playerIndex
             ]
             []
@@ -241,7 +258,10 @@ viewNotEditableTd content =
     td
         [ class "editGame_td" ]
         [ input
-            [ class "editGame_input", type_ "number", value <| String.fromInt content, disabled True ]
+            [ class "editGame_input"
+            , value <| String.fromInt content
+            , disabled True
+            ]
             []
         ]
 
@@ -258,7 +278,7 @@ viewEditableTrTh property players_ =
 
 {-| 点数入力行
 -}
-viewEditableTrTd : Int -> Array Int -> Html Msg
+viewEditableTrTd : Int -> Array String -> Html Msg
 viewEditableTrTd roundNumber round_ =
     tr [ class "editGame_tr" ]
         (td [ class "editGame_td" ] [ text <| String.fromInt (roundNumber + 1) ]
@@ -286,7 +306,6 @@ viewNotEditableTrTd roundNumber numbers =
 
 
 {-| Rounds から計算した収支などのデータ
-TODO: 命名はもう少し考えよう
 -}
 type alias Stats =
     Array Stat
@@ -301,7 +320,7 @@ calculateTotalPoints rounds =
     Array.foldl
         incrementPointByPlayer
         Array.empty
-        rounds
+        (toIntRounds rounds)
 
 
 incrementPointByPlayer : Array Int -> Array Int -> Array Int
@@ -324,11 +343,11 @@ incrementPointByPlayer round reducedValue =
 
     else
         case ( maybeRoundHead, maybeReducedValueHead ) of
-            ( Just head1, Just head2 ) ->
+            ( Just roundHead, Just reducedValueHead ) ->
                 Array.append
                     (Array.initialize
                         1
-                        (\_ -> head1 + head2)
+                        (\_ -> roundHead + reducedValueHead)
                     )
                     (incrementPointByPlayer
                         roundTail
@@ -340,29 +359,13 @@ incrementPointByPlayer round reducedValue =
 
 
 
--- ( Nothing, Nothing ) ->
---     reducedValue
--- ( Just head1, Nothing ) ->
---     incrementPointByPlayer
---         tail
---         (Array.append
---             (Array.initialize 1 (\_ -> head1))
---             reducedValue
---         )
--- ( Nothing, Just head2 ) ->
---     incrementPointByPlayer
---         Array.empty
---         (Array.append
---             (Array.initialize 1 (\_ -> head2))
---             reducedValue
---         )
 -- Const
 
 
 phrase : { pointBalance : String, chip : String, balance : String, totalBalance : String }
 phrase =
-    { pointBalance = "ポイント収支"
-    , chip = "チップ"
+    { pointBalance = "点棒収支"
+    , chip = "チップ(枚数)"
     , balance = "収支"
     , totalBalance = "トータル収支"
     }
