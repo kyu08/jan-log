@@ -7,12 +7,6 @@ module EditGame exposing
     , view
     )
 
-{-| TODO:
-
-1.  rate などのconfig を変更できるようにする
-
--}
-
 import Array exposing (Array)
 import GameId exposing (GameId)
 import Html exposing (Html, div, input, label, table, td, text, th, tr)
@@ -176,11 +170,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
     case msg of
         ChangedPlayerName index playerName ->
-            let
-                players_ =
-                    Array.set index playerName players
-            in
-            ( { m | players = players_ }, Cmd.none )
+            ( { m | players = Array.set index playerName players }, Cmd.none )
 
         ChangedPoint gameNumber playerIndex point ->
             let
@@ -209,38 +199,19 @@ update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
             ( nextModel, Cmd.none )
 
         ChangedChip playerIndex chip ->
-            let
-                nextChips =
-                    Array.set
-                        playerIndex
-                        chip
-                        chips
-            in
-            ( { m | chips = nextChips }, Cmd.none )
+            ( { m | chips = Array.set playerIndex chip chips }, Cmd.none )
 
         ClickedEditGameConfigButton ->
             ( { m | isOpenEditGameArea = not isOpenEditGameArea }, Cmd.none )
 
         ChangedRate inputValue ->
-            let
-                nextGameConfig =
-                    { gameConfig | rate = inputValue }
-            in
-            ( { m | gameConfig = nextGameConfig }, Cmd.none )
+            ( { m | gameConfig = { gameConfig | rate = inputValue } }, Cmd.none )
 
         ChangedChipRate inputValue ->
-            let
-                nextGameConfig =
-                    { gameConfig | chipRate = inputValue }
-            in
-            ( { m | gameConfig = nextGameConfig }, Cmd.none )
+            ( { m | gameConfig = { gameConfig | chipRate = inputValue } }, Cmd.none )
 
         ChangedGameFee inputValue ->
-            let
-                nextGameConfig =
-                    { gameConfig | gameFee = inputValue }
-            in
-            ( { m | gameConfig = nextGameConfig }, Cmd.none )
+            ( { m | gameConfig = { gameConfig | gameFee = inputValue } }, Cmd.none )
 
 
 
