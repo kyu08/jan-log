@@ -1,13 +1,14 @@
-module Route exposing (Route(..), fromUrl, parser, phrases, routes)
+module Route exposing (Route(..), fromUrl, parser, routes)
 
+import GameId exposing (GameId)
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 
 type Route
     = NotFound
     | Home
-    | NewGame
+    | EditGame GameId
     | History
 
 
@@ -15,7 +16,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map NewGame (s routes.newGame)
+        , Parser.map EditGame (s routes.editGame </> string)
         , Parser.map History (s routes.history)
         ]
 
@@ -28,12 +29,6 @@ fromUrl url =
 
 
 routes =
-    { newGame = "newGame"
+    { editGame = "editGame"
     , history = "history"
-    }
-
-
-phrases =
-    { newGame = "新規作成"
-    , history = "今までの成績をみる"
     }

@@ -1,11 +1,31 @@
 /* 共通で使うクラス */
 .container {
-  margin-top: 30px;
+  margin: 10px;
   display: flex;
   flex-flow: column;
-  padding: 10px;
-  width: 100%;
+  padding: 30px 20px;
+  width: 100% - 50px;
   max-width: 500px;
+  min-height: 200px;
   align-items: center;
+  box-shadow: 0 0 8px gray;
+  background-color: #f2f2f2;
+}
+
+/* Home.elm 用のスタイル */
+.button_primary {
+  display: flex;
+  color: white;
+  background-color: #6C733D;
+  border-radius: 5px;
+  height: 50px;
+  width: 250px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.button_container {
+  margin: 20px 5px;
 }
 

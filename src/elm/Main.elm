@@ -2,10 +2,13 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import EditGame
 import Home
 import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
-import Route
+import Route exposing (Route(..))
+import Session exposing (Session)
+import UUID exposing (UUID)
 import Url
 
 
@@ -14,31 +17,31 @@ import Url
 
 
 type Model
-    = NotFound Nav.Key
-    | Home Nav.Key
-    | NewGame Nav.Key
-    | History Nav.Key
-
-
-toKey : Model -> Nav.Key
-toKey model =
-    case model of
-        NotFound nav ->
-            nav
-
-        Home nav ->
-            nav
-
-        NewGame nav ->
-            nav
-
-        History nav ->
-            nav
+    = NotFound Session
+    | Home Home.Model
+    | EditGame EditGame.Model
+    | History Session
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ _ key =
-    ( Home key, Cmd.none )
+init _ url key =
+    maybeRouteToModel url (Home <| Home.initModel key)
+
+
+toSession : Model -> Session
+toSession model =
+    case model of
+        NotFound session ->
+            session
+
+        Home subModel ->
+            Home.toSession subModel
+
+        EditGame subModel ->
+            EditGame.toSession subModel
+
+        History session ->
+            session
 
 
 
@@ -46,50 +49,70 @@ init _ _ key =
 
 
 type Msg
-    = UrlChanged Url.Url
-    | LinkClicked Browser.UrlRequest
+    = ClickedLink Browser.UrlRequest
+    | ChangedUrl Url.Url
+    | GotEditGameMsg EditGame.Msg
+    | GotHomeMsg Home.Msg
+    | UUIDGenerated UUID
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        UrlChanged url ->
-            ( changeRouteTo (Route.fromUrl url) model, Cmd.none )
-
-        LinkClicked urlRequest ->
+    case ( msg, model ) of
+        ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    let
-                        cmd =
-                            Nav.pushUrl (toKey model) (Url.toString url)
-                    in
-                    ( changeRouteTo (Route.fromUrl url) model, cmd )
+                    ( model
+                    , Nav.pushUrl (toSession model) (Url.toString url)
+                    )
 
                 Browser.External href ->
                     ( model, Nav.load href )
 
+        ( ChangedUrl url, _ ) ->
+            maybeRouteToModel url model
 
-changeRouteTo : Maybe Route.Route -> Model -> Model
-changeRouteTo maybeRoute model =
+        ( GotEditGameMsg subMsg, EditGame subModel ) ->
+            EditGame.update subMsg subModel
+                |> updateWith EditGame GotEditGameMsg
+
+        ( GotHomeMsg subMsg, Home subModel ) ->
+            Home.update subMsg subModel
+                |> updateWith Home GotHomeMsg
+
+        ( _, _ ) ->
+            ( model, Cmd.none )
+
+
+maybeRouteToModel : Url.Url -> Model -> ( Model, Cmd Msg )
+maybeRouteToModel url model =
     let
-        key =
-            toKey model
+        session =
+            toSession model
     in
-    case maybeRoute of
+    case Route.fromUrl url of
         Nothing ->
-            NotFound key
+            ( NotFound session, Cmd.none )
 
         Just Route.NotFound ->
-            NotFound key
+            ( NotFound session, Cmd.none )
 
         Just Route.History ->
-            History key
+            ( History session, Cmd.none )
 
-        Just Route.NewGame ->
-            NewGame key
+        Just (Route.EditGame gameId) ->
+            ( EditGame (EditGame.initModel gameId session), Cmd.none )
 
         Just Route.Home ->
-            Home key
+            updateWith
+                Home
+                GotHomeMsg
+                (Home.init session)
+
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg ( subModel, subCmd ) =
+    ( toModel subModel, Cmd.map toMsg subCmd )
 
 
 
@@ -98,33 +121,36 @@ changeRouteTo maybeRoute model =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        viewContainer content =
+            [ div [ class "container" ] [ content ] ]
+    in
     { title = "Jan-Log"
     , body =
         case model of
             NotFound _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "not found"
-                    ]
-                ]
+                viewContainer <| text "not found"
 
-            Home _ ->
-                [ Home.view ]
+            Home subModel ->
+                viewContainer <|
+                    Home.view subModel
 
-            NewGame _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "newGame"
-                    ]
-                ]
+            EditGame subModel ->
+                viewContainer <|
+                    Html.map GotEditGameMsg <|
+                        EditGame.view subModel
 
             History _ ->
-                [ div
-                    [ class "main_container" ]
-                    [ text "history"
-                    ]
-                ]
+                viewContainer <|
+                    div
+                        [ class "main_container" ]
+                        [ text "history"
+                        ]
     }
+
+
+
+-- MAIN
 
 
 main : Program () Model Msg
@@ -134,6 +160,6 @@ main =
         , init = init
         , update = update
         , subscriptions = always Sub.none
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClicked
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
         }
