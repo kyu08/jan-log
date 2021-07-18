@@ -292,6 +292,51 @@ viewEditGame { gameConfig, players, rounds, chips } =
         )
 
 
+{-| プレイヤー名入力行
+-}
+viewInputPlayersRow : Players -> Html Msg
+viewInputPlayersRow players =
+    tr [ class "editGame_tr" ]
+        (th [ class "editGame_th" ] [ text "" ]
+            :: List.indexedMap viewInputPlayerCell (Array.toList players)
+        )
+
+
+{-| 点棒入力行
+-}
+viewInputRoundRow : Int -> Array String -> Html Msg
+viewInputRoundRow roundNumber round =
+    tr [ class "editGame_tr" ]
+        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (roundNumber + 1) ]
+            :: List.indexedMap
+                (\index point -> viewInputPointCell roundNumber index point)
+                (Array.toList round)
+        )
+
+
+{-| チップ入力行
+-}
+viewInputChipsRow : String -> Chips -> Html Msg
+viewInputChipsRow title chips =
+    tr [ class "editGame_tr" ]
+        (td [ class "editGame_title" ]
+            [ text title ]
+            :: List.indexedMap
+                (\index chip -> viewInputChipsCell index chip)
+                (Array.toList chips)
+        )
+
+
+{-| 計算結果行
+-}
+viewCalculatedRow : String -> Array Int -> Html msg
+viewCalculatedRow roundNumber calculatedValues =
+    tr [ class "editGame_tr" ]
+        (td [ class "editGame_title" ] [ text roundNumber ]
+            :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
+        )
+
+
 {-| プレイヤー名入力マス
 -}
 viewInputPlayerCell : Int -> String -> Html Msg
@@ -347,51 +392,6 @@ viewCalculatedCell calculatedValue =
         [ text <| String.fromInt calculatedValue ]
 
 
-{-| プレイヤー名入力行
--}
-viewInputPlayersRow : Players -> Html Msg
-viewInputPlayersRow players =
-    tr [ class "editGame_tr" ]
-        (th [ class "editGame_th" ] [ text "" ]
-            :: List.indexedMap viewInputPlayerCell (Array.toList players)
-        )
-
-
-{-| 点棒入力行
--}
-viewInputRoundRow : Int -> Array String -> Html Msg
-viewInputRoundRow roundNumber round =
-    tr [ class "editGame_tr" ]
-        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (roundNumber + 1) ]
-            :: List.indexedMap
-                (\index point -> viewInputPointCell roundNumber index point)
-                (Array.toList round)
-        )
-
-
-{-| チップ入力行
--}
-viewInputChipsRow : String -> Chips -> Html Msg
-viewInputChipsRow title chips =
-    tr [ class "editGame_tr" ]
-        (td [ class "editGame_title" ]
-            [ text title ]
-            :: List.indexedMap
-                (\index chip -> viewInputChipsCell index chip)
-                (Array.toList chips)
-        )
-
-
-{-| 計算結果行
--}
-viewCalculatedRow : String -> Array Int -> Html msg
-viewCalculatedRow roundNumber calculatedValues =
-    tr [ class "editGame_tr" ]
-        (td [ class "editGame_title" ] [ text roundNumber ]
-            :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
-        )
-
-
 
 -- Functions for view
 
@@ -411,15 +411,15 @@ type alias Stat =
 calculateTotalPoint : Rounds -> Stats
 calculateTotalPoint rounds =
     Array.foldl
-        (calculateFromTwoArray (+))
+        (calculateFrom2Arrays (+))
         Array.empty
         (toIntRounds rounds)
 
 
 {-| 2つの Array を元に計算を行う
 -}
-calculateFromTwoArray : (Int -> Int -> Int) -> Array Int -> Array Int -> Array Int
-calculateFromTwoArray calculator operand reducedValue =
+calculateFrom2Arrays : (Int -> Int -> Int) -> Array Int -> Array Int -> Array Int
+calculateFrom2Arrays calculator operand reducedValue =
     let
         operandTail =
             Array.slice 1 (Array.length operand) operand
@@ -435,7 +435,7 @@ calculateFromTwoArray calculator operand reducedValue =
             ( Just operandHead, Just reducedValueHead ) ->
                 Array.append
                     (Array.initialize 1 (\_ -> calculator operandHead reducedValueHead))
-                    (calculateFromTwoArray
+                    (calculateFrom2Arrays
                         calculator
                         operandTail
                         reducedValuetail
@@ -451,7 +451,7 @@ incrementPointByPlayer のインターフェイスに合わせる形で Array(Ar
 calculateTotalPointIncludeChip : Int -> Array Int -> Chips -> Array Int
 calculateTotalPointIncludeChip chipRate totalPoints chips =
     Array.foldl
-        (calculateFromTwoArray (\chip reducedValue -> chip * chipRate + reducedValue))
+        (calculateFrom2Arrays (\chip reducedValue -> chip * chipRate + reducedValue))
         totalPoints
         (Array.initialize 1 (\_ -> toIntArray chips))
 
