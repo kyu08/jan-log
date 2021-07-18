@@ -302,7 +302,7 @@ viewInputPlayerCell index content =
     th
         [ class "editGame_th" ]
         [ input
-            [ class "editaGame_inputCellInput", value content, onInput <| ChangedPlayerName index ]
+            [ class "editGame_inputCellInput", value content, onInput <| ChangedPlayerName index ]
             []
         ]
 
@@ -321,7 +321,7 @@ viewInputPointCell { roundNumber, playerIndex, point } =
     td
         [ class "editGame_td" ]
         [ input
-            [ class "editaGame_inputCellInput"
+            [ class "editGame_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundNumber playerIndex
 
@@ -345,7 +345,7 @@ viewInputChipsCell { playerIndex, chip } =
     td
         [ class "editGame_td" ]
         [ input
-            [ class "editaGame_inputCellInput"
+            [ class "editGame_inputCellInput"
             , value chip
             , onInput <| ChangedChip playerIndex
             , pattern "[0-9]*"
