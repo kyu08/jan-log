@@ -155,6 +155,7 @@ type Msg
     | ChangedChipRate String
     | ChangedGameFee String
     | ClickedAddRowButton
+    | ClickedInputPointButton
 
 
 toIntValue : String -> Int
@@ -223,6 +224,9 @@ update msg ({ rounds, players, gameConfig, chips } as m) =
         ClickedAddRowButton ->
             ( { m | rounds = Array.push initRound rounds }, Cmd.none )
 
+        ClickedInputPointButton ->
+            ( m, Cmd.none )
+
 
 
 -- VIEW
@@ -233,7 +237,7 @@ view model =
     div [ class "editGame_container" ]
         [ viewEditGameConfig model.gameConfig
         , viewEditGame model
-        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton }
+        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
         ]
 
 
@@ -307,11 +311,16 @@ viewInputPlayersRow players =
 viewInputRoundRow : Int -> Array String -> Html Msg
 viewInputRoundRow roundNumber round =
     tr [ class "editGame_tr" ]
-        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (roundNumber + 1) ]
+        (td [ class "editGame_gameNumberCell" ] [ viewInputPointButton, text <| String.fromInt (roundNumber + 1) ]
             :: List.indexedMap
                 (\index point -> viewInputPointCell roundNumber index point)
                 (Array.toList round)
         )
+
+
+viewInputPointButton : Html Msg
+viewInputPointButton =
+    UI.viewButton { phrase = phrase.inputPoint, onClickMsg = ClickedInputPointButton, size = UI.Mini }
 
 
 {-| チップ入力行
@@ -484,4 +493,5 @@ phrase =
     , editGameConfigChipRate = "レート(チップ)"
     , editGameConfigGameFee = "ゲーム代"
     , addRow = "行を追加する"
+    , inputPoint = "🖋"
     }
