@@ -58,10 +58,22 @@ type alias GameId =
 
 
 type alias GameConfig =
-    { rate : Int
-    , chipRate : Int
-    , gameFee : Int
+    { rate : Rate
+    , chipRate : ChipRate
+    , gameFee : GameFee
     }
+
+
+type alias Rate =
+    Int
+
+
+type alias ChipRate =
+    Int
+
+
+type alias GameFee =
+    Int
 
 
 type alias Players =
@@ -90,11 +102,14 @@ type alias Chip =
     String
 
 
+{-| rate : 収支 = 点数 \* n としたときの n
+chipRate : チップ収支 = チップ枚数 \* m としたときの m
+-}
 initGameInfo : GameConfig
 initGameInfo =
-    { rate = 0
-    , chipRate = 0
-    , gameFee = 0
+    { rate = 100
+    , chipRate = 2
+    , gameFee = 5000
     }
 
 
@@ -148,14 +163,17 @@ type Msg
     | ChangedChip Int String
 
 
+toIntArray : Array String -> Array Int
+toIntArray stringArray =
+    Array.map
+        (\s -> Maybe.withDefault 0 (String.toInt s))
+        stringArray
+
+
 toIntRounds : Rounds -> Array (Array Int)
 toIntRounds rounds =
     Array.map
-        (\round ->
-            Array.map
-                (\point -> Maybe.withDefault 0 (String.toInt point))
-                round
-        )
+        (\round -> toIntArray round)
         rounds
 
 
@@ -220,6 +238,16 @@ type alias ViewConfig =
 
 view : ViewConfig -> Html Msg
 view { gameConfig, players, rounds, chips } =
+    let
+        totalPoint =
+            calculateTotalPoint rounds
+
+        totalPointIncludeChip =
+            calculateTotalPointIncludeChip gameConfig.chipRate totalPoint chips
+
+        totalBalanceExcludeGameFee =
+            calculateTotalBalanceExcludeGameFee gameConfig.rate totalPointIncludeChip
+    in
     table
         [ class "editGame_table" ]
         (viewInputPlayersRow "" players
@@ -227,11 +255,10 @@ view { gameConfig, players, rounds, chips } =
                 (\( roundNumber, round ) -> viewInputRoundRow roundNumber round)
                 (List.indexedMap Tuple.pair (Array.toList rounds))
             ++ [ viewInputChipsRow phrase.chip chips
-
-               -- ++ [ viewComputedRow phrase.chip (Array.repeat 4 100)
-               , viewComputedRow phrase.pointBalance (calculateTotalPoints rounds)
-               , viewComputedRow phrase.balance (Array.repeat 4 100)
-               , viewComputedRow phrase.totalBalance (Array.repeat 4 100)
+               , viewComputedRow phrase.pointBalance totalPoint
+               , viewComputedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
+               , viewComputedRow phrase.balance totalBalanceExcludeGameFee
+               , viewComputedRow phrase.totalBalance (calculateTotalBalanceIncludeGameFee gameConfig.gameFee totalBalanceExcludeGameFee)
                ]
         )
 
@@ -268,7 +295,7 @@ viewInputPointCell { roundNumber, playerIndex, point } =
             [ class "editaGame_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundNumber playerIndex
-            , pattern "[0-9]*"
+            , pattern "[-]??[0-9]*"
             ]
             []
         ]
@@ -370,42 +397,34 @@ type alias Stat =
     Int
 
 
-calculateTotalPoints : Rounds -> Stats
-calculateTotalPoints rounds =
+calculateTotalPoint : Rounds -> Stats
+calculateTotalPoint rounds =
     Array.foldl
-        incrementPointByPlayer
+        (calculateFromTwoArray (+))
         Array.empty
         (toIntRounds rounds)
 
 
-incrementPointByPlayer : Array Int -> Array Int -> Array Int
-incrementPointByPlayer round reducedValue =
+calculateFromTwoArray : (Int -> Int -> Int) -> Array Int -> Array Int -> Array Int
+calculateFromTwoArray calculator operand reducedValue =
     let
-        maybeRoundHead =
-            Array.get 0 round
-
-        roundTail =
-            Array.slice 1 (Array.length round) round
-
-        maybeReducedValueHead =
-            Array.get 0 reducedValue
+        operandTail =
+            Array.slice 1 (Array.length operand) operand
 
         reducedValuetail =
             Array.slice 1 (Array.length reducedValue) reducedValue
     in
     if reducedValue == Array.empty then
-        round
+        operand
 
     else
-        case ( maybeRoundHead, maybeReducedValueHead ) of
-            ( Just roundHead, Just reducedValueHead ) ->
+        case ( Array.get 0 operand, Array.get 0 reducedValue ) of
+            ( Just operandHead, Just reducedValueHead ) ->
                 Array.append
-                    (Array.initialize
-                        1
-                        (\_ -> roundHead + reducedValueHead)
-                    )
-                    (incrementPointByPlayer
-                        roundTail
+                    (Array.initialize 1 (\_ -> calculator operandHead reducedValueHead))
+                    (calculateFromTwoArray
+                        calculator
+                        operandTail
                         reducedValuetail
                     )
 
@@ -413,14 +432,35 @@ incrementPointByPlayer round reducedValue =
                 reducedValue
 
 
+{-| incrementPointByPlayer のインターフェイスに合わせる形で Array(Array Int)にして渡しているが微妙な気もする
+-}
+calculateTotalPointIncludeChip : ChipRate -> Array Int -> Chips -> Array Int
+calculateTotalPointIncludeChip chipRate totalPoints chips =
+    Array.foldl
+        (calculateFromTwoArray (\chip reducedValue -> chip * chipRate + reducedValue))
+        totalPoints
+        (Array.initialize 1 (\_ -> toIntArray chips))
+
+
+calculateTotalBalanceExcludeGameFee : Rate -> Array Int -> Array Int
+calculateTotalBalanceExcludeGameFee rate totalPointIncludeChip =
+    Array.map (\point -> point * rate) totalPointIncludeChip
+
+
+calculateTotalBalanceIncludeGameFee : GameFee -> Array Int -> Array Int
+calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
+    Array.map (\point -> point - gameFee) totalBalanceExcludeGameFee
+
+
 
 -- Const
 
 
-phrase : { pointBalance : String, chip : String, balance : String, totalBalance : String }
+phrase : { pointBalance : String, pointBalanceIncludeChip : String, chip : String, balance : String, totalBalance : String }
 phrase =
-    { pointBalance = "点棒収支"
+    { pointBalance = "ポイント収支"
+    , pointBalanceIncludeChip = "チップ込収支"
     , chip = "チップ(枚数)"
     , balance = "収支"
-    , totalBalance = "トータル収支"
+    , totalBalance = "場代込み収支"
     }
