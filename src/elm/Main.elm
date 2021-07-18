@@ -151,6 +151,7 @@ view model =
                             { gameConfig = subModel.gameConfig
                             , players = subModel.players
                             , rounds = subModel.rounds
+                            , chips = subModel.chips
                             }
 
             History _ ->

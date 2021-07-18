@@ -2,6 +2,7 @@
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
+  padding: 40px;
 }
 
 .editGame_tr {
@@ -9,21 +10,26 @@
   height: 50px;
 }
 
-.editGame_input {
-  width: 100%;
-  height: 40px;
-}
-
-.editGame_td {
-  width: 100%;
-}
-
-.editGame_td_notEditable {
-  width: 100%;
-  font-size: 10px;
-}
-
 .editGame_th {
   font-size: 12px;
   font-weight: normal;
 }
+
+.editGame_title {
+  width: 100%;
+  font-size: 10px;
+}
+
+.editGame_gameNumberCell {
+  width: 100%;
+}
+
+.editGame_computedCell {
+  width: 100%;
+}
+
+.editaGame_inputCellInput {
+  width: 100%;
+  height: 40px;
+}
+

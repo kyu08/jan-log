@@ -26,7 +26,7 @@ module EditGame exposing
 
 import Array exposing (Array)
 import Html exposing (Html, input, table, td, text, th, tr)
-import Html.Attributes exposing (class, disabled, value)
+import Html.Attributes exposing (class, pattern, value)
 import Html.Events exposing (onInput)
 import Session exposing (Session)
 
@@ -47,6 +47,7 @@ type alias Model =
     , gameConfig : GameConfig
     , players : Players
     , rounds : Rounds
+    , chips : Chips
     }
 
 
@@ -81,6 +82,14 @@ type alias Point =
     String
 
 
+type alias Chips =
+    Array Chip
+
+
+type alias Chip =
+    String
+
+
 initGameInfo : GameConfig
 initGameInfo =
     { rate = 0
@@ -106,6 +115,13 @@ initRounds =
         (\_ -> Array.initialize 4 (always ""))
 
 
+initChips : Chips
+initChips =
+    Array.initialize
+        4
+        (always "")
+
+
 initModel : GameId -> Session -> Model
 initModel gameId session =
     { session = session
@@ -113,6 +129,7 @@ initModel gameId session =
     , gameConfig = initGameInfo
     , players = initPlayers
     , rounds = initRounds
+    , chips = initChips
     }
 
 
@@ -128,6 +145,7 @@ toSession model =
 type Msg
     = ChangedPlayerName Int String
     | ChangedPoint Int Int String
+    | ChangedChip Int String
 
 
 toIntRounds : Rounds -> Array (Array Int)
@@ -177,6 +195,16 @@ update msg model =
             in
             ( nextModel, Cmd.none )
 
+        ChangedChip playerIndex chip ->
+            let
+                nextChips =
+                    Array.set
+                        playerIndex
+                        chip
+                        model.chips
+            in
+            ( { model | chips = nextChips }, Cmd.none )
+
 
 
 -- VIEW
@@ -186,40 +214,36 @@ type alias ViewConfig =
     { gameConfig : GameConfig
     , players : Players
     , rounds : Rounds
+    , chips : Chips
     }
 
 
 view : ViewConfig -> Html Msg
-view { gameConfig, players, rounds } =
+view { gameConfig, players, rounds, chips } =
     table
         [ class "editGame_table" ]
-        (viewEditableTrTh "" players
+        (viewInputPlayersRow "" players
             :: List.map
-                (\( roundNumber, round ) -> viewEditableTrTd roundNumber round)
+                (\( roundNumber, round ) -> viewInputRoundRow roundNumber round)
                 (List.indexedMap Tuple.pair (Array.toList rounds))
-            ++ [ viewNotEditableTrTd phrase.pointBalance (calculateTotalPoints rounds)
-               , viewNotEditableTrTd phrase.chip (Array.repeat 4 100)
-               , viewNotEditableTrTd phrase.balance (Array.repeat 4 100)
-               , viewNotEditableTrTd phrase.totalBalance (Array.repeat 4 100)
+            ++ [ viewInputChipsRow phrase.chip chips
+
+               -- ++ [ viewComputedRow phrase.chip (Array.repeat 4 100)
+               , viewComputedRow phrase.pointBalance (calculateTotalPoints rounds)
+               , viewComputedRow phrase.balance (Array.repeat 4 100)
+               , viewComputedRow phrase.totalBalance (Array.repeat 4 100)
                ]
         )
 
 
-{-| 左上の空白マス
--}
-viewNotEditableTh : String -> Html msg
-viewNotEditableTh content =
-    th [ class "editGame_th" ] [ text content ]
-
-
 {-| プレイヤー名入力マス
 -}
-viewEditableTh : Int -> String -> Html Msg
-viewEditableTh index content =
+viewInputPlayerCell : Int -> String -> Html Msg
+viewInputPlayerCell index content =
     th
         [ class "editGame_th" ]
         [ input
-            [ class "editGame_input"
+            [ class "editaGame_inputCellInput"
             , value content
             , onInput <| ChangedPlayerName index
             ]
@@ -227,7 +251,7 @@ viewEditableTh index content =
         ]
 
 
-type alias EditableTdConfig =
+type alias InputPointCellConfig =
     { roundNumber : Int
     , playerIndex : Int
     , point : String
@@ -235,17 +259,38 @@ type alias EditableTdConfig =
 
 
 {-| 点数入力マス
-Point: String でもたないと、input の中身を空にできない
-String <-> Int の変換関数をつくっておいて model では常に String でもつ？
 -}
-viewEditableTd : EditableTdConfig -> Html Msg
-viewEditableTd { roundNumber, playerIndex, point } =
+viewInputPointCell : InputPointCellConfig -> Html Msg
+viewInputPointCell { roundNumber, playerIndex, point } =
     td
         [ class "editGame_td" ]
         [ input
-            [ class "editGame_input"
+            [ class "editaGame_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundNumber playerIndex
+            , pattern "[0-9]*"
+            ]
+            []
+        ]
+
+
+type alias InputChipCellConfig =
+    { playerIndex : Int
+    , chip : String
+    }
+
+
+{-| チップ入力マス
+-}
+viewInputChipsCell : InputChipCellConfig -> Html Msg
+viewInputChipsCell { playerIndex, chip } =
+    td
+        [ class "editGame_td" ]
+        [ input
+            [ class "editaGame_inputCellInput"
+            , value chip
+            , onInput <| ChangedChip playerIndex
+            , pattern "[0-9]*"
             ]
             []
         ]
@@ -253,51 +298,61 @@ viewEditableTd { roundNumber, playerIndex, point } =
 
 {-| 計算結果マス
 -}
-viewNotEditableTd : Int -> Html msg
-viewNotEditableTd content =
+viewComputedCell : Int -> Html msg
+viewComputedCell content =
     td
-        [ class "editGame_td" ]
-        [ input
-            [ class "editGame_input"
-            , value <| String.fromInt content
-            , disabled True
-            ]
-            []
-        ]
+        [ class "editGame_computedCell" ]
+        [ text <| String.fromInt content ]
 
 
 {-| プレイヤー名入力行
 -}
-viewEditableTrTh : String -> Players -> Html Msg
-viewEditableTrTh property players_ =
+viewInputPlayersRow : String -> Players -> Html Msg
+viewInputPlayersRow property players_ =
     tr [ class "editGame_tr" ]
-        (viewNotEditableTh property
-            :: List.indexedMap viewEditableTh (Array.toList players_)
+        (th [ class "editGame_th" ] [ text "" ]
+            :: List.indexedMap viewInputPlayerCell (Array.toList players_)
         )
 
 
-{-| 点数入力行
+{-| 点棒入力行
 -}
-viewEditableTrTd : Int -> Array String -> Html Msg
-viewEditableTrTd roundNumber round_ =
+viewInputRoundRow : Int -> Array String -> Html Msg
+viewInputRoundRow title round_ =
     tr [ class "editGame_tr" ]
-        (td [ class "editGame_td" ] [ text <| String.fromInt (roundNumber + 1) ]
+        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (title + 1) ]
             :: List.indexedMap
                 (\index point ->
-                    viewEditableTd
-                        { playerIndex = index, point = point, roundNumber = roundNumber }
+                    viewInputPointCell
+                        { playerIndex = index, point = point, roundNumber = title }
                 )
                 (Array.toList round_)
         )
 
 
+{-| チップ入力行
+-}
+viewInputChipsRow : String -> Chips -> Html Msg
+viewInputChipsRow title chips =
+    tr [ class "editGame_tr" ]
+        (td [ class "editGame_title" ]
+            [ text title ]
+            :: List.indexedMap
+                (\index chip ->
+                    viewInputChipsCell
+                        { chip = chip, playerIndex = index }
+                )
+                (Array.toList chips)
+        )
+
+
 {-| 計算結果行
 -}
-viewNotEditableTrTd : String -> Array Int -> Html msg
-viewNotEditableTrTd roundNumber numbers =
+viewComputedRow : String -> Array Int -> Html msg
+viewComputedRow roundNumber numbers =
     tr [ class "editGame_tr" ]
-        (td [ class "editGame_td_notEditable" ] [ text roundNumber ]
-            :: (List.map viewNotEditableTd <| Array.toList numbers)
+        (td [ class "editGame_title" ] [ text roundNumber ]
+            :: (List.map viewComputedCell <| Array.toList numbers)
         )
 
 
