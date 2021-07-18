@@ -428,6 +428,8 @@ type alias Stat =
     Int
 
 
+{-| ポイント収支を計算する
+-}
 calculateTotalPoint : Rounds -> Stats
 calculateTotalPoint rounds =
     Array.foldl
@@ -436,6 +438,8 @@ calculateTotalPoint rounds =
         (toIntRounds rounds)
 
 
+{-| 2つの Array を元に計算を行う
+-}
 calculateFromTwoArray : (Int -> Int -> Int) -> Array Int -> Array Int -> Array Int
 calculateFromTwoArray calculator operand reducedValue =
     let
@@ -463,7 +467,8 @@ calculateFromTwoArray calculator operand reducedValue =
                 reducedValue
 
 
-{-| incrementPointByPlayer のインターフェイスに合わせる形で Array(Array Int)にして渡しているが微妙な気もする
+{-| チップ込み収支を計算する
+incrementPointByPlayer のインターフェイスに合わせる形で Array(Array Int)にして渡しているが微妙な気もする
 -}
 calculateTotalPointIncludeChip : Int -> Array Int -> Chips -> Array Int
 calculateTotalPointIncludeChip chipRate totalPoints chips =
@@ -473,11 +478,15 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
         (Array.initialize 1 (\_ -> toIntArray chips))
 
 
+{-| ゲーム代を含まない収支を計算する
+-}
 calculateTotalBalanceExcludeGameFee : Int -> Array Int -> Array Int
 calculateTotalBalanceExcludeGameFee rate totalPointIncludeChip =
     Array.map (\point -> point * rate) totalPointIncludeChip
 
 
+{-| ゲーム代込み収支を計算する
+-}
 calculateTotalBalanceIncludeGameFee : Int -> Array Int -> Array Int
 calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
     Array.map (\point -> point - gameFee) totalBalanceExcludeGameFee
