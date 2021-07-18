@@ -111,7 +111,7 @@ roundInitializer =
     \_ -> initRound
 
 
-{-| TODO: Players.elm をつくってファクトリーメソッドをつくる
+{-| TODO: Rounds.elm をつくってファクトリーメソッドをつくる
 -}
 initRounds : Rounds
 initRounds =
@@ -232,8 +232,7 @@ view : Model -> Html Msg
 view model =
     div [ class "editGame_container" ]
         [ viewEditGameConfig model.gameConfig
-        , viewEditGame
-            model
+        , viewEditGame model
         , viewAddRowButton
         ]
 
@@ -280,7 +279,7 @@ viewEditGame { gameConfig, players, rounds, chips } =
     in
     table
         [ class "editGame_table" ]
-        (viewInputPlayersRow "" players
+        (viewInputPlayersRow players
             :: List.map
                 (\( roundNumber, round ) -> viewInputRoundRow roundNumber round)
                 (List.indexedMap Tuple.pair (Array.toList rounds))
@@ -366,8 +365,8 @@ viewComputedCell content =
 
 {-| プレイヤー名入力行
 -}
-viewInputPlayersRow : String -> Players -> Html Msg
-viewInputPlayersRow property players_ =
+viewInputPlayersRow : Players -> Html Msg
+viewInputPlayersRow players_ =
     tr [ class "editGame_tr" ]
         (th [ class "editGame_th" ] [ text "" ]
             :: List.indexedMap viewInputPlayerCell (Array.toList players_)
