@@ -87,13 +87,10 @@ update msg model =
 maybeRouteToModel : Url.Url -> Model -> ( Model, Cmd Msg )
 maybeRouteToModel url model =
     let
-        maybeRoute =
-            Route.fromUrl url
-
         session =
             toSession model
     in
-    case maybeRoute of
+    case Route.fromUrl url of
         Nothing ->
             ( NotFound session, Cmd.none )
 
@@ -107,21 +104,15 @@ maybeRouteToModel url model =
             ( EditGame (EditGame.initModel gameId session), Cmd.none )
 
         Just Route.Home ->
-            let
-                ( model_, cmd ) =
-                    updateWith
-                        Home
-                        GotHomeMsg
-                        (Home.init session)
-            in
-            ( model_, cmd )
+            updateWith
+                Home
+                GotHomeMsg
+                (Home.init session)
 
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
 updateWith toModel toMsg ( subModel, subCmd ) =
-    ( toModel subModel
-    , Cmd.map toMsg subCmd
-    )
+    ( toModel subModel, Cmd.map toMsg subCmd )
 
 
 

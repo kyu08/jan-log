@@ -276,6 +276,9 @@ viewEditGame { gameConfig, players, rounds, chips } =
 
         totalBalanceExcludeGameFee =
             calculateTotalBalanceExcludeGameFee (toIntValue gameConfig.rate) totalPointIncludeChip
+
+        totalBalanceIncludeGameFee =
+            calculateTotalBalanceIncludeGameFee (toIntValue gameConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editGame_table" ]
@@ -287,7 +290,7 @@ viewEditGame { gameConfig, players, rounds, chips } =
                , viewComputedRow phrase.pointBalance totalPoint
                , viewComputedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
                , viewComputedRow phrase.balance totalBalanceExcludeGameFee
-               , viewComputedRow phrase.totalBalance (calculateTotalBalanceIncludeGameFee (toIntValue gameConfig.gameFee) totalBalanceExcludeGameFee)
+               , viewComputedRow phrase.totalBalance totalBalanceIncludeGameFee
                ]
         )
 
@@ -299,10 +302,7 @@ viewInputPlayerCell index content =
     th
         [ class "editGame_th" ]
         [ input
-            [ class "editaGame_inputCellInput"
-            , value content
-            , onInput <| ChangedPlayerName index
-            ]
+            [ class "editaGame_inputCellInput", value content, onInput <| ChangedPlayerName index ]
             []
         ]
 
