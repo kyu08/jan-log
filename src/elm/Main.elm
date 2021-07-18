@@ -147,12 +147,7 @@ view model =
             EditGame subModel ->
                 viewContainer <|
                     Html.map GotEditGameMsg <|
-                        EditGame.view
-                            { gameConfig = subModel.gameConfig
-                            , players = subModel.players
-                            , rounds = subModel.rounds
-                            , chips = subModel.chips
-                            }
+                        EditGame.view subModel
 
             History _ ->
                 viewContainer <|

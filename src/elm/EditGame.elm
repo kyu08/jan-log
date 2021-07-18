@@ -1,6 +1,5 @@
 module EditGame exposing
-    ( GameId
-    , Model
+    ( Model
     , Msg
     , initModel
     , toSession
@@ -10,25 +9,17 @@ module EditGame exposing
 
 {-| TODO:
 
-1.  (done)model に状態として持つ -> view に表示
-
-2.  編集 -> model 更新できるようにする
-
-3.  (いまここ)Total ~ ゲーム代込み まで計算結果を表示できるようにする
-
-4.  チップを model にもたせる & 編集できるようにする
-
-5.  rate などのconfig を表示する(いったんは固定値でOK)
-
-6.  rate などのconfig を変更できるようにする
+1.  rate などのconfig を変更できるようにする
 
 -}
 
 import Array exposing (Array)
-import Html exposing (Html, input, table, td, text, th, tr)
-import Html.Attributes exposing (class, pattern, value)
+import GameId exposing (GameId)
+import Html exposing (Html, div, input, label, table, td, text, th, tr)
+import Html.Attributes exposing (class, for, id, pattern, value)
 import Html.Events exposing (onInput)
 import Session exposing (Session)
+import UI exposing (viewIf)
 
 
 {-| 当初は
@@ -48,15 +39,12 @@ type alias Model =
     , players : Players
     , rounds : Rounds
     , chips : Chips
+    , isOpenEditGameArea : Bool
     }
 
 
 {-| UUID
 -}
-type alias GameId =
-    String
-
-
 type alias GameConfig =
     { rate : Rate
     , chipRate : ChipRate
@@ -65,15 +53,15 @@ type alias GameConfig =
 
 
 type alias Rate =
-    Int
+    String
 
 
 type alias ChipRate =
-    Int
+    String
 
 
 type alias GameFee =
-    Int
+    String
 
 
 type alias Players =
@@ -107,9 +95,9 @@ chipRate : チップ収支 = チップ枚数 \* m としたときの m
 -}
 initGameInfo : GameConfig
 initGameInfo =
-    { rate = 100
-    , chipRate = 2
-    , gameFee = 5000
+    { rate = "100"
+    , chipRate = "2"
+    , gameFee = "5000"
     }
 
 
@@ -145,6 +133,9 @@ initModel gameId session =
     , players = initPlayers
     , rounds = initRounds
     , chips = initChips
+    , isOpenEditGameArea = True -- for dev
+
+    -- , isOpenEditGameArea = False
     }
 
 
@@ -161,6 +152,10 @@ type Msg
     = ChangedPlayerName Int String
     | ChangedPoint Int Int String
     | ChangedChip Int String
+    | ClickedEditGameConfigButton
+    | ChangedRate String
+    | ChangedChipRate String
+    | ChangedGameFee String
 
 
 toIntArray : Array String -> Array Int
@@ -178,14 +173,14 @@ toIntRounds rounds =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             let
-                players =
-                    Array.set index playerName model.players
+                players_ =
+                    Array.set index playerName players
             in
-            ( { model | players = players }, Cmd.none )
+            ( { m | players = players_ }, Cmd.none )
 
         ChangedPoint gameNumber playerIndex point ->
             let
@@ -196,20 +191,20 @@ update msg model =
                             point_
                             round
                         )
-                        model.rounds
+                        rounds
 
                 maybeUpdatedRound =
                     Maybe.map
                         (updateRound point)
-                        (Array.get gameNumber model.rounds)
+                        (Array.get gameNumber rounds)
 
                 nextModel =
                     case maybeUpdatedRound of
                         Just updatedRound ->
-                            { model | rounds = updatedRound }
+                            { m | rounds = updatedRound }
 
                         Nothing ->
-                            model
+                            m
             in
             ( nextModel, Cmd.none )
 
@@ -219,34 +214,94 @@ update msg model =
                     Array.set
                         playerIndex
                         chip
-                        model.chips
+                        chips
             in
-            ( { model | chips = nextChips }, Cmd.none )
+            ( { m | chips = nextChips }, Cmd.none )
+
+        ClickedEditGameConfigButton ->
+            ( { m | isOpenEditGameArea = not isOpenEditGameArea }, Cmd.none )
+
+        ChangedRate inputValue ->
+            let
+                nextGameConfig =
+                    { gameConfig | rate = inputValue }
+            in
+            ( { m | gameConfig = nextGameConfig }, Cmd.none )
+
+        ChangedChipRate inputValue ->
+            let
+                nextGameConfig =
+                    { gameConfig | chipRate = inputValue }
+            in
+            ( { m | gameConfig = nextGameConfig }, Cmd.none )
+
+        ChangedGameFee inputValue ->
+            let
+                nextGameConfig =
+                    { gameConfig | gameFee = inputValue }
+            in
+            ( { m | gameConfig = nextGameConfig }, Cmd.none )
 
 
 
 -- VIEW
 
 
-type alias ViewConfig =
-    { gameConfig : GameConfig
-    , players : Players
-    , rounds : Rounds
-    , chips : Chips
-    }
+view : Model -> Html Msg
+view model =
+    let
+        buttonPhrase =
+            if model.isOpenEditGameArea then
+                phrase.closeEditGameConfig
+
+            else
+                phrase.openEditGameConfig
+    in
+    div [ class "editGame_container" ]
+        [ viewEditGame model
+        , UI.viewButton
+            { phrase = buttonPhrase
+            , onClickMsg = ClickedEditGameConfigButton
+            }
+        , viewEditGameConfig
+            model.gameConfig
+            |> viewIf model.isOpenEditGameArea
+        ]
 
 
-view : ViewConfig -> Html Msg
-view { gameConfig, players, rounds, chips } =
+viewEditGameConfig : GameConfig -> Html Msg
+viewEditGameConfig { rate, chipRate, gameFee } =
+    div []
+        [ viewEditGameConfigForm phrase.editGameConfigRate rate ChangedRate
+        , viewEditGameConfigForm phrase.editGameConfigChipRate chipRate ChangedChipRate
+        , viewEditGameConfigForm phrase.editGameConfigGameFee gameFee ChangedGameFee
+        ]
+
+
+viewEditGameConfigForm : String -> String -> (String -> Msg) -> Html Msg
+viewEditGameConfigForm labelText inputValue onInputMsg =
+    div []
+        [ label [ for labelText ] [ text labelText ]
+        , input [ id labelText, value inputValue, onInput onInputMsg ] []
+        ]
+
+
+toIntValue : String -> Int
+toIntValue string =
+    Maybe.withDefault 0 (String.toInt string)
+
+
+viewEditGame : Model -> Html Msg
+viewEditGame { gameConfig, players, rounds, chips } =
     let
         totalPoint =
             calculateTotalPoint rounds
 
         totalPointIncludeChip =
-            calculateTotalPointIncludeChip gameConfig.chipRate totalPoint chips
+            calculateTotalPointIncludeChip (toIntValue gameConfig.chipRate) totalPoint chips
 
         totalBalanceExcludeGameFee =
-            calculateTotalBalanceExcludeGameFee gameConfig.rate totalPointIncludeChip
+            calculateTotalBalanceExcludeGameFee (toIntValue gameConfig.rate) totalPointIncludeChip
     in
     table
         [ class "editGame_table" ]
@@ -258,7 +313,7 @@ view { gameConfig, players, rounds, chips } =
                , viewComputedRow phrase.pointBalance totalPoint
                , viewComputedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
                , viewComputedRow phrase.balance totalBalanceExcludeGameFee
-               , viewComputedRow phrase.totalBalance (calculateTotalBalanceIncludeGameFee gameConfig.gameFee totalBalanceExcludeGameFee)
+               , viewComputedRow phrase.totalBalance (calculateTotalBalanceIncludeGameFee (toIntValue gameConfig.gameFee) totalBalanceExcludeGameFee)
                ]
         )
 
@@ -295,7 +350,9 @@ viewInputPointCell { roundNumber, playerIndex, point } =
             [ class "editaGame_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundNumber playerIndex
-            , pattern "[-]??[0-9]*"
+
+            -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
+            -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
             ]
             []
         ]
@@ -434,7 +491,7 @@ calculateFromTwoArray calculator operand reducedValue =
 
 {-| incrementPointByPlayer のインターフェイスに合わせる形で Array(Array Int)にして渡しているが微妙な気もする
 -}
-calculateTotalPointIncludeChip : ChipRate -> Array Int -> Chips -> Array Int
+calculateTotalPointIncludeChip : Int -> Array Int -> Chips -> Array Int
 calculateTotalPointIncludeChip chipRate totalPoints chips =
     Array.foldl
         (calculateFromTwoArray (\chip reducedValue -> chip * chipRate + reducedValue))
@@ -442,12 +499,12 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
         (Array.initialize 1 (\_ -> toIntArray chips))
 
 
-calculateTotalBalanceExcludeGameFee : Rate -> Array Int -> Array Int
+calculateTotalBalanceExcludeGameFee : Int -> Array Int -> Array Int
 calculateTotalBalanceExcludeGameFee rate totalPointIncludeChip =
     Array.map (\point -> point * rate) totalPointIncludeChip
 
 
-calculateTotalBalanceIncludeGameFee : GameFee -> Array Int -> Array Int
+calculateTotalBalanceIncludeGameFee : Int -> Array Int -> Array Int
 calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
     Array.map (\point -> point - gameFee) totalBalanceExcludeGameFee
 
@@ -456,11 +513,15 @@ calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
 -- Const
 
 
-phrase : { pointBalance : String, pointBalanceIncludeChip : String, chip : String, balance : String, totalBalance : String }
 phrase =
     { pointBalance = "ポイント収支"
     , pointBalanceIncludeChip = "チップ込収支"
     , chip = "チップ(枚数)"
     , balance = "収支"
-    , totalBalance = "場代込み収支"
+    , totalBalance = "ゲーム代込み収支"
+    , openEditGameConfig = "レート・ゲーム代を入力する"
+    , closeEditGameConfig = "レート・ゲーム代入力を終了する"
+    , editGameConfigRate = "レート"
+    , editGameConfigChipRate = "レート(チップ)"
+    , editGameConfigGameFee = "ゲーム代"
     }

@@ -69,8 +69,8 @@ view model =
     in
     div
         []
-        [ UI.viewButton phrases.history routes.history
-        , UI.viewButton phrases.newGame (toNewRoomUrl routes.editGame model)
+        [ UI.viewLinkButton phrases.history routes.history
+        , UI.viewLinkButton phrases.newGame (toNewRoomUrl routes.editGame model)
         ]
 
 
