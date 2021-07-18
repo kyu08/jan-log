@@ -39,3 +39,25 @@
   height: 40px;
 }
 
+.editGame_gameConfigContainer {
+  display: flex;
+  width: 100%;
+}
+
+.editGame_gameConfigForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.editGame_gameConfigLabel {
+  display: block;
+  width: 100%;
+  font-size: 14px;
+  margin-right: auto;
+}
+
+.editGame_gameConfigInput {
+  display: block;
+  width: calc(100% - 20px);
+}

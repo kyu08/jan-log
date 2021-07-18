@@ -1,4 +1,4 @@
-module Route exposing (Route(..), fromUrl, parser, phrases, routes)
+module Route exposing (Route(..), fromUrl, parser, routes)
 
 import GameId exposing (GameId)
 import Url exposing (Url)
@@ -31,10 +31,4 @@ fromUrl url =
 routes =
     { editGame = "editGame"
     , history = "history"
-    }
-
-
-phrases =
-    { newGame = "新規作成"
-    , history = "今までの成績をみる"
     }

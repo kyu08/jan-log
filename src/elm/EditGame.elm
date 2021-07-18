@@ -10,7 +10,7 @@ module EditGame exposing
 import Array exposing (Array)
 import GameId exposing (GameId)
 import Html exposing (Html, div, input, label, table, td, text, th, tr)
-import Html.Attributes exposing (class, for, id, pattern, value)
+import Html.Attributes exposing (class, for, id, pattern, style, value)
 import Html.Events exposing (onInput)
 import Session exposing (Session)
 import UI exposing (viewIf)
@@ -152,10 +152,15 @@ type Msg
     | ChangedGameFee String
 
 
+toIntValue : String -> Int
+toIntValue string =
+    Maybe.withDefault 0 (String.toInt string)
+
+
 toIntArray : Array String -> Array Int
 toIntArray stringArray =
     Array.map
-        (\s -> Maybe.withDefault 0 (String.toInt s))
+        toIntValue
         stringArray
 
 
@@ -240,28 +245,29 @@ view model =
         ]
 
 
+{-| 対局情報編集UI
+-}
 viewEditGameConfig : GameConfig -> Html Msg
 viewEditGameConfig { rate, chipRate, gameFee } =
-    div []
+    div [ class "editGame_gameConfigContainer" ]
         [ viewEditGameConfigForm phrase.editGameConfigRate rate ChangedRate
         , viewEditGameConfigForm phrase.editGameConfigChipRate chipRate ChangedChipRate
         , viewEditGameConfigForm phrase.editGameConfigGameFee gameFee ChangedGameFee
         ]
 
 
+{-| 対局情報編集フォーム
+-}
 viewEditGameConfigForm : String -> String -> (String -> Msg) -> Html Msg
 viewEditGameConfigForm labelText inputValue onInputMsg =
-    div []
-        [ label [ for labelText ] [ text labelText ]
-        , input [ id labelText, value inputValue, onInput onInputMsg ] []
+    div [ class "editGame_gameConfigForm" ]
+        [ label [ class "editGame_gameConfigLabel", for labelText ] [ text labelText ]
+        , input [ class "editGame_gameConfigInput", id labelText, value inputValue, onInput onInputMsg ] []
         ]
 
 
-toIntValue : String -> Int
-toIntValue string =
-    Maybe.withDefault 0 (String.toInt string)
-
-
+{-| 成績編集UI
+-}
 viewEditGame : Model -> Html Msg
 viewEditGame { gameConfig, players, rounds, chips } =
     let

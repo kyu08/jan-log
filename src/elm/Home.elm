@@ -63,9 +63,6 @@ view model =
     let
         routes =
             Route.routes
-
-        phrases =
-            Route.phrases
     in
     div
         []
@@ -84,3 +81,9 @@ toNewRoomUrl path model =
             path
                 ++ "/"
                 ++ UUID.toString uuid
+
+
+phrases =
+    { newGame = "新規作成"
+    , history = "今までの成績をみる"
+    }
