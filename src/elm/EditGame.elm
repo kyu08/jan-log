@@ -86,8 +86,8 @@ type alias Chip =
 {-| rate : 収支 = 点数 \* n としたときの n
 chipRate : チップ収支 = チップ枚数 \* m としたときの m
 -}
-initGameInfo : GameConfig
-initGameInfo =
+initGameConfig : GameConfig
+initGameConfig =
     { rate = "100"
     , chipRate = "2"
     , gameFee = "5000"
@@ -131,7 +131,7 @@ initModel : GameId -> Session -> Model
 initModel gameId session =
     { session = session
     , gameId = gameId
-    , gameConfig = initGameInfo
+    , gameConfig = initGameConfig
     , players = initPlayers
     , rounds = initRounds
     , chips = initChips
@@ -233,13 +233,8 @@ view model =
     div [ class "editGame_container" ]
         [ viewEditGameConfig model.gameConfig
         , viewEditGame model
-        , viewAddRowButton
+        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton }
         ]
-
-
-viewAddRowButton : Html Msg
-viewAddRowButton =
-    UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton }
 
 
 {-| 対局情報編集UI
@@ -283,14 +278,16 @@ viewEditGame { gameConfig, players, rounds, chips } =
     table
         [ class "editGame_table" ]
         (viewInputPlayersRow players
-            :: List.map
-                (\( roundNumber, round ) -> viewInputRoundRow roundNumber round)
-                (List.indexedMap Tuple.pair (Array.toList rounds))
+            :: (Array.toList <|
+                    Array.indexedMap
+                        (\roundNumber round -> viewInputRoundRow roundNumber round)
+                        rounds
+               )
             ++ [ viewInputChipsRow phrase.chip chips
-               , viewComputedRow phrase.pointBalance totalPoint
-               , viewComputedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
-               , viewComputedRow phrase.balance totalBalanceExcludeGameFee
-               , viewComputedRow phrase.totalBalance totalBalanceIncludeGameFee
+               , viewCalculatedRow phrase.pointBalance totalPoint
+               , viewCalculatedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
+               , viewCalculatedRow phrase.balance totalBalanceExcludeGameFee
+               , viewCalculatedRow phrase.totalBalance totalBalanceIncludeGameFee
                ]
         )
 
@@ -298,26 +295,19 @@ viewEditGame { gameConfig, players, rounds, chips } =
 {-| プレイヤー名入力マス
 -}
 viewInputPlayerCell : Int -> String -> Html Msg
-viewInputPlayerCell index content =
+viewInputPlayerCell playerIndex playerName =
     th
         [ class "editGame_th" ]
         [ input
-            [ class "editGame_inputCellInput", value content, onInput <| ChangedPlayerName index ]
+            [ class "editGame_inputCellInput", value playerName, onInput <| ChangedPlayerName playerIndex ]
             []
         ]
 
 
-type alias InputPointCellConfig =
-    { roundNumber : Int
-    , playerIndex : Int
-    , point : String
-    }
-
-
 {-| 点数入力マス
 -}
-viewInputPointCell : InputPointCellConfig -> Html Msg
-viewInputPointCell { roundNumber, playerIndex, point } =
+viewInputPointCell : Int -> Int -> Point -> Html Msg
+viewInputPointCell roundNumber playerIndex point =
     td
         [ class "editGame_td" ]
         [ input
@@ -332,16 +322,10 @@ viewInputPointCell { roundNumber, playerIndex, point } =
         ]
 
 
-type alias InputChipCellConfig =
-    { playerIndex : Int
-    , chip : String
-    }
-
-
 {-| チップ入力マス
 -}
-viewInputChipsCell : InputChipCellConfig -> Html Msg
-viewInputChipsCell { playerIndex, chip } =
+viewInputChipsCell : Int -> String -> Html Msg
+viewInputChipsCell playerIndex chip =
     td
         [ class "editGame_td" ]
         [ input
@@ -356,35 +340,32 @@ viewInputChipsCell { playerIndex, chip } =
 
 {-| 計算結果マス
 -}
-viewComputedCell : Int -> Html msg
-viewComputedCell content =
+viewCalculatedCell : Int -> Html msg
+viewCalculatedCell calculatedValue =
     td
-        [ class "editGame_computedCell" ]
-        [ text <| String.fromInt content ]
+        [ class "editGame_calculatedCell" ]
+        [ text <| String.fromInt calculatedValue ]
 
 
 {-| プレイヤー名入力行
 -}
 viewInputPlayersRow : Players -> Html Msg
-viewInputPlayersRow players_ =
+viewInputPlayersRow players =
     tr [ class "editGame_tr" ]
         (th [ class "editGame_th" ] [ text "" ]
-            :: List.indexedMap viewInputPlayerCell (Array.toList players_)
+            :: List.indexedMap viewInputPlayerCell (Array.toList players)
         )
 
 
 {-| 点棒入力行
 -}
 viewInputRoundRow : Int -> Array String -> Html Msg
-viewInputRoundRow title round_ =
+viewInputRoundRow roundNumber round =
     tr [ class "editGame_tr" ]
-        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (title + 1) ]
+        (td [ class "editGame_gameNumberCell" ] [ text <| String.fromInt (roundNumber + 1) ]
             :: List.indexedMap
-                (\index point ->
-                    viewInputPointCell
-                        { playerIndex = index, point = point, roundNumber = title }
-                )
-                (Array.toList round_)
+                (\index point -> viewInputPointCell roundNumber index point)
+                (Array.toList round)
         )
 
 
@@ -396,21 +377,18 @@ viewInputChipsRow title chips =
         (td [ class "editGame_title" ]
             [ text title ]
             :: List.indexedMap
-                (\index chip ->
-                    viewInputChipsCell
-                        { chip = chip, playerIndex = index }
-                )
+                (\index chip -> viewInputChipsCell index chip)
                 (Array.toList chips)
         )
 
 
 {-| 計算結果行
 -}
-viewComputedRow : String -> Array Int -> Html msg
-viewComputedRow roundNumber numbers =
+viewCalculatedRow : String -> Array Int -> Html msg
+viewCalculatedRow roundNumber calculatedValues =
     tr [ class "editGame_tr" ]
         (td [ class "editGame_title" ] [ text roundNumber ]
-            :: (List.map viewComputedCell <| Array.toList numbers)
+            :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
         )
 
 
