@@ -10,10 +10,10 @@ module EditGame exposing
 import Array exposing (Array)
 import GameId exposing (GameId)
 import Html exposing (Html, div, input, label, table, td, text, th, tr)
-import Html.Attributes exposing (class, for, id, pattern, style, value)
+import Html.Attributes exposing (class, for, id, pattern, value)
 import Html.Events exposing (onInput)
 import Session exposing (Session)
-import UI exposing (viewIf)
+import UI
 
 
 {-| 当初は
@@ -33,7 +33,6 @@ type alias Model =
     , players : Players
     , rounds : Rounds
     , chips : Chips
-    , isOpenEditGameArea : Bool
     }
 
 
@@ -102,14 +101,23 @@ initPlayers =
     Array.fromList [ "player1", "player2", "player3", "player4" ]
 
 
+initRound : Round
+initRound =
+    Array.initialize 4 (always "")
+
+
+roundInitializer : a -> Round
+roundInitializer =
+    \_ -> initRound
+
+
 {-| TODO: Players.elm をつくってファクトリーメソッドをつくる
 -}
 initRounds : Rounds
 initRounds =
     Array.initialize
         4
-        -- 4
-        (\_ -> Array.initialize 4 (always ""))
+        roundInitializer
 
 
 initChips : Chips
@@ -127,9 +135,6 @@ initModel gameId session =
     , players = initPlayers
     , rounds = initRounds
     , chips = initChips
-    , isOpenEditGameArea = True -- for dev
-
-    -- , isOpenEditGameArea = False
     }
 
 
@@ -146,10 +151,10 @@ type Msg
     = ChangedPlayerName Int String
     | ChangedPoint Int Int String
     | ChangedChip Int String
-    | ClickedEditGameConfigButton
     | ChangedRate String
     | ChangedChipRate String
     | ChangedGameFee String
+    | ClickedAddRowButton
 
 
 toIntValue : String -> Int
@@ -172,7 +177,7 @@ toIntRounds rounds =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
+update msg ({ rounds, players, gameConfig, chips } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             ( { m | players = Array.set index playerName players }, Cmd.none )
@@ -206,9 +211,6 @@ update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
         ChangedChip playerIndex chip ->
             ( { m | chips = Array.set playerIndex chip chips }, Cmd.none )
 
-        ClickedEditGameConfigButton ->
-            ( { m | isOpenEditGameArea = not isOpenEditGameArea }, Cmd.none )
-
         ChangedRate inputValue ->
             ( { m | gameConfig = { gameConfig | rate = inputValue } }, Cmd.none )
 
@@ -218,6 +220,9 @@ update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
         ChangedGameFee inputValue ->
             ( { m | gameConfig = { gameConfig | gameFee = inputValue } }, Cmd.none )
 
+        ClickedAddRowButton ->
+            ( { m | rounds = Array.push initRound rounds }, Cmd.none )
+
 
 
 -- VIEW
@@ -225,24 +230,17 @@ update msg ({ rounds, players, gameConfig, chips, isOpenEditGameArea } as m) =
 
 view : Model -> Html Msg
 view model =
-    let
-        buttonPhrase =
-            if model.isOpenEditGameArea then
-                phrase.closeEditGameConfig
-
-            else
-                phrase.openEditGameConfig
-    in
     div [ class "editGame_container" ]
-        [ viewEditGame model
-        , UI.viewButton
-            { phrase = buttonPhrase
-            , onClickMsg = ClickedEditGameConfigButton
-            }
-        , viewEditGameConfig
-            model.gameConfig
-            |> viewIf model.isOpenEditGameArea
+        [ viewEditGameConfig model.gameConfig
+        , viewEditGame
+            model
+        , viewAddRowButton
         ]
+
+
+viewAddRowButton : Html Msg
+viewAddRowButton =
+    UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton }
 
 
 {-| 対局情報編集UI
@@ -496,9 +494,8 @@ phrase =
     , chip = "チップ(枚数)"
     , balance = "収支"
     , totalBalance = "ゲーム代込み収支"
-    , openEditGameConfig = "レート・ゲーム代を入力する"
-    , closeEditGameConfig = "レート・ゲーム代入力を終了する"
     , editGameConfigRate = "レート"
     , editGameConfigChipRate = "レート(チップ)"
     , editGameConfigGameFee = "ゲーム代"
+    , addRow = "行を追加する"
     }

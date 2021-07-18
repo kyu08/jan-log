@@ -37,11 +37,13 @@
 .editaGame_inputCellInput {
   width: 100%;
   height: 40px;
+  width: 87%;
 }
 
 .editGame_gameConfigContainer {
   display: flex;
   width: 100%;
+  margin-bottom: 20px;
 }
 
 .editGame_gameConfigForm {
