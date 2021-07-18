@@ -1,8 +1,12 @@
-module Route exposing (Route(..), fromUrl, parser, phrases, routes)
+module Route exposing (PathString, Route(..), fromUrl, parser, phrases, routes)
 
 import EditGame exposing (GameId)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+
+
+type alias PathString =
+    String
 
 
 type Route

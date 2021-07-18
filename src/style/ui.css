@@ -12,3 +12,20 @@
   background-color: #f2f2f2;
 }
 
+/* Home.elm 用のスタイル */
+.button_primary {
+  display: flex;
+  color: white;
+  background-color: #6C733D;
+  border-radius: 5px;
+  height: 50px;
+  width: 250px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.button_container {
+  margin: 10px 5px;
+}
+

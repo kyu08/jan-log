@@ -1,10 +1,10 @@
 module Home exposing (Model, Msg, init, initModel, toSession, update, view)
 
-import Html exposing (Html, a, div, text)
-import Html.Attributes exposing (class, href)
+import Html exposing (Html, div)
 import Random
 import Route exposing (Route(..))
 import Session exposing (Session)
+import UI
 import UUID exposing (UUID)
 
 
@@ -69,8 +69,8 @@ view model =
     in
     div
         []
-        [ viewButton phrases.history routes.history
-        , viewButton phrases.newGame (toNewRoomUrl routes.editGame model)
+        [ UI.viewButton phrases.history routes.history
+        , UI.viewButton phrases.newGame (toNewRoomUrl routes.editGame model)
         ]
 
 
@@ -84,18 +84,3 @@ toNewRoomUrl path model =
             path
                 ++ "/"
                 ++ UUID.toString uuid
-
-
-type alias PathString =
-    String
-
-
-viewButton : String -> PathString -> Html msg
-viewButton phrase pathString =
-    div
-        [ class "home_button_container" ]
-        [ div
-            [ class "home_button_primary" ]
-            [ a [ href pathString ] [ text phrase ]
-            ]
-        ]
