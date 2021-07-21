@@ -106,7 +106,7 @@ initPlayers =
 
 initRound : Round
 initRound =
-    Array.initialize 4 (always "")
+    Array.initialize 4 (always "0")
 
 
 roundInitializer : a -> Round
