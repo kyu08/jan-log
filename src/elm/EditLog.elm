@@ -1,6 +1,7 @@
 port module EditLog exposing
     ( Model
     , Msg
+    , initCmd
     , initModel
     , subscriptions
     , toSession
@@ -12,6 +13,7 @@ import Array exposing (Array)
 import Html exposing (Html, div, input, label, table, td, text, th, tr)
 import Html.Attributes exposing (class, for, id, pattern, value)
 import Html.Events exposing (onInput)
+import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
 import Session exposing (Session)
 import UI
@@ -42,7 +44,7 @@ type alias Model =
 type alias LogConfig =
     { rate : Rate
     , chipRate : ChipRate
-    , logFee : LogFee
+    , gameFee : GameFee
     }
 
 
@@ -54,7 +56,7 @@ type alias ChipRate =
     String
 
 
-type alias LogFee =
+type alias GameFee =
     String
 
 
@@ -91,7 +93,7 @@ initLogConfig : LogConfig
 initLogConfig =
     { rate = "100"
     , chipRate = "2"
-    , logFee = "5000"
+    , gameFee = "5000"
     }
 
 
@@ -139,6 +141,11 @@ initModel logId session =
     }
 
 
+initCmd : LogId -> Cmd msg
+initCmd logId =
+    fetchLog logId
+
+
 toSession : Model -> Session
 toSession model =
     model.session
@@ -154,9 +161,9 @@ type Msg
     | ChangedChip Int String
     | ChangedRate String
     | ChangedChipRate String
-    | ChangedLogFee String
+    | ChangedGameFee String
     | ClickedAddRowButton
-    | Read String
+    | FetchedLog LogDto4
     | ClickedSaveButton
 
 
@@ -201,17 +208,70 @@ update msg ({ rounds, players, logConfig, chips } as m) =
         ChangedChipRate inputValue ->
             ( { m | logConfig = { logConfig | chipRate = inputValue } }, Cmd.none )
 
-        ChangedLogFee inputValue ->
-            ( { m | logConfig = { logConfig | logFee = inputValue } }, Cmd.none )
+        ChangedGameFee inputValue ->
+            ( { m | logConfig = { logConfig | gameFee = inputValue } }, Cmd.none )
 
         ClickedAddRowButton ->
             ( { m | rounds = Array.push initRound rounds }, Cmd.none )
 
-        Read string ->
-            ( { m | logConfig = { logConfig | chipRate = string } }, Cmd.none )
+        FetchedLog dto4 ->
+            ( dto4ToModel m dto4, Cmd.none )
 
         ClickedSaveButton ->
-            ( m, Cmd.none )
+            ( m, updateLog <| toLogDto4 m )
+
+
+dto4ToModel : Model -> LogDto4 -> Model
+dto4ToModel { session } logDto4 =
+    { session = session
+    , logId = logDto4.logId
+    , logConfig =
+        { rate = String.fromInt logDto4.rate
+        , chipRate = String.fromInt logDto4.chipRate
+        , gameFee = String.fromInt logDto4.gameFee
+        }
+    , players = logDto4.players
+    , rounds = Array.map toStringRound4 logDto4.rounds
+    , chips = toStringArray logDto4.chips
+    }
+
+
+toStringRound4 : RoundObj4 -> Round
+toStringRound4 { data0, data1, data2, data3 } =
+    Array.map String.fromInt <| Array.fromList [ data0, data1, data2, data3 ]
+
+
+toLogDto4 : Model -> LogDto4
+toLogDto4 { logId, logConfig, players, rounds, chips } =
+    { logId = logId
+    , gameFee = toIntValue logConfig.gameFee
+    , rate = toIntValue logConfig.rate
+    , chipRate = toIntValue logConfig.chipRate
+    , players = players
+    , rounds = Array.map toRoundObj4 rounds
+    , chips = toIntArray chips
+    }
+
+
+toRoundObj4 : Round -> RoundObj4
+toRoundObj4 round =
+    let
+        roundInt =
+            toIntArray round
+    in
+    { data0 = getArrayElement 0 roundInt
+    , data1 = getArrayElement 1 roundInt
+    , data2 = getArrayElement 2 roundInt
+    , data3 = getArrayElement 3 roundInt
+    }
+
+
+getArrayElement : Int -> Array Int -> Int
+getArrayElement index array =
+    Maybe.withDefault 0 <|
+        Array.get
+            index
+            array
 
 
 toIntValue : String -> Int
@@ -233,6 +293,11 @@ toIntRounds rounds =
         rounds
 
 
+toStringArray : Array Int -> Array String
+toStringArray arrayInt =
+    Array.map String.fromInt arrayInt
+
+
 
 -- VIEW
 
@@ -250,11 +315,11 @@ view model =
 {-| 対局情報編集UI
 -}
 viewEditLogConfig : LogConfig -> Html Msg
-viewEditLogConfig { rate, chipRate, logFee } =
+viewEditLogConfig { rate, chipRate, gameFee } =
     div [ class "editLog_logConfigContainer" ]
         [ viewEditLogConfigForm phrase.editLogConfigRate rate ChangedRate
         , viewEditLogConfigForm phrase.editLogConfigChipRate chipRate ChangedChipRate
-        , viewEditLogConfigForm phrase.editLogConfigLogFee logFee ChangedLogFee
+        , viewEditLogConfigForm phrase.editLogConfigGameFee gameFee ChangedGameFee
         ]
 
 
@@ -279,11 +344,11 @@ viewEditLog { logConfig, players, rounds, chips } =
         totalPointIncludeChip =
             calculateTotalPointIncludeChip (toIntValue logConfig.chipRate) totalPoint chips
 
-        totalBalanceExcludeLogFee =
-            calculateTotalBalanceExcludeLogFee (toIntValue logConfig.rate) totalPointIncludeChip
+        totalBalanceExcludeGameFee =
+            calculateTotalBalanceExcludeGameFee (toIntValue logConfig.rate) totalPointIncludeChip
 
-        totalBalanceIncludeLogFee =
-            calculateTotalBalanceIncludeLogFee (toIntValue logConfig.logFee) totalBalanceExcludeLogFee
+        totalBalanceIncludeGameFee =
+            calculateTotalBalanceIncludeGameFee (toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
@@ -296,8 +361,8 @@ viewEditLog { logConfig, players, rounds, chips } =
             ++ [ viewInputChipsRow phrase.chip chips
                , viewCalculatedRow phrase.pointBalance totalPoint
                , viewCalculatedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
-               , viewCalculatedRow phrase.balance totalBalanceExcludeLogFee
-               , viewCalculatedRow phrase.totalBalance totalBalanceIncludeLogFee
+               , viewCalculatedRow phrase.balance totalBalanceExcludeGameFee
+               , viewCalculatedRow phrase.totalBalance totalBalanceIncludeGameFee
                ]
         )
 
@@ -468,16 +533,16 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
 
 {-| ゲーム代を含まない収支を計算する
 -}
-calculateTotalBalanceExcludeLogFee : Int -> Array Int -> Array Int
-calculateTotalBalanceExcludeLogFee rate totalPointIncludeChip =
+calculateTotalBalanceExcludeGameFee : Int -> Array Int -> Array Int
+calculateTotalBalanceExcludeGameFee rate totalPointIncludeChip =
     Array.map (\point -> point * rate) totalPointIncludeChip
 
 
 {-| ゲーム代込み収支を計算する
 -}
-calculateTotalBalanceIncludeLogFee : Int -> Array Int -> Array Int
-calculateTotalBalanceIncludeLogFee logFee totalBalanceExcludeLogFee =
-    Array.map (\point -> point - logFee) totalBalanceExcludeLogFee
+calculateTotalBalanceIncludeGameFee : Int -> Array Int -> Array Int
+calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
+    Array.map (\point -> point - gameFee) totalBalanceExcludeGameFee
 
 
 
@@ -492,7 +557,7 @@ phrase =
     , totalBalance = "ゲーム代込み収支"
     , editLogConfigRate = "レート"
     , editLogConfigChipRate = "レート(チップ)"
-    , editLogConfigLogFee = "ゲーム代"
+    , editLogConfigGameFee = "ゲーム代"
     , addRow = "行を追加する"
     }
 
@@ -503,15 +568,17 @@ phrase =
 
 subscriptions : Sub Msg
 subscriptions =
-    Sub.batch [ read Read ]
+    Sub.batch [ fetchedLog FetchedLog ]
 
 
 
 -- Ports
 
 
-port read : (String -> msg) -> Sub msg
+port fetchLog : String -> Cmd msg
 
 
+port updateLog : LogDto4 -> Cmd msg
 
--- port update
+
+port fetchedLog : (LogDto4 -> msg) -> Sub msg
