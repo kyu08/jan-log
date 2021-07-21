@@ -28,11 +28,36 @@ const defaultLog4 = {
   chips: [0, 0, 0, 0],
 };
 
-app.ports.fetchLog.subscribe((logId) => {
+// app.ports.fetchLog.subscribe((logId) => {
+//   db.collection("logs")
+//     .doc(logId)
+//     .get()
+//     .then((doc) => {
+//       const docData = doc.data();
+//       const res = doc.exists
+//         ? { ...docData, logId }
+//         : { ...defaultLog4, logId };
+//       app.ports.fetchedLog.send(res);
+//     });
+// });
+
+// app.ports.updateLog.subscribe(
+//   ({ logId, gameFee, rate, chipRate, players, rounds, chips }) => {
+//     db.collection("logs").doc(logId).set({
+//       gameFee,
+//       rate,
+//       chipRate,
+//       players,
+//       rounds,
+//       chips,
+//     });
+//   }
+// );
+app.ports.fetchLog.subscribe(function (logId) {
   db.collection("logs")
     .doc(logId)
     .get()
-    .then((doc) => {
+    .then(function (doc) {
       const docData = doc.data();
       const res = doc.exists
         ? { ...docData, logId }
@@ -41,15 +66,21 @@ app.ports.fetchLog.subscribe((logId) => {
     });
 });
 
-app.ports.updateLog.subscribe(
-  ({ logId, gameFee, rate, chipRate, players, rounds, chips }) => {
-    db.collection("logs").doc(logId).set({
-      gameFee,
-      rate,
-      chipRate,
-      players,
-      rounds,
-      chips,
-    });
-  }
-);
+app.ports.updateLog.subscribe(function ({
+  logId,
+  gameFee,
+  rate,
+  chipRate,
+  players,
+  rounds,
+  chips,
+}) {
+  db.collection("logs").doc(logId).set({
+    gameFee,
+    rate,
+    chipRate,
+    players,
+    rounds,
+    chips,
+  });
+});
