@@ -452,7 +452,9 @@ viewInputChipsCell playerIndex chip =
             [ class "editLog_inputCellInput"
             , value chip
             , onInput <| ChangedChip playerIndex
-            , pattern "[0-9]*"
+
+            -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
+            -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
             ]
             []
         ]
