@@ -1,5 +1,6 @@
 import "./style/index.css";
 import { Elm } from "./elm/Main.elm";
+
 import firebase from "firebase/app";
 import "firebase/firestore";
 
@@ -28,36 +29,11 @@ const defaultLog4 = {
   chips: [0, 0, 0, 0],
 };
 
-// app.ports.fetchLog.subscribe((logId) => {
-//   db.collection("logs")
-//     .doc(logId)
-//     .get()
-//     .then((doc) => {
-//       const docData = doc.data();
-//       const res = doc.exists
-//         ? { ...docData, logId }
-//         : { ...defaultLog4, logId };
-//       app.ports.fetchedLog.send(res);
-//     });
-// });
-
-// app.ports.updateLog.subscribe(
-//   ({ logId, gameFee, rate, chipRate, players, rounds, chips }) => {
-//     db.collection("logs").doc(logId).set({
-//       gameFee,
-//       rate,
-//       chipRate,
-//       players,
-//       rounds,
-//       chips,
-//     });
-//   }
-// );
-app.ports.fetchLog.subscribe(function (logId) {
+app.ports.fetchLog.subscribe((logId) => {
   db.collection("logs")
     .doc(logId)
     .get()
-    .then(function (doc) {
+    .then((doc) => {
       const docData = doc.data();
       const res = doc.exists
         ? { ...docData, logId }
@@ -66,21 +42,15 @@ app.ports.fetchLog.subscribe(function (logId) {
     });
 });
 
-app.ports.updateLog.subscribe(function ({
-  logId,
-  gameFee,
-  rate,
-  chipRate,
-  players,
-  rounds,
-  chips,
-}) {
-  db.collection("logs").doc(logId).set({
-    gameFee,
-    rate,
-    chipRate,
-    players,
-    rounds,
-    chips,
-  });
-});
+app.ports.updateLog.subscribe(
+  ({ logId, gameFee, rate, chipRate, players, rounds, chips }) => {
+    db.collection("logs").doc(logId).set({
+      gameFee,
+      rate,
+      chipRate,
+      players,
+      rounds,
+      chips,
+    });
+  }
+);
