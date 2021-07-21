@@ -1,7 +1,7 @@
 import "./style/index.css";
 import { Elm } from "./elm/Main.elm";
 import firebase from "firebase/app";
-require("firebase/firestore");
+import "firebase/firestore";
 
 const app = Elm.Main.init({
   node: document.getElementById("root"),
