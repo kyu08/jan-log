@@ -29,6 +29,8 @@ const defaultLog4 = {
   chips: [0, 0, 0, 0],
   rankPoint: [10, 20],
   topBonus: 5,
+  havePoint: 25,
+  returnPoint: 30,
 };
 
 app.ports.fetchLog.subscribe((logId) => {
@@ -55,6 +57,8 @@ app.ports.updateLog.subscribe(
     chips,
     rankPoint,
     topBonus,
+    havePoint,
+    returnPoint,
   }) => {
     db.collection("logs").doc(logId).set({
       gameFee,
@@ -65,6 +69,8 @@ app.ports.updateLog.subscribe(
       chips,
       rankPoint,
       topBonus,
+    havePoint,
+    returnPoint,
     });
   }
 );

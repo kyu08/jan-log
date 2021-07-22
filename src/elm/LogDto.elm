@@ -24,4 +24,6 @@ type alias LogDto4 =
     , chips : Array Int
     , rankPoint : Array Int
     , topBonus : Int
+    , havePoint : Int
+    , returnPoint : Int
     }

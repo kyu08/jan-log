@@ -11,7 +11,7 @@ port module EditLog exposing
 
 import Array exposing (Array)
 import Html exposing (Html, div, input, label, table, td, text, th, tr)
-import Html.Attributes exposing (class, for, id, pattern, value)
+import Html.Attributes exposing (class, for, id, value)
 import Html.Events exposing (onInput)
 import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
@@ -40,14 +40,18 @@ type alias Model =
     }
 
 
-{-| UUID
--}
 type alias LogConfig =
     { rate : Rate
     , chipRate : ChipRate
     , gameFee : GameFee
     , rankPoint : ( String, String )
     , topBonus : TopBonus
+
+    -- 何万点持ちか
+    , havePoint : Point
+
+    -- 何万点返しか
+    , returnPoint : Point
     }
 
 
@@ -57,14 +61,6 @@ type EditingRoundIndex
 
 
 type alias TopBonus =
-    String
-
-
-type alias RankPointFirtst =
-    String
-
-
-type alias RankPointSecond =
     String
 
 
@@ -115,7 +111,9 @@ initLogConfig =
     , chipRate = "2"
     , gameFee = "5000"
     , rankPoint = ( "10", "20" )
-    , topBonus = "50"
+    , topBonus = "5"
+    , havePoint = "30"
+    , returnPoint = "25"
     }
 
 
@@ -286,6 +284,8 @@ dto4ToModel model logDto4 =
                     (String.fromInt <| getArrayElement 0 logDto4.rankPoint)
                     (String.fromInt <| getArrayElement 1 logDto4.rankPoint)
             , topBonus = String.fromInt logDto4.topBonus
+            , havePoint = String.fromInt logDto4.havePoint
+            , returnPoint = String.fromInt logDto4.returnPoint
             }
         , players = logDto4.players
         , rounds = Array.map toStringRound4 logDto4.rounds
@@ -309,6 +309,8 @@ toLogDto4 { logId, logConfig, players, rounds, chips } =
     , chips = toIntArray chips
     , rankPoint = Array.fromList [ toIntValue <| Tuple.first logConfig.rankPoint, toIntValue <| Tuple.second logConfig.rankPoint ]
     , topBonus = toIntValue logConfig.topBonus
+    , havePoint = toIntValue logConfig.havePoint
+    , returnPoint = toIntValue logConfig.returnPoint
     }
 
 
@@ -524,6 +526,10 @@ viewInputPointCell roundNumber playerIndex point =
 
 
 {-| 点数表示マス
+TODO: ここでウマオカとかを計算して表示する
+
+1.  round -> 計算済み round
+
 -}
 viewShowPointCell : Point -> Html Msg
 viewShowPointCell point =
@@ -646,7 +652,18 @@ calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
     Array.map (\point -> point - gameFee) totalBalanceExcludeGameFee
 
 
+type alias CalculateRoundFromRawPointConfig =
+    { round : Array Int
+    , rankPoint : ( Int, Int )
+    , topBonus : Int
+    }
 
+
+
+-- calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> Round
+-- calculateRoundFromRawPoint {round, rankPoint, topBonus} =
+-- 1. どうやって計算しよう
+-- なんてんもち / なんてんがえしか必要だわ
 -- Const
 
 
