@@ -359,9 +359,9 @@ viewEditLogConfig { rate, chipRate, gameFee, rankPoint, topBonus } =
         [ viewEditLogConfigForm phrase.editLogConfigRate rate ChangedRate
         , viewEditLogConfigForm phrase.editLogConfigChipRate chipRate ChangedChipRate
         , viewEditLogConfigForm phrase.editLogConfigGameFee gameFee ChangedGameFee
+        , viewEditLogConfigForm phrase.editLogConfigTopBonus topBonus ChangedTopBonus
         , viewEditLogConfigForm phrase.editLogConfigRankPointFirst (Tuple.first rankPoint) ChangedRankPointFirst
         , viewEditLogConfigForm phrase.editLogConfigRankPointSecond (Tuple.second rankPoint) ChangedRankPointSecond
-        , viewEditLogConfigForm phrase.editLogConfigTopBonus topBonus ChangedTopBonus
         ]
 
 
@@ -602,9 +602,9 @@ phrase =
     , editLogConfigRate = "レート"
     , editLogConfigChipRate = "レート(チップ)"
     , editLogConfigGameFee = "ゲーム代"
-    , editLogConfigRankPointFirst = "順位点(2, 3着)"
-    , editLogConfigRankPointSecond = "順位点(1, 4着)"
     , editLogConfigTopBonus = "オカ"
+    , editLogConfigRankPointFirst = "ウマ(2, 3着)"
+    , editLogConfigRankPointSecond = "ウマ(1, 4着)"
     , addRow = "行を追加する"
     }
 
