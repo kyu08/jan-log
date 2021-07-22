@@ -195,7 +195,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, logConfig, chips } as m) =
+update msg ({ rounds, players, logConfig, chips, editingRoundIndex } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             ( { m | players = Array.set index playerName players }, Cmd.none )
@@ -261,7 +261,16 @@ update msg ({ rounds, players, logConfig, chips } as m) =
             ( { m | logConfig = { logConfig | topBonus = topBonus } }, Cmd.none )
 
         ClickedEditRoundButton index ->
-            ( { m | editingRoundIndex = Editing index }, Cmd.none )
+            case editingRoundIndex of
+                Editing editingRoundIndexValue ->
+                    if editingRoundIndexValue == index then
+                        ( { m | editingRoundIndex = None }, Cmd.none )
+
+                    else
+                        ( { m | editingRoundIndex = Editing index }, Cmd.none )
+
+                None ->
+                    ( { m | editingRoundIndex = Editing index }, Cmd.none )
 
 
 dto4ToModel : Model -> LogDto4 -> Model
@@ -439,7 +448,7 @@ viewInputRoundRow roundNumber editingRoundIndex round =
             case editingRoundIndex of
                 None ->
                     List.indexedMap
-                        (\index point -> viewInputPointCell roundNumber index point)
+                        (\index_ point -> viewShowPointCell point)
                         (Array.toList round)
 
                 Editing index ->
@@ -450,7 +459,7 @@ viewInputRoundRow roundNumber editingRoundIndex round =
 
                     else
                         List.indexedMap
-                            (\index_ point -> viewInputPointCell roundNumber index_ point)
+                            (\index_ point -> viewShowPointCell point)
                             (Array.toList round)
     in
     tr [ class "editLog_tr" ]
@@ -512,6 +521,15 @@ viewInputPointCell roundNumber playerIndex point =
             ]
             []
         ]
+
+
+{-| 点数表示マス
+-}
+viewShowPointCell : Point -> Html Msg
+viewShowPointCell point =
+    td
+        [ class "editLog_calculatedCell" ]
+        [ text point ]
 
 
 {-| チップ入力マス
