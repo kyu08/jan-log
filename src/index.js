@@ -27,6 +27,8 @@ const defaultLog4 = {
   players: ["player1", "player2", "player3", "player4"],
   rounds: Array(4).fill(defaultRound4),
   chips: [0, 0, 0, 0],
+  rankPoint: [10, 20],
+  topBonus: 5,
 };
 
 app.ports.fetchLog.subscribe((logId) => {
@@ -43,7 +45,17 @@ app.ports.fetchLog.subscribe((logId) => {
 });
 
 app.ports.updateLog.subscribe(
-  ({ logId, gameFee, rate, chipRate, players, rounds, chips }) => {
+  ({
+    logId,
+    gameFee,
+    rate,
+    chipRate,
+    players,
+    rounds,
+    chips,
+    rankPoint,
+    topBonus,
+  }) => {
     db.collection("logs").doc(logId).set({
       gameFee,
       rate,
@@ -51,6 +63,8 @@ app.ports.updateLog.subscribe(
       players,
       rounds,
       chips,
+    rankPoint,
+    topBonus,
     });
   }
 );

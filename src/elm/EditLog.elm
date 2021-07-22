@@ -45,7 +45,21 @@ type alias LogConfig =
     { rate : Rate
     , chipRate : ChipRate
     , gameFee : GameFee
+    , rankPoint : ( String, String )
+    , topBonus : TopBonus
     }
+
+
+type alias TopBonus =
+    String
+
+
+type alias RankPointFirtst =
+    String
+
+
+type alias RankPointSecond =
+    String
 
 
 type alias Rate =
@@ -94,6 +108,8 @@ initLogConfig =
     { rate = "100"
     , chipRate = "2"
     , gameFee = "5000"
+    , rankPoint = ( "10", "20" )
+    , topBonus = "50"
     }
 
 
@@ -165,6 +181,9 @@ type Msg
     | ClickedAddRowButton
     | FetchedLog LogDto4
     | ClickedSaveButton
+    | ChangedRankPointFirst String
+    | ChangedRankPointSecond String
+    | ChangedTopBonus String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -220,6 +239,19 @@ update msg ({ rounds, players, logConfig, chips } as m) =
         ClickedSaveButton ->
             ( m, updateLog <| toLogDto4 m )
 
+        ChangedRankPointFirst rankpointFirst ->
+            ( { m | logConfig = { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint } }
+            , Cmd.none
+            )
+
+        ChangedRankPointSecond rankpointSecond ->
+            ( { m | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint } }
+            , Cmd.none
+            )
+
+        ChangedTopBonus topBonus ->
+            ( { m | logConfig = { logConfig | topBonus = topBonus } }, Cmd.none )
+
 
 dto4ToModel : Model -> LogDto4 -> Model
 dto4ToModel { session } logDto4 =
@@ -229,6 +261,11 @@ dto4ToModel { session } logDto4 =
         { rate = String.fromInt logDto4.rate
         , chipRate = String.fromInt logDto4.chipRate
         , gameFee = String.fromInt logDto4.gameFee
+        , rankPoint =
+            Tuple.pair
+                (String.fromInt <| getArrayElement 0 logDto4.rankPoint)
+                (String.fromInt <| getArrayElement 1 logDto4.rankPoint)
+        , topBonus = String.fromInt logDto4.topBonus
         }
     , players = logDto4.players
     , rounds = Array.map toStringRound4 logDto4.rounds
@@ -250,6 +287,8 @@ toLogDto4 { logId, logConfig, players, rounds, chips } =
     , players = players
     , rounds = Array.map toRoundObj4 rounds
     , chips = toIntArray chips
+    , rankPoint = Array.fromList [ toIntValue <| Tuple.first logConfig.rankPoint, toIntValue <| Tuple.second logConfig.rankPoint ]
+    , topBonus = toIntValue logConfig.topBonus
     }
 
 

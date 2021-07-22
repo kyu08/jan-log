@@ -22,4 +22,6 @@ type alias LogDto4 =
     , players : Array String
     , rounds : Array RoundObj4
     , chips : Array Int
+    , rankPoint : Array Int
+    , topBonus : Int
     }
