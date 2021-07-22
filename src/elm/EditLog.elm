@@ -36,6 +36,7 @@ type alias Model =
     , players : Players
     , rounds : Rounds
     , chips : Chips
+    , editingRoundIndex : EditingRoundIndex
     }
 
 
@@ -48,6 +49,11 @@ type alias LogConfig =
     , rankPoint : ( String, String )
     , topBonus : TopBonus
     }
+
+
+type EditingRoundIndex
+    = None
+    | Editing Int
 
 
 type alias TopBonus =
@@ -154,6 +160,7 @@ initModel logId session =
     , players = initPlayers
     , rounds = initRounds
     , chips = initChips
+    , editingRoundIndex = None
     }
 
 
@@ -184,6 +191,7 @@ type Msg
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedTopBonus String
+    | ClickedEditRoundButton Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -252,24 +260,27 @@ update msg ({ rounds, players, logConfig, chips } as m) =
         ChangedTopBonus topBonus ->
             ( { m | logConfig = { logConfig | topBonus = topBonus } }, Cmd.none )
 
+        ClickedEditRoundButton index ->
+            ( { m | editingRoundIndex = Editing index }, Cmd.none )
+
 
 dto4ToModel : Model -> LogDto4 -> Model
-dto4ToModel { session } logDto4 =
-    { session = session
-    , logId = logDto4.logId
-    , logConfig =
-        { rate = String.fromInt logDto4.rate
-        , chipRate = String.fromInt logDto4.chipRate
-        , gameFee = String.fromInt logDto4.gameFee
-        , rankPoint =
-            Tuple.pair
-                (String.fromInt <| getArrayElement 0 logDto4.rankPoint)
-                (String.fromInt <| getArrayElement 1 logDto4.rankPoint)
-        , topBonus = String.fromInt logDto4.topBonus
-        }
-    , players = logDto4.players
-    , rounds = Array.map toStringRound4 logDto4.rounds
-    , chips = toStringArray logDto4.chips
+dto4ToModel model logDto4 =
+    { model
+        | logId = logDto4.logId
+        , logConfig =
+            { rate = String.fromInt logDto4.rate
+            , chipRate = String.fromInt logDto4.chipRate
+            , gameFee = String.fromInt logDto4.gameFee
+            , rankPoint =
+                Tuple.pair
+                    (String.fromInt <| getArrayElement 0 logDto4.rankPoint)
+                    (String.fromInt <| getArrayElement 1 logDto4.rankPoint)
+            , topBonus = String.fromInt logDto4.topBonus
+            }
+        , players = logDto4.players
+        , rounds = Array.map toStringRound4 logDto4.rounds
+        , chips = toStringArray logDto4.chips
     }
 
 
@@ -346,8 +357,8 @@ view model =
     div [ class "editLog_container" ]
         [ viewEditLogConfig model.logConfig
         , viewEditLog model
-        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton }
-        , UI.viewButton { phrase = "保存する", onClickMsg = ClickedSaveButton }
+        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
+        , UI.viewButton { phrase = "保存する", onClickMsg = ClickedSaveButton, size = UI.Default }
         ]
 
 
@@ -378,7 +389,7 @@ viewEditLogConfigForm labelText inputValue onInputMsg =
 {-| 成績編集UI
 -}
 viewEditLog : Model -> Html Msg
-viewEditLog { logConfig, players, rounds, chips } =
+viewEditLog { logConfig, players, rounds, chips, editingRoundIndex } =
     let
         totalPoint =
             calculateTotalPoint rounds
@@ -397,7 +408,7 @@ viewEditLog { logConfig, players, rounds, chips } =
         (viewInputPlayersRow players
             :: (Array.toList <|
                     Array.indexedMap
-                        (\roundNumber round -> viewInputRoundRow roundNumber round)
+                        (\roundNumber round -> viewInputRoundRow roundNumber editingRoundIndex round)
                         rounds
                )
             ++ [ viewInputChipsRow phrase.chip chips
@@ -421,13 +432,32 @@ viewInputPlayersRow players =
 
 {-| 点棒入力行
 -}
-viewInputRoundRow : Int -> Array String -> Html Msg
-viewInputRoundRow roundNumber round =
+viewInputRoundRow : Int -> EditingRoundIndex -> Array String -> Html Msg
+viewInputRoundRow roundNumber editingRoundIndex round =
+    let
+        roundInputArea =
+            case editingRoundIndex of
+                None ->
+                    List.indexedMap
+                        (\index point -> viewInputPointCell roundNumber index point)
+                        (Array.toList round)
+
+                Editing index ->
+                    if roundNumber == index then
+                        List.indexedMap
+                            (\index_ point -> viewInputPointCell roundNumber index_ point)
+                            (Array.toList round)
+
+                    else
+                        List.indexedMap
+                            (\index_ point -> viewInputPointCell roundNumber index_ point)
+                            (Array.toList round)
+    in
     tr [ class "editLog_tr" ]
-        (td [ class "editLog_logNumberCell" ] [ text <| String.fromInt (roundNumber + 1) ]
-            :: List.indexedMap
-                (\index point -> viewInputPointCell roundNumber index point)
-                (Array.toList round)
+        (td
+            [ class "editLog_logNumberCell" ]
+            [ viewInputPointButton roundNumber, text <| String.fromInt (roundNumber + 1) ]
+            :: roundInputArea
         )
 
 
@@ -509,6 +539,15 @@ viewCalculatedCell calculatedValue =
     td
         [ class "editLog_calculatedCell" ]
         [ text <| String.fromInt calculatedValue ]
+
+
+viewInputPointButton : Int -> Html Msg
+viewInputPointButton index =
+    UI.viewButton
+        { phrase = phrase.inputPoint
+        , onClickMsg = ClickedEditRoundButton index
+        , size = UI.Mini
+        }
 
 
 
@@ -606,6 +645,7 @@ phrase =
     , editLogConfigRankPointFirst = "ウマ(2, 3着)"
     , editLogConfigRankPointSecond = "ウマ(1, 4着)"
     , addRow = "行を追加する"
+    , inputPoint = "🖋"
     }
 
 

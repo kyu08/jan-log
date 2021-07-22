@@ -63,8 +63,8 @@ app.ports.updateLog.subscribe(
       players,
       rounds,
       chips,
-    rankPoint,
-    topBonus,
+      rankPoint,
+      topBonus,
     });
   }
 );

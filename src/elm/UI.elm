@@ -1,5 +1,6 @@
 module UI exposing
-    ( viewBlank
+    ( Size(..)
+    , viewBlank
     , viewButton
     , viewIf
     , viewLinkButton
@@ -8,6 +9,18 @@ module UI exposing
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, contenteditable, href)
 import Html.Events exposing (onClick)
+
+
+type Size
+    = Default
+    | Mini
+
+
+type alias ViewButtonConfig msg =
+    { phrase : String
+    , onClickMsg : msg
+    , size : Size
+    }
 
 
 viewLinkButton : String -> String -> Html msg
@@ -22,16 +35,19 @@ viewLinkButton phrase pathString =
         ]
 
 
-type alias ViewButtonConfig msg =
-    { phrase : String
-    , onClickMsg : msg
-    }
-
-
 viewButton : ViewButtonConfig msg -> Html msg
-viewButton { phrase, onClickMsg } =
+viewButton { phrase, onClickMsg, size } =
+    let
+        containerClass =
+            case size of
+                Default ->
+                    "button_container"
+
+                Mini ->
+                    "button_container_mini"
+    in
     div
-        [ class "button_container", onClick onClickMsg ]
+        [ class containerClass, onClick onClickMsg ]
         [ div
             [ class "button_primary" ]
             [ text phrase ]
