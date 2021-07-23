@@ -186,7 +186,6 @@ type Msg
     | ClickedAddRowButton
     | ClickedToggleConfigButton
     | FetchedLog LogDto4
-    | ClickedSaveButton
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedHavePoint String
@@ -224,7 +223,7 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
                         Nothing ->
                             m
             in
-            ( nextModel, Cmd.none )
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedChip playerIndex chip ->
             ( { m | chips = Array.set playerIndex chip chips }, Cmd.none )
@@ -246,9 +245,6 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
 
         FetchedLog dto4 ->
             ( dto4ToModel m dto4, Cmd.none )
-
-        ClickedSaveButton ->
-            ( m, updateLog <| toLogDto4 m )
 
         ChangedRankPointFirst rankpointFirst ->
             ( { m | logConfig = { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint } }
@@ -386,7 +382,6 @@ view model =
             model.isOpenedConfigArea
         , viewEditLog model
         , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
-        , UI.viewButton { phrase = phrase.saveLog, onClickMsg = ClickedSaveButton, size = UI.Default }
         ]
 
 
@@ -830,10 +825,9 @@ phrase =
     , editLogConfigReturnPoint = "返し"
     , editLogConfigRankPointFirst = "ウマ(2, 3着)"
     , editLogConfigRankPointSecond = "ウマ(1, 4着)"
-    , openEditLogConfigArea = "設定フォームを開く"
-    , closeEditLogConfigArea = "設定フォームを閉じる"
+    , openEditLogConfigArea = "設定を開く"
+    , closeEditLogConfigArea = "設定を閉じる"
     , addRow = "行を追加する"
-    , saveLog = "保存する"
     , inputPoint = "🖋"
     }
 
