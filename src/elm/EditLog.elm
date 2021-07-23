@@ -758,7 +758,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
             List.reverse <|
                 List.sortBy
                     Tuple.second
-                    (Array.toList (Debug.log "returnedRound" returnedRound))
+                    (Array.toList returnedRound)
 
         oka =
             returnPoint - havePoint
@@ -775,7 +775,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 rankPointArray
                 sortedRound
     in
-    List.sortBy Tuple.first (Debug.log "rankPointedRound" rankPointedRound)
+    List.sortBy Tuple.first rankPointedRound
         |> List.map Tuple.second
         |> Array.fromList
 
