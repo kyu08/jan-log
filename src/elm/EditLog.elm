@@ -791,7 +791,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 rankPointArray
                 (List.indexedMap (\index round_ -> ( index, round_ )) sortedRound)
     in
-    List.sortBy Tuple.first (Debug.log "rankPointedRound" rankPointedRound)
+    List.sortBy Tuple.first rankPointedRound
         |> List.map Tuple.second
         |> Array.fromList
 
