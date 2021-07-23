@@ -22,13 +22,12 @@ const db = firebase.firestore();
 const defaultRound4 = { data0: 0, data1: 0, data2: 0, data3: 0 };
 const defaultLog4 = {
   gameFee: 0,
-  rate: 100,
+  rate: 50,
   chipRate: 2,
   players: ["player1", "player2", "player3", "player4"],
   rounds: Array(4).fill(defaultRound4),
   chips: [0, 0, 0, 0],
   rankPoint: [10, 20],
-  topBonus: 5,
   havePoint: 25,
   returnPoint: 30,
 };
@@ -56,7 +55,6 @@ app.ports.updateLog.subscribe(
     rounds,
     chips,
     rankPoint,
-    topBonus,
     havePoint,
     returnPoint,
   }) => {
@@ -68,9 +66,8 @@ app.ports.updateLog.subscribe(
       rounds,
       chips,
       rankPoint,
-      topBonus,
-    havePoint,
-    returnPoint,
+      havePoint,
+      returnPoint,
     });
   }
 );

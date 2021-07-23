@@ -23,7 +23,6 @@ type alias LogDto4 =
     , rounds : Array RoundObj4
     , chips : Array Int
     , rankPoint : Array Int
-    , topBonus : Int
     , havePoint : Int
     , returnPoint : Int
     }
