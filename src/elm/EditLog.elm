@@ -443,7 +443,22 @@ viewEditLog : Model -> Html Msg
 viewEditLog { logConfig, players, rounds, chips, editingRoundIndex } =
     let
         totalPoint =
-            calculateTotalPoint rounds
+            calculateTotalPoint
+                (Array.map
+                    (\round ->
+                        if not <| isDefaultRound round then
+                            calculateRoundFromRawPoint
+                                { rankPoint = toIntTuple logConfig.rankPoint
+                                , round = toIntArray round
+                                , havePoint = toIntValue logConfig.havePoint
+                                , returnPoint = toIntValue logConfig.returnPoint
+                                }
+
+                        else
+                            toIntArray round
+                    )
+                    rounds
+                )
 
         totalPointIncludeChip =
             calculateTotalPointIncludeChip (toIntValue logConfig.chipRate) totalPoint chips
@@ -667,12 +682,12 @@ type alias Stat =
 
 {-| ポイント収支を計算する
 -}
-calculateTotalPoint : Rounds -> Stats
+calculateTotalPoint : Array (Array Int) -> Stats
 calculateTotalPoint rounds =
     Array.foldl
         (calculateFrom2Arrays (+))
         Array.empty
-        (toIntRounds rounds)
+        rounds
 
 
 {-| 2つの Array を元に計算を行う
@@ -765,17 +780,17 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
         rankPointedRound =
             List.map2
-                (\rankPoint_ ( index, point ) ->
+                (\rankPoint_ ( index, ( rank, point ) ) ->
                     if index == 0 then
-                        ( index, point + rankPoint_ + (oka * 4) )
+                        ( rank, point + rankPoint_ + (oka * 4) )
 
                     else
-                        ( index, point + rankPoint_ )
+                        ( rank, point + rankPoint_ )
                 )
                 rankPointArray
-                sortedRound
+                (List.indexedMap (\index round_ -> ( index, round_ )) sortedRound)
     in
-    List.sortBy Tuple.first rankPointedRound
+    List.sortBy Tuple.first (Debug.log "rankPointedRound" rankPointedRound)
         |> List.map Tuple.second
         |> Array.fromList
 
