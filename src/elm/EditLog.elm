@@ -753,7 +753,8 @@ type alias CalculateRoundFromRawPointConfig =
     }
 
 
-{-| TODO: 同点の時は起家をユーザーにきく
+{-| トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
+TODO: 同点の時は起家をユーザーにきく
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> Array Int
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
@@ -781,17 +782,37 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
         rankPointedRound =
             List.map2
-                (\rankPoint_ ( index, ( rank, point ) ) ->
-                    if index == 0 then
-                        ( rank, point + rankPoint_ + (oka * 4) )
-
-                    else
-                        ( rank, point + rankPoint_ )
+                (\rankPoint_ ( rank, ( index, point ) ) ->
+                    ( rank, ( index, point + rankPoint_ ) )
                 )
                 rankPointArray
-                (List.indexedMap (\index round_ -> ( index, round_ )) sortedRound)
+                (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedRound)
+
+        totalPointsWithout1st =
+            List.foldl
+                (\( rank, ( index, point ) ) acumulator ->
+                    if rank == 0 then
+                        acumulator
+
+                    else
+                        point + acumulator
+                )
+                0
+                rankPointedRound
+
+        calculated1stPointRound =
+            List.map
+                (\( rank, ( index, point ) ) ->
+                    if rank == 0 then
+                        ( index, negate totalPointsWithout1st )
+
+                    else
+                        ( index, point )
+                )
+                rankPointedRound
     in
-    List.sortBy Tuple.first rankPointedRound
+    calculated1stPointRound
+        |> List.sortBy Tuple.first
         |> List.map Tuple.second
         |> Array.fromList
 
