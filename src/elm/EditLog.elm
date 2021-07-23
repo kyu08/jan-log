@@ -125,7 +125,7 @@ initPlayers =
 
 initRound4 : Round
 initRound4 =
-    Array.initialize 4 (always "0")
+    Array.initialize 4 (always "")
 
 
 roundInitializer : a -> Round
@@ -517,7 +517,8 @@ type alias ViewInputRoundRowConfig =
 
 isDefaultRound : Round -> Bool
 isDefaultRound round =
-    round == initRound4
+    (round == initRound4)
+        || (round == Array.initialize 4 (always "0"))
 
 
 {-| 点棒入力行
