@@ -197,7 +197,11 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoundIndex } as m) =
     case msg of
         ChangedPlayerName index playerName ->
-            ( { m | players = Array.set index playerName players }, Cmd.none )
+            let
+                nextModel =
+                    { m | players = Array.set index playerName players }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedPoint logNumber playerIndex point ->
             let
@@ -226,16 +230,32 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedChip playerIndex chip ->
-            ( { m | chips = Array.set playerIndex chip chips }, Cmd.none )
+            let
+                nextModel =
+                    { m | chips = Array.set playerIndex chip chips }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedRate inputValue ->
-            ( { m | logConfig = { logConfig | rate = inputValue } }, Cmd.none )
+            let
+                nextModel =
+                    { m | logConfig = { logConfig | rate = inputValue } }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedChipRate inputValue ->
-            ( { m | logConfig = { logConfig | chipRate = inputValue } }, Cmd.none )
+            let
+                nextModel =
+                    { m | logConfig = { logConfig | chipRate = inputValue } }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedGameFee inputValue ->
-            ( { m | logConfig = { logConfig | gameFee = inputValue } }, Cmd.none )
+            let
+                nextModel =
+                    { m | logConfig = { logConfig | gameFee = inputValue } }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ClickedAddRowButton ->
             ( { m | rounds = Array.push initRound4 rounds }, Cmd.none )
@@ -247,20 +267,37 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             ( dto4ToModel m dto4, Cmd.none )
 
         ChangedRankPointFirst rankpointFirst ->
-            ( { m | logConfig = { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint } }
-            , Cmd.none
-            )
+            let
+                nextModel =
+                    { m
+                        | logConfig =
+                            { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint }
+                    }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedRankPointSecond rankpointSecond ->
-            ( { m | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint } }
-            , Cmd.none
-            )
+            let
+                nextModel =
+                    { m
+                        | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint }
+                    }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedReturnPoint returnPoint ->
-            ( { m | logConfig = { logConfig | returnPoint = returnPoint } }, Cmd.none )
+            let
+                nextModel =
+                    { m | logConfig = { logConfig | returnPoint = returnPoint } }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedHavePoint havePoint ->
-            ( { m | logConfig = { logConfig | havePoint = havePoint } }, Cmd.none )
+            let
+                nextModel =
+                    { m | logConfig = { logConfig | havePoint = havePoint } }
+            in
+            ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ClickedEditRoundButton index ->
             case editingRoundIndex of
