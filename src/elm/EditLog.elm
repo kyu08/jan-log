@@ -342,7 +342,15 @@ dto4ToModel model logDto4 =
 
 toStringRound4 : RoundObj4 -> Round
 toStringRound4 { data0, data1, data2, data3 } =
-    Array.map String.fromInt <| Array.fromList [ data0, data1, data2, data3 ]
+    let
+        stringFromInt int =
+            if int == 0 then
+                ""
+
+            else
+                String.fromInt int
+    in
+    Array.map stringFromInt <| Array.fromList [ data0, data1, data2, data3 ]
 
 
 toLogDto4 : Model -> LogDto4
