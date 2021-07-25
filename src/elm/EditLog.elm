@@ -164,7 +164,10 @@ initModel logId session =
 
 initCmd : LogId -> Cmd msg
 initCmd logId =
-    fetchLog logId
+    Cmd.batch
+        [ fetchLog logId
+        , listenLog logId
+        ]
 
 
 toSession : Model -> Session
@@ -186,6 +189,7 @@ type Msg
     | ClickedAddRowButton
     | ClickedToggleConfigButton
     | FetchedLog LogDto4
+    | ListenedLog LogDto4
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedHavePoint String
@@ -264,6 +268,9 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             ( { m | isOpenedConfigArea = not isOpenedConfigArea }, Cmd.none )
 
         FetchedLog dto4 ->
+            ( dto4ToModel m dto4, Cmd.none )
+
+        ListenedLog dto4 ->
             ( dto4ToModel m dto4, Cmd.none )
 
         ChangedRankPointFirst rankpointFirst ->
@@ -875,17 +882,23 @@ phrase =
 
 subscriptions : Sub Msg
 subscriptions =
-    Sub.batch [ fetchedLog FetchedLog ]
+    Sub.batch [ fetchedLog FetchedLog, listenedLog ListenedLog ]
 
 
 
 -- Ports
 
 
-port fetchLog : String -> Cmd msg
-
-
 port updateLog : LogDto4 -> Cmd msg
 
 
+port fetchLog : String -> Cmd msg
+
+
 port fetchedLog : (LogDto4 -> msg) -> Sub msg
+
+
+port listenLog : String -> Cmd msg
+
+
+port listenedLog : (LogDto4 -> msg) -> Sub msg

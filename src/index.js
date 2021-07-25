@@ -37,9 +37,8 @@ app.ports.fetchLog.subscribe((logId) => {
     .doc(logId)
     .get()
     .then((doc) => {
-      const docData = doc.data();
       const res = doc.exists
-        ? { ...docData, logId }
+        ? { ...doc.data(), logId }
         : { ...defaultLog4, logId };
       app.ports.fetchedLog.send(res);
     });
@@ -71,3 +70,12 @@ app.ports.updateLog.subscribe(
     });
   }
 );
+
+app.ports.listenLog.subscribe((logId) => {
+  db.doc(`logs/${logId}`).onSnapshot((doc) => {
+    const res = doc.exists
+      ? { ...doc.data(), logId }
+      : { ...defaultLog4, logId };
+    app.ports.listenedLog.send(res);
+  });
+});
