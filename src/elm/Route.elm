@@ -1,6 +1,6 @@
 module Route exposing (Route(..), fromUrl, parser, routes)
 
-import GameId exposing (GameId)
+import LogId exposing (LogId)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
@@ -8,7 +8,7 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 type Route
     = NotFound
     | Home
-    | EditGame GameId
+    | EditLog LogId
     | History
 
 
@@ -16,7 +16,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map EditGame (s routes.editGame </> string)
+        , Parser.map EditLog (s routes.editLog </> string)
         , Parser.map History (s routes.history)
         ]
 
@@ -29,6 +29,6 @@ fromUrl url =
 
 
 routes =
-    { editGame = "editGame"
+    { editLog = "editLog"
     , history = "history"
     }

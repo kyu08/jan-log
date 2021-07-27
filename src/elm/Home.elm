@@ -10,7 +10,7 @@ import UUID exposing (UUID)
 
 type alias Model =
     { session : Session
-    , newGameId : UUIDS
+    , newLogId : UUIDS
     }
 
 
@@ -21,7 +21,7 @@ type UUIDS
 
 initModel : Session -> Model
 initModel session =
-    { session = session, newGameId = Generating }
+    { session = session, newLogId = Generating }
 
 
 initCmd : Cmd Msg
@@ -51,7 +51,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UUIDGenerated value ->
-            ( { model | newGameId = Generated value }, Cmd.none )
+            ( { model | newLogId = Generated value }, Cmd.none )
 
 
 
@@ -67,13 +67,13 @@ view model =
     div
         []
         [ UI.viewLinkButton phrases.history routes.history
-        , UI.viewLinkButton phrases.newGame (toNewRoomUrl routes.editGame model)
+        , UI.viewLinkButton phrases.newLog (toNewRoomUrl routes.editLog model)
         ]
 
 
 toNewRoomUrl : String -> Model -> String
 toNewRoomUrl path model =
-    case model.newGameId of
+    case model.newLogId of
         Generating ->
             path
 
@@ -84,6 +84,6 @@ toNewRoomUrl path model =
 
 
 phrases =
-    { newGame = "新規作成"
+    { newLog = "新規作成"
     , history = "今までの成績をみる"
     }

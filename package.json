@@ -56,5 +56,8 @@
     "webpack-manifest-plugin": "2.2.0",
     "whatwg-fetch": "3.5.0",
     "workbox-webpack-plugin": "4.3.1"
+  },
+  "dependencies": {
+    "firebase": "^8.6.8"
   }
 }

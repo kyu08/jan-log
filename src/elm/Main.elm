@@ -2,9 +2,9 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import EditGame
+import EditLog
 import Home
-import Html exposing (div, text)
+import Html exposing (div, sub, text)
 import Html.Attributes exposing (class, href)
 import Route exposing (Route(..))
 import Session exposing (Session)
@@ -19,7 +19,7 @@ import Url
 type Model
     = NotFound Session
     | Home Home.Model
-    | EditGame EditGame.Model
+    | EditLog EditLog.Model
     | History Session
 
 
@@ -37,8 +37,8 @@ toSession model =
         Home subModel ->
             Home.toSession subModel
 
-        EditGame subModel ->
-            EditGame.toSession subModel
+        EditLog subModel ->
+            EditLog.toSession subModel
 
         History session ->
             session
@@ -51,7 +51,7 @@ toSession model =
 type Msg
     = ClickedLink Browser.UrlRequest
     | ChangedUrl Url.Url
-    | GotEditGameMsg EditGame.Msg
+    | GotEditLogMsg EditLog.Msg
     | GotHomeMsg Home.Msg
     | UUIDGenerated UUID
 
@@ -72,9 +72,9 @@ update msg model =
         ( ChangedUrl url, _ ) ->
             maybeRouteToModel url model
 
-        ( GotEditGameMsg subMsg, EditGame subModel ) ->
-            EditGame.update subMsg subModel
-                |> updateWith EditGame GotEditGameMsg
+        ( GotEditLogMsg subMsg, EditLog subModel ) ->
+            EditLog.update subMsg subModel
+                |> updateWith EditLog GotEditLogMsg
 
         ( GotHomeMsg subMsg, Home subModel ) ->
             Home.update subMsg subModel
@@ -100,8 +100,8 @@ maybeRouteToModel url model =
         Just Route.History ->
             ( History session, Cmd.none )
 
-        Just (Route.EditGame gameId) ->
-            ( EditGame (EditGame.initModel gameId session), Cmd.none )
+        Just (Route.EditLog logId) ->
+            ( EditLog (EditLog.initModel logId session), EditLog.initCmd logId )
 
         Just Route.Home ->
             updateWith
@@ -135,10 +135,10 @@ view model =
                 viewContainer <|
                     Home.view subModel
 
-            EditGame subModel ->
+            EditLog subModel ->
                 viewContainer <|
-                    Html.map GotEditGameMsg <|
-                        EditGame.view subModel
+                    Html.map GotEditLogMsg <|
+                        EditLog.view subModel
 
             History _ ->
                 viewContainer <|
@@ -147,6 +147,15 @@ view model =
                         [ text "history"
                         ]
     }
+
+
+
+-- Subs
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map GotEditLogMsg EditLog.subscriptions
 
 
 
@@ -159,7 +168,7 @@ main =
         { view = view
         , init = init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         , onUrlChange = ChangedUrl
         , onUrlRequest = ClickedLink
         }
