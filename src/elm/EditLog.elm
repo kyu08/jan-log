@@ -10,7 +10,7 @@ port module EditLog exposing
     )
 
 import Array exposing (Array)
-import Html exposing (Html, div, input, label, table, td, text, th, tr)
+import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (class, for, id, value)
 import Html.Events exposing (onInput)
 import LogDto exposing (LogDto4, RoundObj4)
@@ -37,6 +37,7 @@ type alias Model =
     , rounds : Rounds
     , chips : Chips
     , isOpenedConfigArea : Bool
+    , isOpenedHowToUseArea : Bool
     , editingRoundIndex : EditingRoundIndex
     }
 
@@ -77,17 +78,35 @@ type alias GameFee =
 
 
 type alias Players =
-    Array String
+    Array Player
+
+
+type alias Player =
+    String
 
 
 type alias Rounds =
     Array Round
 
 
+type alias IntRounds =
+    Array IntRound
+
+
 {-| 半荘データ
+同点の場合は起家を入力して順位点を確定する
+chicha: PlayerIndex
 -}
 type alias Round =
-    Array Point
+    { points : Array Point
+    , chicha : Maybe Int
+    }
+
+
+type alias IntRound =
+    { chicha : Maybe Int
+    , points : Array Int
+    }
 
 
 type alias Point =
@@ -125,7 +144,9 @@ initPlayers =
 
 initRound4 : Round
 initRound4 =
-    Array.initialize 4 (always "")
+    { points = Array.initialize 4 (always "")
+    , chicha = Nothing
+    }
 
 
 roundInitializer : a -> Round
@@ -158,6 +179,7 @@ initModel logId session =
     , rounds = initRounds
     , chips = initChips
     , isOpenedConfigArea = False
+    , isOpenedHowToUseArea = False
     , editingRoundIndex = None
     }
 
@@ -181,13 +203,14 @@ toSession model =
 
 type Msg
     = ChangedPlayerName Int String
-    | ChangedPoint Int Int String
+    | ChangedPoint Int Int Point
     | ChangedChip Int String
     | ChangedRate String
     | ChangedChipRate String
     | ChangedGameFee String
     | ClickedAddRowButton
     | ClickedToggleConfigButton
+    | ClickedHowToUseButton
     | FetchedLog LogDto4
     | ListenedLog LogDto4
     | ChangedRankPointFirst String
@@ -198,7 +221,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoundIndex } as m) =
+update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoundIndex, isOpenedHowToUseArea } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             let
@@ -209,22 +232,24 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
 
         ChangedPoint logNumber playerIndex point ->
             let
-                updateRound point_ round =
+                updateRound point_ round_ =
                     Array.set logNumber
-                        (Array.set
-                            playerIndex
-                            point_
-                            round
-                        )
+                        { round_
+                            | points =
+                                Array.set
+                                    playerIndex
+                                    point_
+                                    round_.points
+                        }
                         rounds
 
-                maybeUpdatedRound =
+                maybeUpdatedRounds =
                     Maybe.map
                         (updateRound point)
                         (Array.get logNumber rounds)
 
                 nextModel =
-                    case maybeUpdatedRound of
+                    case maybeUpdatedRounds of
                         Just updatedRound ->
                             { m | rounds = updatedRound }
 
@@ -266,6 +291,9 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
 
         ClickedToggleConfigButton ->
             ( { m | isOpenedConfigArea = not isOpenedConfigArea }, Cmd.none )
+
+        ClickedHowToUseButton ->
+            ( { m | isOpenedHowToUseArea = not isOpenedHowToUseArea }, Cmd.none )
 
         FetchedLog dto4 ->
             ( dto4ToModel m dto4, Cmd.none )
@@ -340,8 +368,15 @@ dto4ToModel model logDto4 =
     }
 
 
+toStringRound : IntRound -> Round
+toStringRound intRound =
+    { chicha = intRound.chicha
+    , points = Array.map String.fromInt intRound.points
+    }
+
+
 toStringRound4 : RoundObj4 -> Round
-toStringRound4 { data0, data1, data2, data3 } =
+toStringRound4 { points, chicha } =
     let
         stringFromInt int =
             if int == 0 then
@@ -350,7 +385,16 @@ toStringRound4 { data0, data1, data2, data3 } =
             else
                 String.fromInt int
     in
-    Array.map stringFromInt <| Array.fromList [ data0, data1, data2, data3 ]
+    { chicha = chicha
+    , points =
+        Array.map stringFromInt <|
+            Array.fromList
+                [ points.data0
+                , points.data1
+                , points.data2
+                , points.data3
+                ]
+    }
 
 
 toLogDto4 : Model -> LogDto4
@@ -369,15 +413,18 @@ toLogDto4 { logId, logConfig, players, rounds, chips } =
 
 
 toRoundObj4 : Round -> RoundObj4
-toRoundObj4 round =
+toRoundObj4 { chicha, points } =
     let
-        roundInt =
-            toIntArray round
+        pointsInt =
+            toIntArray points
     in
-    { data0 = getArrayElement 0 roundInt
-    , data1 = getArrayElement 1 roundInt
-    , data2 = getArrayElement 2 roundInt
-    , data3 = getArrayElement 3 roundInt
+    { chicha = chicha
+    , points =
+        { data0 = getArrayElement 0 pointsInt
+        , data1 = getArrayElement 1 pointsInt
+        , data2 = getArrayElement 2 pointsInt
+        , data3 = getArrayElement 3 pointsInt
+        }
     }
 
 
@@ -401,10 +448,17 @@ toIntArray stringArray =
         stringArray
 
 
-toIntRounds : Rounds -> Array (Array Int)
+toIntRound : Round -> IntRound
+toIntRound { chicha, points } =
+    { chicha = chicha
+    , points = toIntArray points
+    }
+
+
+toIntRounds : Rounds -> Array IntRound
 toIntRounds rounds =
     Array.map
-        (\round -> toIntArray round)
+        toIntRound
         rounds
 
 
@@ -428,17 +482,51 @@ toIntTuple stringTuple =
 view : Model -> Html Msg
 view model =
     div [ class "editLog_container" ]
-        [ toggleLogConfigAreaBottun model.isOpenedConfigArea
+        [ viewEditLog model
+        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
+        , viewToggleHowToUseButton model.isOpenedHowToUseArea
+        , viewHowToUse model.isOpenedHowToUseArea
+        , viewToggleLogConfigAreaBottun
+            model.isOpenedConfigArea
         , viewEditLogConfig
             model.logConfig
             model.isOpenedConfigArea
-        , viewEditLog model
-        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
         ]
 
 
-toggleLogConfigAreaBottun : Bool -> Html Msg
-toggleLogConfigAreaBottun isOpened =
+viewHowToUse : Bool -> Html msg
+viewHowToUse isOpened =
+    if isOpened then
+        div [ class "editLog_howToUseContainer" ]
+            [ p [] [ text "1. 半荘が終了したら 🖋 をタップして素点を入力する" ]
+            , p [] [ text "2. 素点の100の位を五捨六入して1000で割った値を入力する" ]
+            , p [] [ text "3. 同点の場合は起家を入力する" ]
+            , p [] [ text "4. 入力が完了したら再度🖋をタップして入力を終了する。(順位点を加味した値が表示されます)" ]
+            ]
+
+    else
+        UI.viewBlank
+
+
+viewToggleHowToUseButton : Bool -> Html Msg
+viewToggleHowToUseButton isOpened =
+    if isOpened then
+        UI.viewButton
+            { phrase = phrase.closeHowToUseArea
+            , onClickMsg = ClickedHowToUseButton
+            , size = UI.Default
+            }
+
+    else
+        UI.viewButton
+            { phrase = phrase.openHowToUseArea
+            , onClickMsg = ClickedHowToUseButton
+            , size = UI.Default
+            }
+
+
+viewToggleLogConfigAreaBottun : Bool -> Html Msg
+viewToggleLogConfigAreaBottun isOpened =
     if isOpened then
         UI.viewButton
             { phrase = phrase.closeEditLogConfigArea
@@ -490,22 +578,22 @@ viewEditLog : Model -> Html Msg
 viewEditLog { logConfig, players, rounds, chips, editingRoundIndex } =
     let
         totalPoint =
-            calculateTotalPoint
-                (Array.map
+            rounds
+                |> Array.map
                     (\round ->
                         if not <| isDefaultRound round then
                             calculateRoundFromRawPoint
                                 { rankPoint = toIntTuple logConfig.rankPoint
-                                , round = toIntArray round
+                                , round = toIntRound round
                                 , havePoint = toIntValue logConfig.havePoint
                                 , returnPoint = toIntValue logConfig.returnPoint
                                 }
 
                         else
-                            toIntArray round
+                            toIntRound round
                     )
-                    rounds
-                )
+                |> Array.map .points
+                |> calculateTotalPoint
 
         totalPointIncludeChip =
             calculateTotalPointIncludeChip (toIntValue logConfig.chipRate) totalPoint chips
@@ -563,9 +651,9 @@ type alias ViewInputRoundRowConfig =
 
 
 isDefaultRound : Round -> Bool
-isDefaultRound round =
-    (round == initRound4)
-        || (round == Array.initialize 4 (always "0"))
+isDefaultRound { points } =
+    (points == initRound4.points)
+        || (points == Array.initialize 4 (always "0"))
 
 
 {-| 点棒入力行
@@ -573,24 +661,26 @@ isDefaultRound round =
 viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint, returnPoint } =
     let
+        points =
+            calculateRoundFromRawPoint
+                { rankPoint = toIntTuple rankPoint
+                , round = toIntRound round
+                , havePoint = toIntValue havePoint
+                , returnPoint = toIntValue returnPoint
+                }
+                |> toStringRound
+                >> .points
+
         viewShowPointCell_ =
             if isDefaultRound round then
                 Array.map
                     viewShowPointCell
-                    round
+                    round.points
                     |> Array.toList
 
             else
-                Array.map
-                    viewShowPointCell
-                    (calculateRoundFromRawPoint
-                        { rankPoint = toIntTuple rankPoint
-                        , round = toIntArray round
-                        , havePoint = toIntValue havePoint
-                        , returnPoint = toIntValue returnPoint
-                        }
-                        |> toStringArray
-                    )
+                points
+                    |> Array.map viewShowPointCell
                     |> Array.toList
 
         roundInputArea =
@@ -602,7 +692,7 @@ viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint,
                     if roundNumber == index then
                         List.indexedMap
                             (\index_ point -> viewInputPointCell roundNumber index_ point)
-                            (Array.toList round)
+                            (Array.toList round.points)
 
                     else
                         viewShowPointCell_
@@ -793,7 +883,7 @@ calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
 
 
 type alias CalculateRoundFromRawPointConfig =
-    { round : Array Int
+    { round : IntRound
     , rankPoint : ( Int, Int )
     , havePoint : Int
     , returnPoint : Int
@@ -803,7 +893,7 @@ type alias CalculateRoundFromRawPointConfig =
 {-| トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
 TODO: 同点の時は起家をユーザーにきく
 -}
-calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> Array Int
+calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
     let
         rankPointArray =
@@ -816,7 +906,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
         returnedRound =
             Array.indexedMap
                 (\index point -> ( index, point - returnPoint ))
-                round
+                round.points
 
         sortedRound =
             List.reverse <|
@@ -857,11 +947,16 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                         ( index, point )
                 )
                 rankPointedRound
+
+        calculatedIntRound =
+            calculated1stPointRound
+                |> List.sortBy Tuple.first
+                |> List.map Tuple.second
+                |> Array.fromList
     in
-    calculated1stPointRound
-        |> List.sortBy Tuple.first
-        |> List.map Tuple.second
-        |> Array.fromList
+    { chicha = round.chicha
+    , points = calculatedIntRound
+    }
 
 
 phrase =
@@ -879,6 +974,8 @@ phrase =
     , editLogConfigRankPointSecond = "ウマ(1, 4着)"
     , openEditLogConfigArea = "設定を開く"
     , closeEditLogConfigArea = "設定を閉じる"
+    , openHowToUseArea = "使い方を開く"
+    , closeHowToUseArea = "使い方を閉じる"
     , addRow = "行を追加する"
     , inputPoint = "🖋"
     }

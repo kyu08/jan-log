@@ -7,10 +7,13 @@ import Array exposing (Array)
 
 
 type alias RoundObj4 =
-    { data0 : Int
-    , data1 : Int
-    , data2 : Int
-    , data3 : Int
+    { points :
+        { data0 : Int
+        , data1 : Int
+        , data2 : Int
+        , data3 : Int
+        }
+    , chicha : Maybe Int
     }
 
 
