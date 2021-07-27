@@ -19,7 +19,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const defaultRound4 = {points : {data0: 0, data1: 0, data2: 0, data3: 0 }, chicha : null};
+const defaultRound4 = {
+  points: { data0: 0, data1: 0, data2: 0, data3: 0 },
+  chicha: null,
+};
 const defaultLog4 = {
   gameFee: 0,
   rate: 50,

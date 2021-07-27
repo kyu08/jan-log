@@ -330,6 +330,7 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
+        -- TODO: ここで同点判定をする
         ClickedEditRoundButton index ->
             case editingRoundIndex of
                 Editing editingRoundIndexValue ->
@@ -881,6 +882,7 @@ type alias CalculateRoundFromRawPointConfig =
 
 {-| トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
 TODO: 同点の時は起家をユーザーにきく
+TODO: 同点の場合は起家を考慮して順位点を決定する
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
