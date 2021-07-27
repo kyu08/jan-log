@@ -89,10 +89,6 @@ type alias Rounds =
     Array Round
 
 
-type alias IntRounds =
-    Array IntRound
-
-
 {-| 半荘データ
 同点の場合は起家を入力して順位点を確定する
 chicha: PlayerIndex
@@ -453,13 +449,6 @@ toIntRound { chicha, points } =
     { chicha = chicha
     , points = toIntArray points
     }
-
-
-toIntRounds : Rounds -> Array IntRound
-toIntRounds rounds =
-    Array.map
-        toIntRound
-        rounds
 
 
 toStringArray : Array Int -> Array String
@@ -927,7 +916,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
         totalPointsWithout1st =
             List.foldl
-                (\( rank, ( index, point ) ) acumulator ->
+                (\( rank, ( _, point ) ) acumulator ->
                     if rank == 0 then
                         acumulator
 
