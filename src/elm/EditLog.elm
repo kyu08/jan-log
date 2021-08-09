@@ -330,7 +330,7 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
-        -- TODO: ここで同点判定をする
+        -- ここで同点判定をする
         ClickedEditRoundButton index ->
             case editingRoundIndex of
                 Editing editingRoundIndexValue ->
@@ -471,6 +471,20 @@ toIntTuple stringTuple =
 
 view : Model -> Html Msg
 view model =
+    let
+        viewPointInputModal_ =
+            case model.editingRoundIndex of
+                None ->
+                    UI.viewBlank
+
+                Editing index ->
+                    case Array.get index model.rounds of
+                        Nothing ->
+                            UI.viewBlank
+
+                        Just round ->
+                            viewPointInputModal model.players round
+    in
     div [ class "editLog_container" ]
         [ viewEditLog model
         , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
@@ -481,6 +495,7 @@ view model =
         , viewEditLogConfig
             model.logConfig
             model.isOpenedConfigArea
+        , viewPointInputModal_
         ]
 
 
@@ -794,6 +809,11 @@ viewInputPointButton index =
         }
 
 
+viewPointInputModal : Players -> Round -> Html Msg
+viewPointInputModal players round =
+    UI.viewModal <| text "test"
+
+
 
 -- Functions for view
 
@@ -880,9 +900,11 @@ type alias CalculateRoundFromRawPointConfig =
     }
 
 
-{-| トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
+{-| 入力されたポイントをもとに順位点を加算したポイントを返す関数
+トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
 TODO: 同点の時は起家をユーザーにきく
 TODO: 同点の場合は起家を考慮して順位点を決定する
+TODO: トビは現状の実装だと場外で(チップなどで)やりとりするしかないので↑の計算方法をやめる。
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
@@ -904,9 +926,6 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 List.sortBy
                     Tuple.second
                     (Array.toList returnedRound)
-
-        oka =
-            returnPoint - havePoint
 
         rankPointedRound =
             List.map2

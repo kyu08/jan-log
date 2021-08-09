@@ -4,6 +4,7 @@ module UI exposing
     , viewButton
     , viewIf
     , viewLinkButton
+    , viewModal
     )
 
 import Html exposing (Html, a, div, text)
@@ -57,6 +58,15 @@ viewButton { phrase, onClickMsg, size } =
 viewBlank : Html msg
 viewBlank =
     div [] []
+
+
+viewModal : Html msg -> Html msg
+viewModal content =
+    div [ class "modal_tranceparentLayer" ]
+        [ div
+            [ class "modal_container" ]
+            [ content ]
+        ]
 
 
 viewIf : Bool -> Html msg -> Html msg
