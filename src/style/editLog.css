@@ -67,3 +67,10 @@
   display: block;
   width: calc(100% - 20px);
 }
+
+.editLog_inputPointModalContentContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}

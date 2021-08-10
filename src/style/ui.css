@@ -39,11 +39,13 @@
   left: 0;
   right: 0;
   margin: 100px auto 0;
+  padding: 15px;
   z-index: 50;
   background-color: white;
   width: 90%;
   min-height: 400px;
   box-shadow: 0 0 8px gray;
+  border-radius: 5%;
 }
 
 .modal_tranceparentLayer {

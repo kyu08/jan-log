@@ -12,7 +12,7 @@ port module EditLog exposing
 import Array exposing (Array)
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (class, for, id, value)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onBlur, onInput)
 import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
 import Session exposing (Session)
@@ -200,6 +200,7 @@ toSession model =
 type Msg
     = ChangedPlayerName Int String
     | ChangedPoint Int Int Point
+    | BlurredPointInput Int
     | ChangedChip Int String
     | ChangedRate String
     | ChangedChipRate String
@@ -214,6 +215,8 @@ type Msg
     | ChangedHavePoint String
     | ChangedReturnPoint String
     | ClickedEditRoundButton Int
+    | NoOp
+    | ClickedCloseInputPointModalButton
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -253,6 +256,9 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
                             m
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
+
+        BlurredPointInput roundNumber ->
+            ( m, Cmd.none )
 
         ChangedChip playerIndex chip ->
             let
@@ -342,6 +348,12 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
 
                 None ->
                     ( { m | editingRoundIndex = Editing index }, Cmd.none )
+
+        NoOp ->
+            ( m, Cmd.none )
+
+        ClickedCloseInputPointModalButton ->
+            ( { m | editingRoundIndex = None }, Cmd.none )
 
 
 dto4ToModel : Model -> LogDto4 -> Model
@@ -687,26 +699,12 @@ viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint,
                 points
                     |> Array.map viewShowPointCell
                     |> Array.toList
-
-        roundInputArea =
-            case editingRoundIndex of
-                None ->
-                    viewShowPointCell_
-
-                Editing index ->
-                    if roundNumber == index then
-                        List.indexedMap
-                            (\index_ point -> viewInputPointCell roundNumber index_ point)
-                            (Array.toList round.points)
-
-                    else
-                        viewShowPointCell_
     in
     tr [ class "editLog_tr" ]
         (td
             [ class "editLog_logNumberCell" ]
             [ viewInputPointButton roundNumber, text <| String.fromInt (roundNumber + 1) ]
-            :: roundInputArea
+            :: viewShowPointCell_
         )
 
 
@@ -755,6 +753,7 @@ viewInputPointCell roundNumber playerIndex point =
             [ class "editLog_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundNumber playerIndex
+            , onBlur <| BlurredPointInput roundNumber
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
@@ -766,8 +765,10 @@ viewInputPointCell roundNumber playerIndex point =
 {-| 点数表示マス
 ここでウマオカとかを計算して表示する
 -}
-viewShowPointCell : Point -> Html Msg
+viewShowPointCell : String -> Html Msg
 viewShowPointCell point =
+    -- viewShowPointCell : Point -> Html Msg
+    -- viewShowPointCell point =
     td
         [ class "editLog_calculatedCell" ]
         [ text point ]
@@ -811,7 +812,26 @@ viewInputPointButton index =
 
 viewPointInputModal : Players -> Round -> Html Msg
 viewPointInputModal players round =
-    UI.viewModal <| text "test"
+    let
+        viewContent =
+            div
+                [ class "editLog_inputPointModalContentContainer" ]
+                [ table [ class "editLog_table" ]
+                    [ tr [ class "editLog_tr" ]
+                        (List.map
+                            viewShowPointCell
+                            (Array.toList players)
+                        )
+                    , tr [ class "editLog_tr" ]
+                        (List.indexedMap
+                            (\index_ point -> viewInputPointCell 0 index_ point)
+                            (Array.toList round.points)
+                        )
+                    ]
+                , UI.viewButton { phrase = "一覧に戻る", size = UI.Default, onClickMsg = ClickedCloseInputPointModalButton }
+                ]
+    in
+    UI.viewModal viewContent
 
 
 
