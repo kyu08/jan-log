@@ -32,10 +32,12 @@ import UI
 type alias Model =
     { session : Session
     , logId : LogId
-    , logConfig : LogConfig
     , players : Players
+    , logConfig : LogConfig
     , rounds : Rounds
     , chips : Chips
+
+    -- state for UI
     , isOpenedConfigArea : Bool
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
@@ -136,7 +138,7 @@ initLogConfig =
     }
 
 
-{-| TODO: Players.elm をつくってファクトリーメソッドをつくる
+{-| TODO: Players.elm をつくってファクトリーメソッドをつくる?
 -}
 initPlayers : Players
 initPlayers =
@@ -155,7 +157,7 @@ roundInitializer =
     \_ -> initRound4
 
 
-{-| TODO: Rounds.elm をつくってファクトリーメソッドをつくる
+{-| TODO: Rounds.elm をつくってファクトリーメソッドをつくる?
 -}
 initRounds : Rounds
 initRounds =
@@ -175,8 +177,8 @@ initModel : LogId -> Session -> Model
 initModel logId session =
     { session = session
     , logId = logId
-    , logConfig = initLogConfig
     , players = initPlayers
+    , logConfig = initLogConfig
     , rounds = initRounds
     , chips = initChips
     , isOpenedConfigArea = False
@@ -222,43 +224,6 @@ type Msg
     | NoOp
     | ClickedCloseInputPointModalButton
     | ClickedChichaRadio Int Int Round
-
-
-{-| TODO: 適切なモジュールに移動する
--}
-needsChicha : Array Point -> Bool
-needsChicha points =
-    let
-        isDoneInput points_ =
-            points_
-                |> Array.filter ((/=) "")
-                |> Array.length
-                |> (<=) 4
-    in
-    -- 入力が完了していない場合は起家の入力を求めない
-    if not <| isDoneInput points then
-        False
-
-    else
-        -- 入力が完了している場合は同点判定をする
-        hasSamePoint points
-
-
-hasSamePoint : Array Point -> Bool
-hasSamePoint points =
-    case Array.toList points of
-        _ :: [] ->
-            False
-
-        [] ->
-            False
-
-        head :: tail ->
-            if List.any (\point -> point == head) tail then
-                True
-
-            else
-                hasSamePoint <| Array.fromList tail
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -388,8 +353,15 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
             let
                 nextRounds =
                     Array.set roundIndex { round | chicha = Just playerIndex } rounds
+
+                nextModel =
+                    { m | rounds = nextRounds }
             in
-            ( { m | rounds = nextRounds }, Cmd.none )
+            ( nextModel, updateLog <| toLogDto4 nextModel )
+
+
+
+-- Dto
 
 
 dto4ToModel : Model -> LogDto4 -> Model
@@ -445,15 +417,15 @@ toStringRound4 { points, chicha } =
 toLogDto4 : Model -> LogDto4
 toLogDto4 { logId, logConfig, players, rounds, chips } =
     { logId = logId
-    , gameFee = toIntValue logConfig.gameFee
+    , players = players
     , rate = toIntValue logConfig.rate
     , chipRate = toIntValue logConfig.chipRate
-    , players = players
-    , rounds = Array.map toRoundObj4 rounds
-    , chips = toIntArray chips
+    , gameFee = toIntValue logConfig.gameFee
     , rankPoint = Array.fromList [ toIntValue <| Tuple.first logConfig.rankPoint, toIntValue <| Tuple.second logConfig.rankPoint ]
     , havePoint = toIntValue logConfig.havePoint
     , returnPoint = toIntValue logConfig.returnPoint
+    , rounds = Array.map toRoundObj4 rounds
+    , chips = toIntArray chips
     }
 
 
@@ -471,6 +443,10 @@ toRoundObj4 { chicha, points } =
         , data3 = getArrayElement 3 pointsInt
         }
     }
+
+
+
+-- manipulate array, tuple
 
 
 getArrayElement : Int -> Array Int -> Int
@@ -990,12 +966,13 @@ type alias CalculateRoundFromRawPointConfig =
 
 {-| 入力されたポイントをもとに順位点を加算したポイントを返す関数
 トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-TODO: 同点の場合は起家を考慮して順位点を決定する
+TODO: 同点の場合は起家を考慮して順位を決定する
 TODO: トビは現状の実装だと場外で(チップなどで)やりとりするしかないので↑の計算方法をやめる。
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
     let
+        -- 順位点が入ってる Array
         rankPointArray =
             [ Tuple.second rankPoint
             , Tuple.first rankPoint
@@ -1003,17 +980,42 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
             , negate <| Tuple.second rankPoint
             ]
 
+        -- n万点返しした
         returnedRound =
             Array.indexedMap
                 (\index point -> ( index, point - returnPoint ))
                 round.points
 
+        -- 起家データが存在すれば起家ソートを行う
+        chichaSortedRound =
+            case round.chicha of
+                Just chichaIndex ->
+                    let
+                        tail =
+                            returnedRound
+                                |> Array.slice chichaIndex (Array.length returnedRound)
+                                |> Array.toList
+
+                        head =
+                            returnedRound
+                                |> Array.slice 0 chichaIndex
+                                |> Array.toList
+                    in
+                    head
+                        |> (++) tail
+                        |> Array.fromList
+
+                Nothing ->
+                    returnedRound
+
+        -- point でソート
         sortedRound =
             List.reverse <|
                 List.sortBy
                     Tuple.second
-                    (Array.toList returnedRound)
+                    (Array.toList chichaSortedRound)
 
+        -- 順位点を加算
         rankPointedRound =
             List.map2
                 (\rankPoint_ ( rank, ( index, point ) ) ->
@@ -1022,6 +1024,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 rankPointArray
                 (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedRound)
 
+        -- 2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)
         totalPointsWithout1st =
             List.foldl
                 (\( rank, ( _, point ) ) acumulator ->
@@ -1034,6 +1037,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 0
                 rankPointedRound
 
+        -- 2 ~ 3 着のポイント合計をマイナスしたものを1着のポイントとして計算する
         calculated1stPointRound =
             List.map
                 (\( rank, ( index, point ) ) ->
@@ -1054,6 +1058,43 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
     { chicha = round.chicha
     , points = calculatedIntRound
     }
+
+
+{-| TODO: 適切なモジュールに移動する
+-}
+needsChicha : Array Point -> Bool
+needsChicha points =
+    let
+        isDoneInput points_ =
+            points_
+                |> Array.filter ((/=) "")
+                |> Array.length
+                |> (<=) 4
+    in
+    -- 入力が完了していない場合は起家の入力を求めない
+    if not <| isDoneInput points then
+        False
+
+    else
+        -- 入力が完了している場合は同点判定をする
+        hasSamePoint points
+
+
+hasSamePoint : Array Point -> Bool
+hasSamePoint points =
+    case Array.toList points of
+        _ :: [] ->
+            False
+
+        [] ->
+            False
+
+        head :: tail ->
+            if List.any (\point -> point == head) tail then
+                True
+
+            else
+                hasSamePoint <| Array.fromList tail
 
 
 phrase =
