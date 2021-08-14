@@ -12,7 +12,7 @@ port module EditLog exposing
 import Array exposing (Array)
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (class, for, id, value)
-import Html.Events exposing (onBlur, onInput)
+import Html.Events exposing (onInput)
 import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
 import Session exposing (Session)
@@ -38,7 +38,7 @@ type alias Model =
     , chips : Chips
     , isOpenedConfigArea : Bool
     , isOpenedHowToUseArea : Bool
-    , editingRoundIndex : EditingRoundIndex
+    , editRoundModalState : ModalStatus
     }
 
 
@@ -58,11 +58,6 @@ type alias LogConfig =
 
 type alias RankPoint =
     ( String, String )
-
-
-type EditingRoundIndex
-    = None
-    | Editing Int
 
 
 type alias Rate =
@@ -115,6 +110,12 @@ type alias Chips =
 
 type alias Chip =
     String
+
+
+type ModalStatus
+    = Hide
+      -- Shown {編集中のroundIndex} {同点者がいるかどうか}
+    | Shown Int
 
 
 {-| rate : 収支 = 点数 \* n としたときの n
@@ -176,7 +177,7 @@ initModel logId session =
     , chips = initChips
     , isOpenedConfigArea = False
     , isOpenedHowToUseArea = False
-    , editingRoundIndex = None
+    , editRoundModalState = Hide
     }
 
 
@@ -200,7 +201,6 @@ toSession model =
 type Msg
     = ChangedPlayerName Int String
     | ChangedPoint Int Int Point
-    | BlurredPointInput Int
     | ChangedChip Int String
     | ChangedRate String
     | ChangedChipRate String
@@ -219,8 +219,45 @@ type Msg
     | ClickedCloseInputPointModalButton
 
 
+{-| TODO: 適切なモジュールに移動する
+-}
+needsChicha : Array Point -> Bool
+needsChicha points =
+    let
+        isDoneInput points_ =
+            points_
+                |> Array.filter ((/=) "")
+                |> Array.length
+                |> (<=) 4
+    in
+    -- 入力が完了していない場合は起家の入力を求めない
+    if not <| isDoneInput points then
+        False
+
+    else
+        -- 入力が完了している場合は同点判定をする
+        hasSamePoint points
+
+
+hasSamePoint : Array Point -> Bool
+hasSamePoint points =
+    case Array.toList points of
+        _ :: [] ->
+            False
+
+        [] ->
+            False
+
+        head :: tail ->
+            if List.any (\point -> point == head) tail then
+                True
+
+            else
+                hasSamePoint <| Array.fromList tail
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoundIndex, isOpenedHowToUseArea } as m) =
+update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHowToUseArea } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             let
@@ -229,10 +266,10 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
-        ChangedPoint logNumber playerIndex point ->
+        ChangedPoint roundIndex playerIndex point ->
             let
                 updateRound point_ round_ =
-                    Array.set logNumber
+                    Array.set roundIndex
                         { round_
                             | points =
                                 Array.set
@@ -245,7 +282,7 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
                 maybeUpdatedRounds =
                     Maybe.map
                         (updateRound point)
-                        (Array.get logNumber rounds)
+                        (Array.get roundIndex rounds)
 
                 nextModel =
                     case maybeUpdatedRounds of
@@ -256,9 +293,6 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
                             m
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
-
-        BlurredPointInput roundNumber ->
-            ( m, Cmd.none )
 
         ChangedChip playerIndex chip ->
             let
@@ -336,24 +370,14 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, editingRoun
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
-        -- ここで同点判定をする
-        ClickedEditRoundButton index ->
-            case editingRoundIndex of
-                Editing editingRoundIndexValue ->
-                    if editingRoundIndexValue == index then
-                        ( { m | editingRoundIndex = None }, Cmd.none )
-
-                    else
-                        ( { m | editingRoundIndex = Editing index }, Cmd.none )
-
-                None ->
-                    ( { m | editingRoundIndex = Editing index }, Cmd.none )
+        ClickedEditRoundButton roundIndex ->
+            ( { m | editRoundModalState = Shown roundIndex }, Cmd.none )
 
         NoOp ->
             ( m, Cmd.none )
 
         ClickedCloseInputPointModalButton ->
-            ( { m | editingRoundIndex = None }, Cmd.none )
+            ( { m | editRoundModalState = Hide }, Cmd.none )
 
 
 dto4ToModel : Model -> LogDto4 -> Model
@@ -485,17 +509,17 @@ view : Model -> Html Msg
 view model =
     let
         viewPointInputModal_ =
-            case model.editingRoundIndex of
-                None ->
+            case model.editRoundModalState of
+                Hide ->
                     UI.viewBlank
 
-                Editing index ->
-                    case Array.get index model.rounds of
+                Shown roundIndex ->
+                    case Array.get roundIndex model.rounds of
                         Nothing ->
                             UI.viewBlank
 
                         Just round ->
-                            viewPointInputModal model.players round
+                            viewPointInputModal model.players round roundIndex
     in
     div [ class "editLog_container" ]
         [ viewEditLog model
@@ -592,13 +616,13 @@ viewEditLogConfigForm labelText inputValue onInputMsg =
 {-| 成績編集UI
 -}
 viewEditLog : Model -> Html Msg
-viewEditLog { logConfig, players, rounds, chips, editingRoundIndex } =
+viewEditLog { logConfig, players, rounds, chips } =
     let
         totalPoint =
             rounds
                 |> Array.map
                     (\round ->
-                        if not <| isDefaultRound round then
+                        if not <| isDefaultPoints round.points then
                             calculateRoundFromRawPoint
                                 { rankPoint = toIntTuple logConfig.rankPoint
                                 , round = toIntRound round
@@ -626,10 +650,9 @@ viewEditLog { logConfig, players, rounds, chips, editingRoundIndex } =
         (viewInputPlayersRow players
             :: (Array.toList <|
                     Array.indexedMap
-                        (\roundNumber round ->
+                        (\roundIndex round ->
                             viewInputRoundRow
-                                { roundNumber = roundNumber
-                                , editingRoundIndex = editingRoundIndex
+                                { roundIndex = roundIndex
                                 , round = round
                                 , rankPoint = logConfig.rankPoint
                                 , havePoint = logConfig.havePoint
@@ -658,8 +681,7 @@ viewInputPlayersRow players =
 
 
 type alias ViewInputRoundRowConfig =
-    { roundNumber : Int
-    , editingRoundIndex : EditingRoundIndex
+    { roundIndex : Int
     , round : Round
     , rankPoint : RankPoint
     , havePoint : Point
@@ -667,8 +689,8 @@ type alias ViewInputRoundRowConfig =
     }
 
 
-isDefaultRound : Round -> Bool
-isDefaultRound { points } =
+isDefaultPoints : Array Point -> Bool
+isDefaultPoints points =
     (points == initRound4.points)
         || (points == Array.initialize 4 (always "0"))
 
@@ -676,7 +698,7 @@ isDefaultRound { points } =
 {-| 点棒入力行
 -}
 viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
-viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint, returnPoint } =
+viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
             calculateRoundFromRawPoint
@@ -689,7 +711,7 @@ viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint,
                 >> .points
 
         viewShowPointCell_ =
-            if isDefaultRound round then
+            if isDefaultPoints round.points then
                 Array.map
                     viewShowPointCell
                     round.points
@@ -703,7 +725,7 @@ viewInputRoundRow { roundNumber, editingRoundIndex, round, rankPoint, havePoint,
     tr [ class "editLog_tr" ]
         (td
             [ class "editLog_logNumberCell" ]
-            [ viewInputPointButton roundNumber, text <| String.fromInt (roundNumber + 1) ]
+            [ viewInputPointButton roundIndex, text <| String.fromInt (roundIndex + 1) ]
             :: viewShowPointCell_
         )
 
@@ -724,9 +746,9 @@ viewInputChipsRow title chips =
 {-| 計算結果行
 -}
 viewCalculatedRow : String -> Array Int -> Html msg
-viewCalculatedRow roundNumber calculatedValues =
+viewCalculatedRow title calculatedValues =
     tr [ class "editLog_tr" ]
-        (td [ class "editLog_title" ] [ text roundNumber ]
+        (td [ class "editLog_title" ] [ text title ]
             :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
         )
 
@@ -746,14 +768,13 @@ viewInputPlayerCell playerIndex playerName =
 {-| 点数入力マス
 -}
 viewInputPointCell : Int -> Int -> Point -> Html Msg
-viewInputPointCell roundNumber playerIndex point =
+viewInputPointCell roundIndex playerIndex point =
     td
         [ class "editLog_td" ]
         [ input
             [ class "editLog_inputCellInput"
             , value point
-            , onInput <| ChangedPoint roundNumber playerIndex
-            , onBlur <| BlurredPointInput roundNumber
+            , onInput <| ChangedPoint roundIndex playerIndex
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
@@ -810,8 +831,8 @@ viewInputPointButton index =
         }
 
 
-viewPointInputModal : Players -> Round -> Html Msg
-viewPointInputModal players round =
+viewPointInputModal : Players -> Round -> Int -> Html Msg
+viewPointInputModal players round roundIndex =
     let
         viewContent =
             div
@@ -824,10 +845,13 @@ viewPointInputModal players round =
                         )
                     , tr [ class "editLog_tr" ]
                         (List.indexedMap
-                            (\index_ point -> viewInputPointCell 0 index_ point)
+                            (\index_ point -> viewInputPointCell roundIndex index_ point)
                             (Array.toList round.points)
                         )
                     ]
+                , text "同点者がいるので起家を入力してください"
+                    |> UI.viewIf
+                        (needsChicha round.points)
                 , UI.viewButton { phrase = "一覧に戻る", size = UI.Default, onClickMsg = ClickedCloseInputPointModalButton }
                 ]
     in
