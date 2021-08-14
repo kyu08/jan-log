@@ -11,8 +11,8 @@ port module EditLog exposing
 
 import Array exposing (Array)
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (class, for, id, value)
-import Html.Events exposing (onInput)
+import Html.Attributes exposing (checked, class, for, id, name, type_, value)
+import Html.Events exposing (onClick, onInput)
 import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
 import Session exposing (Session)
@@ -90,8 +90,12 @@ chicha: PlayerIndex
 -}
 type alias Round =
     { points : Array Point
-    , chicha : Maybe Int
+    , chicha : Chicha
     }
+
+
+type alias Chicha =
+    Maybe Int
 
 
 type alias IntRound =
@@ -217,6 +221,7 @@ type Msg
     | ClickedEditRoundButton Int
     | NoOp
     | ClickedCloseInputPointModalButton
+    | ClickedChichaRadio Int Int Round
 
 
 {-| TODO: 適切なモジュールに移動する
@@ -378,6 +383,13 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
 
         ClickedCloseInputPointModalButton ->
             ( { m | editRoundModalState = Hide }, Cmd.none )
+
+        ClickedChichaRadio playerIndex roundIndex round ->
+            let
+                nextRounds =
+                    Array.set roundIndex { round | chicha = Just playerIndex } rounds
+            in
+            ( { m | rounds = nextRounds }, Cmd.none )
 
 
 dto4ToModel : Model -> LogDto4 -> Model
@@ -849,13 +861,45 @@ viewPointInputModal players round roundIndex =
                             (Array.toList round.points)
                         )
                     ]
-                , text "同点者がいるので起家を入力してください"
+                , viewInputChicha roundIndex round
                     |> UI.viewIf
                         (needsChicha round.points)
+
+                -- TODO: 同点者がいる場合はボタンを disable にする
                 , UI.viewButton { phrase = "一覧に戻る", size = UI.Default, onClickMsg = ClickedCloseInputPointModalButton }
                 ]
     in
     UI.viewModal viewContent
+
+
+viewInputChicha : Int -> Round -> Html Msg
+viewInputChicha roundIndex round =
+    let
+        viewRadioButton playerIndex round_ =
+            let
+                checked_ =
+                    case round.chicha of
+                        Just playerIndex_ ->
+                            playerIndex == playerIndex_
+
+                        Nothing ->
+                            False
+            in
+            div [ class "editLog_chichaRadio" ]
+                [ input
+                    [ type_ "radio"
+                    , id (String.fromInt playerIndex)
+                    , name (String.fromInt playerIndex)
+                    , checked checked_
+                    , onClick <| ClickedChichaRadio playerIndex roundIndex round
+                    ]
+                    []
+                ]
+    in
+    div []
+        [ div [ class "editLog_chichaRadioContainer" ] (List.indexedMap viewRadioButton (Array.toList round.points))
+        , div [] [ text "同点者がいるため起家の選択が必要です" ]
+        ]
 
 
 
@@ -946,7 +990,6 @@ type alias CalculateRoundFromRawPointConfig =
 
 {-| 入力されたポイントをもとに順位点を加算したポイントを返す関数
 トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-TODO: 同点の時は起家をユーザーにきく
 TODO: 同点の場合は起家を考慮して順位点を決定する
 TODO: トビは現状の実装だと場外で(チップなどで)やりとりするしかないので↑の計算方法をやめる。
 -}

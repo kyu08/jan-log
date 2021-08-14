@@ -74,3 +74,8 @@
   align-items: center;
   width: 100%;
 }
+
+.editLog_chichaRadioContainer {
+  display: flex;
+  justify-content: space-between;
+}
