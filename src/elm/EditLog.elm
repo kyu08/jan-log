@@ -819,6 +819,8 @@ viewInputPointButton index =
         }
 
 
+{-| FIXME: 数字以外を入力すると入力欄が blank になる
+-}
 viewPointInputModal : Players -> Round -> Int -> Html Msg
 viewPointInputModal players round roundIndex =
     let
@@ -966,7 +968,6 @@ type alias CalculateRoundFromRawPointConfig =
 
 {-| 入力されたポイントをもとに順位点を加算したポイントを返す関数
 トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-TODO: 同点の場合は起家を考慮して順位を決定する
 TODO: トビは現状の実装だと場外で(チップなどで)やりとりするしかないので↑の計算方法をやめる。
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
@@ -1001,8 +1002,8 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                                 |> Array.slice 0 chichaIndex
                                 |> Array.toList
                     in
-                    head
-                        |> (++) tail
+                    (tail ++ head)
+                        |> List.reverse
                         |> Array.fromList
 
                 Nothing ->
