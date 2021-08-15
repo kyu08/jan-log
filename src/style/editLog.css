@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  height: 100%;
 }
 
 .editLog_table {
@@ -65,4 +66,16 @@
 .editLog_logConfigInput {
   display: block;
   width: calc(100% - 20px);
+}
+
+.editLog_inputPointModalContentContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.editLog_chichaRadioContainer {
+  display: flex;
+  justify-content: space-between;
 }
