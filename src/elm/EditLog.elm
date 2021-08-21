@@ -11,7 +11,7 @@ port module EditLog exposing
 
 import Array exposing (Array)
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, type_, value)
+import Html.Attributes exposing (checked, class, for, id, name, shape, type_, value)
 import Html.Events exposing (onClick, onInput)
 import LogDto exposing (LogDto4, RoundObj4)
 import LogId exposing (LogId)
@@ -41,6 +41,15 @@ type alias Model =
     , isOpenedConfigArea : Bool
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
+    , seatingOrderInput : SeatingOrderInput
+    }
+
+
+type alias SeatingOrderInput =
+    { ton : Maybe Int
+    , nan : Maybe Int
+    , sha : Maybe Int
+    , pei : Maybe Int
     }
 
 
@@ -92,16 +101,25 @@ chicha: PlayerIndex
 -}
 type alias Round =
     { points : Array Point
-    , chicha : Chicha
+    , seatingOrder : Maybe SeatingOrder
     }
 
 
-type alias Chicha =
-    Maybe Int
+
+-- type alias Chicha =
+--     Maybe Int
+
+
+type alias SeatingOrder =
+    { ton : Int
+    , nan : Int
+    , sha : Int
+    , pei : Int
+    }
 
 
 type alias IntRound =
-    { chicha : Maybe Int
+    { seatingOrder : Maybe SeatingOrder
     , points : Array Int
     }
 
@@ -148,7 +166,7 @@ initPlayers =
 initRound4 : Round
 initRound4 =
     { points = Array.initialize 4 (always "")
-    , chicha = Nothing
+    , seatingOrder = Nothing
     }
 
 
@@ -184,6 +202,12 @@ initModel logId session =
     , isOpenedConfigArea = False
     , isOpenedHowToUseArea = False
     , editRoundModalState = Hide
+    , seatingOrderInput =
+        { ton = Nothing
+        , nan = Nothing
+        , sha = Nothing
+        , pei = Nothing
+        }
     }
 
 
@@ -200,8 +224,90 @@ toSession model =
     model.session
 
 
+isJust : Maybe a -> Bool
+isJust maybe =
+    case maybe of
+        Just _ ->
+            True
 
--- MSG, UPDATE
+        Nothing ->
+            False
+
+
+isAllSeatingOrderInput : SeatingOrderInput -> Bool
+isAllSeatingOrderInput { ton, nan, sha, pei } =
+    isJust ton
+        && isJust nan
+        && isJust sha
+        && isJust pei
+
+
+isInvalidSeatingOrderInput : SeatingOrderInput -> Bool
+isInvalidSeatingOrderInput { ton, nan, sha, pei } =
+    Maybe.map4
+        (\ton_ nan_ sha_ pei_ ->
+            let
+                -- 各家に別の playerIndex が入力されていない場合に True をかえす
+                recursive kazes =
+                    case kazes of
+                        head :: [] ->
+                            False
+
+                        head :: tail ->
+                            if List.any ((==) head) tail then
+                                True
+
+                            else
+                                recursive tail
+
+                        [] ->
+                            False
+            in
+            recursive [ ton_, nan_, sha_, pei_ ]
+        )
+        ton
+        nan
+        sha
+        pei
+        |> Maybe.withDefault True
+
+
+toSeatingOrder : SeatingOrderInput -> Maybe SeatingOrder
+toSeatingOrder { ton, nan, sha, pei } =
+    Maybe.map4
+        (\ton_ nan_ sha_ pei_ -> { ton = ton_, nan = nan_, sha = sha_, pei = pei_ })
+        ton
+        nan
+        sha
+        pei
+
+
+type Kaze
+    = Ton
+    | Nan
+    | Sha
+    | Pei
+
+
+allKazes : List Kaze
+allKazes =
+    [ Ton, Nan, Sha, Pei ]
+
+
+kazeToString : Kaze -> String
+kazeToString kaze =
+    case kaze of
+        Ton ->
+            "東"
+
+        Nan ->
+            "南"
+
+        Sha ->
+            "西"
+
+        Pei ->
+            "北"
 
 
 type Msg
@@ -223,11 +329,11 @@ type Msg
     | ClickedEditRoundButton Int
     | NoOp
     | ClickedCloseInputPointModalButton
-    | ClickedChichaRadio Int Int Round
+    | ClickedSeatingOrderRadio Int Int Round Kaze
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHowToUseArea } as m) =
+update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHowToUseArea, seatingOrderInput } as m) =
     case msg of
         ChangedPlayerName index playerName ->
             let
@@ -349,15 +455,31 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
         ClickedCloseInputPointModalButton ->
             ( { m | editRoundModalState = Hide }, Cmd.none )
 
-        ClickedChichaRadio playerIndex roundIndex round ->
+        ClickedSeatingOrderRadio playerIndex roundIndex round kaze ->
             let
-                nextRounds =
-                    Array.set roundIndex { round | chicha = Just playerIndex } rounds
-
                 nextModel =
-                    { m | rounds = nextRounds }
+                    case kaze of
+                        Ton ->
+                            { m | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } }
+
+                        Nan ->
+                            { m | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } }
+
+                        Sha ->
+                            { m | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } }
+
+                        Pei ->
+                            { m | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } }
+
+                -- TODO: 各家がひとりずつ選択されてなかったら警告をだす
+                nextRounds =
+                    if isAllSeatingOrderInput nextModel.seatingOrderInput then
+                        Array.set roundIndex { round | seatingOrder = toSeatingOrder nextModel.seatingOrderInput } rounds
+
+                    else
+                        rounds
             in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+            ( { nextModel | rounds = nextRounds }, updateLog <| toLogDto4 nextModel )
 
 
 
@@ -387,13 +509,13 @@ dto4ToModel model logDto4 =
 
 toStringRound : IntRound -> Round
 toStringRound intRound =
-    { chicha = intRound.chicha
+    { seatingOrder = intRound.seatingOrder
     , points = Array.map String.fromInt intRound.points
     }
 
 
 toStringRound4 : RoundObj4 -> Round
-toStringRound4 { points, chicha } =
+toStringRound4 { points, seatingOrder } =
     let
         stringFromInt int =
             if int == 0 then
@@ -402,7 +524,7 @@ toStringRound4 { points, chicha } =
             else
                 String.fromInt int
     in
-    { chicha = chicha
+    { seatingOrder = seatingOrder
     , points =
         Array.map stringFromInt <|
             Array.fromList
@@ -430,12 +552,12 @@ toLogDto4 { logId, logConfig, players, rounds, chips } =
 
 
 toRoundObj4 : Round -> RoundObj4
-toRoundObj4 { chicha, points } =
+toRoundObj4 { seatingOrder, points } =
     let
         pointsInt =
             toIntArray points
     in
-    { chicha = chicha
+    { seatingOrder = seatingOrder
     , points =
         { data0 = getArrayElement 0 pointsInt
         , data1 = getArrayElement 1 pointsInt
@@ -470,8 +592,8 @@ toIntArray stringArray =
 
 
 toIntRound : Round -> IntRound
-toIntRound { chicha, points } =
-    { chicha = chicha
+toIntRound { seatingOrder, points } =
+    { seatingOrder = seatingOrder
     , points = toIntArray points
     }
 
@@ -507,11 +629,11 @@ view model =
                             UI.viewBlank
 
                         Just round ->
-                            viewPointInputModal model.players round roundIndex
+                            viewPointInputModal model.players round roundIndex model.seatingOrderInput
     in
     div [ class "editLog_container" ]
         [ viewEditLog model
-        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default }
+        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
         , viewToggleHowToUseButton model.isOpenedHowToUseArea
         , viewHowToUse model.isOpenedHowToUseArea
         , viewToggleLogConfigAreaBottun
@@ -544,6 +666,7 @@ viewToggleHowToUseButton isOpened =
             { phrase = phrase.closeHowToUseArea
             , onClickMsg = ClickedHowToUseButton
             , size = UI.Default
+            , isDisabled = False
             }
 
     else
@@ -551,6 +674,7 @@ viewToggleHowToUseButton isOpened =
             { phrase = phrase.openHowToUseArea
             , onClickMsg = ClickedHowToUseButton
             , size = UI.Default
+            , isDisabled = False
             }
 
 
@@ -561,6 +685,7 @@ viewToggleLogConfigAreaBottun isOpened =
             { phrase = phrase.closeEditLogConfigArea
             , onClickMsg = ClickedToggleConfigButton
             , size = UI.Default
+            , isDisabled = False
             }
 
     else
@@ -568,6 +693,7 @@ viewToggleLogConfigAreaBottun isOpened =
             { phrase = phrase.openEditLogConfigArea
             , onClickMsg = ClickedToggleConfigButton
             , size = UI.Default
+            , isDisabled = False
             }
 
 
@@ -816,13 +942,14 @@ viewInputPointButton index =
         { phrase = phrase.inputPoint
         , onClickMsg = ClickedEditRoundButton index
         , size = UI.Mini
+        , isDisabled = False
         }
 
 
 {-| FIXME: 数字以外を入力すると入力欄が blank になる
 -}
-viewPointInputModal : Players -> Round -> Int -> Html Msg
-viewPointInputModal players round roundIndex =
+viewPointInputModal : Players -> Round -> Int -> SeatingOrderInput -> Html Msg
+viewPointInputModal players round roundIndex seatingOrderInput =
     let
         viewContent =
             div
@@ -839,44 +966,88 @@ viewPointInputModal players round roundIndex =
                             (Array.toList round.points)
                         )
                     ]
-                , viewInputChicha roundIndex round
+                , viewInputSeatingOrder roundIndex round seatingOrderInput
                     |> UI.viewIf
-                        (needsChicha round.points)
-
-                -- TODO: 同点者がいる場合はボタンを disable にする
-                , UI.viewButton { phrase = "一覧に戻る", size = UI.Default, onClickMsg = ClickedCloseInputPointModalButton }
+                        (needsSeatingOrderInput round.points)
+                , UI.viewButton
+                    { phrase = "一覧に戻る"
+                    , size = UI.Default
+                    , onClickMsg = ClickedCloseInputPointModalButton
+                    , isDisabled =
+                        needsSeatingOrderInput round.points
+                            && isInvalidSeatingOrderInput seatingOrderInput
+                    }
                 ]
     in
     UI.viewModal viewContent
 
 
-viewInputChicha : Int -> Round -> Html Msg
-viewInputChicha roundIndex round =
+viewInputSeatingOrder : Int -> Round -> SeatingOrderInput -> Html Msg
+viewInputSeatingOrder roundIndex round seatingOrderInput =
     let
-        viewRadioButton playerIndex round_ =
+        viewRadioButton : Kaze -> Int -> Point -> Html Msg
+        viewRadioButton kaze playerIndex _ =
             let
+                selecter =
+                    case kaze of
+                        Ton ->
+                            .ton
+
+                        Nan ->
+                            .nan
+
+                        Sha ->
+                            .sha
+
+                        Pei ->
+                            .pei
+
                 checked_ =
-                    case round.chicha of
-                        Just playerIndex_ ->
-                            playerIndex == playerIndex_
+                    case round.seatingOrder of
+                        Just seatingOrder ->
+                            selecter seatingOrder == playerIndex
 
                         Nothing ->
-                            False
+                            case selecter seatingOrderInput of
+                                Just playerIndex_ ->
+                                    playerIndex == playerIndex_
+
+                                Nothing ->
+                                    False
             in
             div [ class "editLog_chichaRadio" ]
                 [ input
                     [ type_ "radio"
                     , id (String.fromInt playerIndex)
-                    , name (String.fromInt playerIndex)
+                    , name (String.fromInt playerIndex ++ kazeToString kaze)
                     , checked checked_
-                    , onClick <| ClickedChichaRadio playerIndex roundIndex round
+                    , onClick <| ClickedSeatingOrderRadio playerIndex roundIndex round kaze
                     ]
                     []
                 ]
+
+        invalidSeatingOrderMessage =
+            UI.viewIf (isAllSeatingOrderInput seatingOrderInput && isInvalidSeatingOrderInput seatingOrderInput) <|
+                text "1人ずつ選択してください"
     in
     div []
-        [ div [ class "editLog_chichaRadioContainer" ] (List.indexedMap viewRadioButton (Array.toList round.points))
-        , div [] [ text "同点者がいるため起家の選択が必要です" ]
+        [ div []
+            (List.map
+                (\kaze_ ->
+                    div []
+                        [ text <|
+                            kazeToString kaze_
+                        , div [ class "editLog_chichaRadioContainer" ]
+                            (List.indexedMap
+                                (viewRadioButton kaze_)
+                                (Array.toList round.points)
+                            )
+                        ]
+                )
+                allKazes
+            )
+        , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
+        , invalidSeatingOrderMessage
         ]
 
 
@@ -988,34 +1159,32 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 round.points
 
         -- 起家データが存在すれば起家ソートを行う
-        chichaSortedRound =
-            case round.chicha of
-                Just chichaIndex ->
-                    let
-                        tail =
-                            returnedRound
-                                |> Array.slice chichaIndex (Array.length returnedRound)
-                                |> Array.toList
-
-                        head =
-                            returnedRound
-                                |> Array.slice 0 chichaIndex
-                                |> Array.toList
-                    in
-                    (tail ++ head)
-                        |> List.reverse
-                        |> Array.fromList
-
-                Nothing ->
-                    returnedRound
-
+        -- chichaSortedRound =
+        --     case round.seatingOrder of
+        --         Just seatingOrder ->
+        --             let
+        --                 tail =
+        --                     returnedRound
+        --                         |> Array.slice seatingOrder (Array.length returnedRound)
+        --                         |> Array.toList
+        --                 head =
+        --                     returnedRound
+        --                         |> Array.slice 0 seatingOrder
+        --                         |> Array.toList
+        --             in
+        --             (tail ++ head)
+        --                 |> List.reverse
+        --                 |> Array.fromList
+        --         Nothing ->
+        --             returnedRound
         -- point でソート
         sortedRound =
             List.reverse <|
                 List.sortBy
                     Tuple.second
-                    (Array.toList chichaSortedRound)
+                    (Array.toList returnedRound)
 
+        -- (Array.toList chichaSortedRound)
         -- 順位点を加算
         rankPointedRound =
             List.map2
@@ -1056,15 +1225,15 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 |> List.map Tuple.second
                 |> Array.fromList
     in
-    { chicha = round.chicha
+    { seatingOrder = round.seatingOrder
     , points = calculatedIntRound
     }
 
 
 {-| TODO: 適切なモジュールに移動する
 -}
-needsChicha : Array Point -> Bool
-needsChicha points =
+needsSeatingOrderInput : Array Point -> Bool
+needsSeatingOrderInput points =
     let
         isDoneInput points_ =
             points_
