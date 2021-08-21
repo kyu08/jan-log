@@ -25,6 +25,12 @@
   cursor: pointer;
 }
 
+.button_primary.is-disabled {
+  opacity: 0.5;
+  cursor: none;
+}
+
+
 .button_container {
   margin: 20px 5px;
   width: 250px;
