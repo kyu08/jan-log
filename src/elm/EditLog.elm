@@ -105,11 +105,6 @@ type alias Round =
     }
 
 
-
--- type alias Chicha =
---     Maybe Int
-
-
 type alias SeatingOrder =
     { ton : Int
     , nan : Int
@@ -149,10 +144,10 @@ initLogConfig : LogConfig
 initLogConfig =
     { rate = "100"
     , chipRate = "2"
-    , gameFee = "5000"
+    , gameFee = "0"
     , rankPoint = ( "10", "20" )
-    , havePoint = "30"
-    , returnPoint = "25"
+    , havePoint = "25"
+    , returnPoint = "30"
     }
 
 
@@ -298,16 +293,16 @@ kazeToString : Kaze -> String
 kazeToString kaze =
     case kaze of
         Ton ->
-            "東"
+            "東家"
 
         Nan ->
-            "南"
+            "南家"
 
         Sha ->
-            "西"
+            "西家"
 
         Pei ->
-            "北"
+            "北家"
 
 
 type Msg
@@ -634,13 +629,13 @@ view model =
     div [ class "editLog_container" ]
         [ viewEditLog model
         , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
-        , viewToggleHowToUseButton model.isOpenedHowToUseArea
-        , viewHowToUse model.isOpenedHowToUseArea
         , viewToggleLogConfigAreaBottun
             model.isOpenedConfigArea
         , viewEditLogConfig
             model.logConfig
             model.isOpenedConfigArea
+        , viewToggleHowToUseButton model.isOpenedHowToUseArea
+        , viewHowToUse model.isOpenedHowToUseArea
         , viewPointInputModal_
         ]
 
@@ -1144,7 +1139,7 @@ TODO: トビは現状の実装だと場外で(チップなどで)やりとりす
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
     let
-        -- 順位点が入ってる Array
+        -- 順位点が入ってる List
         rankPointArray =
             [ Tuple.second rankPoint
             , Tuple.first rankPoint
@@ -1158,33 +1153,32 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 (\index point -> ( index, point - returnPoint ))
                 round.points
 
-        -- 起家データが存在すれば起家ソートを行う
-        -- chichaSortedRound =
-        --     case round.seatingOrder of
-        --         Just seatingOrder ->
-        --             let
-        --                 tail =
-        --                     returnedRound
-        --                         |> Array.slice seatingOrder (Array.length returnedRound)
-        --                         |> Array.toList
-        --                 head =
-        --                     returnedRound
-        --                         |> Array.slice 0 seatingOrder
-        --                         |> Array.toList
-        --             in
-        --             (tail ++ head)
-        --                 |> List.reverse
-        --                 |> Array.fromList
-        --         Nothing ->
-        --             returnedRound
+        -- 座順データが存在すれば起家ソートを行う
+        chichaSortedRound =
+            case round.seatingOrder of
+                Just seatingOrder ->
+                    Maybe.map4
+                        (\ton_ nan_ sha_ pei_ ->
+                            [ ton_, nan_, sha_, pei_ ]
+                                |> List.reverse
+                                |> Array.fromList
+                        )
+                        (Array.get seatingOrder.ton returnedRound)
+                        (Array.get seatingOrder.nan returnedRound)
+                        (Array.get seatingOrder.sha returnedRound)
+                        (Array.get seatingOrder.pei returnedRound)
+                        |> Maybe.withDefault returnedRound
+
+                Nothing ->
+                    returnedRound
+
         -- point でソート
         sortedRound =
             List.reverse <|
                 List.sortBy
                     Tuple.second
-                    (Array.toList returnedRound)
+                    (Array.toList chichaSortedRound)
 
-        -- (Array.toList chichaSortedRound)
         -- 順位点を加算
         rankPointedRound =
             List.map2
@@ -1275,7 +1269,7 @@ phrase =
     , totalBalance = "ゲーム代込み収支"
     , editLogConfigRate = "レート"
     , editLogConfigChipRate = "レート(チップ)"
-    , editLogConfigGameFee = "ゲーム代"
+    , editLogConfigGameFee = "ゲーム代(一人当たり)"
     , editLogConfigHavePoint = "持ち点"
     , editLogConfigReturnPoint = "返し"
     , editLogConfigRankPointFirst = "ウマ(2, 3着)"
