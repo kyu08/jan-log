@@ -2,10 +2,10 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import EditLog
-import Home
-import Html exposing (div, sub, text)
+import Html exposing (div, text)
 import Html.Attributes exposing (class, href)
+import Pages.EditLog as EditLog
+import Pages.Home as Home
 import Route exposing (Route(..))
 import Session exposing (Session)
 import UUID exposing (UUID)

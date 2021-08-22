@@ -1,4 +1,4 @@
-port module EditLog exposing
+port module Pages.EditLog exposing
     ( Model
     , Msg
     , initCmd
@@ -10,13 +10,26 @@ port module EditLog exposing
     )
 
 import Array exposing (Array)
+import Common.LogId exposing (LogId)
+import Dtos.LogDto exposing (LogDto4, RoundObj4Dto)
+import EditLog.Chips as Chips exposing (Chips)
+import EditLog.LogConfig as LogConfig exposing (LogConfig, RankPoint)
+import EditLog.Phrase as Phrase
+import EditLog.Players as Players exposing (Players)
+import EditLog.Rounds as Rounds exposing (IntRound, Kaze, Point, Round, Rounds, SeatingOrder)
+import Expands.Array as ExArray
+import Expands.Maybe as ExMaybe
+import Expands.String as ExString
+import Expands.Tuple as ExTuple
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, shape, type_, value)
+import Html.Attributes exposing (checked, class, for, id, name, type_, value)
 import Html.Events exposing (onClick, onInput)
-import LogDto exposing (LogDto4, RoundObj4)
-import LogId exposing (LogId)
 import Session exposing (Session)
 import UI
+
+
+
+-- types
 
 
 {-| 当初は
@@ -53,147 +66,20 @@ type alias SeatingOrderInput =
     }
 
 
-type alias LogConfig =
-    { rate : Rate
-    , chipRate : ChipRate
-    , gameFee : GameFee
-    , rankPoint : RankPoint
-
-    -- 何万点持ちか
-    , havePoint : Point
-
-    -- 何万点返しか
-    , returnPoint : Point
-    }
-
-
-type alias RankPoint =
-    ( String, String )
-
-
-type alias Rate =
-    String
-
-
-type alias ChipRate =
-    String
-
-
-type alias GameFee =
-    String
-
-
-type alias Players =
-    Array Player
-
-
-type alias Player =
-    String
-
-
-type alias Rounds =
-    Array Round
-
-
-{-| 半荘データ
-同点の場合は起家を入力して順位点を確定する
-chicha: PlayerIndex
--}
-type alias Round =
-    { points : Array Point
-    , seatingOrder : Maybe SeatingOrder
-    }
-
-
-type alias SeatingOrder =
-    { ton : Int
-    , nan : Int
-    , sha : Int
-    , pei : Int
-    }
-
-
-type alias IntRound =
-    { seatingOrder : Maybe SeatingOrder
-    , points : Array Int
-    }
-
-
-type alias Point =
-    String
-
-
-type alias Chips =
-    Array Chip
-
-
-type alias Chip =
-    String
-
-
 type ModalStatus
     = Hide
       -- Shown {編集中のroundIndex} {同点者がいるかどうか}
     | Shown Int
 
 
-{-| rate : 収支 = 点数 \* n としたときの n
-chipRate : チップ収支 = チップ枚数 \* m としたときの m
--}
-initLogConfig : LogConfig
-initLogConfig =
-    { rate = "100"
-    , chipRate = "2"
-    , gameFee = "0"
-    , rankPoint = ( "10", "20" )
-    , havePoint = "25"
-    , returnPoint = "30"
-    }
-
-
-{-| TODO: Players.elm をつくってファクトリーメソッドをつくる?
--}
-initPlayers : Players
-initPlayers =
-    Array.fromList [ "player1", "player2", "player3", "player4" ]
-
-
-initRound4 : Round
-initRound4 =
-    { points = Array.initialize 4 (always "")
-    , seatingOrder = Nothing
-    }
-
-
-roundInitializer : a -> Round
-roundInitializer =
-    \_ -> initRound4
-
-
-{-| TODO: Rounds.elm をつくってファクトリーメソッドをつくる?
--}
-initRounds : Rounds
-initRounds =
-    Array.initialize
-        4
-        roundInitializer
-
-
-initChips : Chips
-initChips =
-    Array.initialize
-        4
-        (always "")
-
-
 initModel : LogId -> Session -> Model
 initModel logId session =
     { session = session
     , logId = logId
-    , players = initPlayers
-    , logConfig = initLogConfig
-    , rounds = initRounds
-    , chips = initChips
+    , players = Players.initPlayers
+    , logConfig = LogConfig.initLogConfig
+    , rounds = Rounds.initRounds
+    , chips = Chips.initChips
     , isOpenedConfigArea = False
     , isOpenedHowToUseArea = False
     , editRoundModalState = Hide
@@ -219,22 +105,12 @@ toSession model =
     model.session
 
 
-isJust : Maybe a -> Bool
-isJust maybe =
-    case maybe of
-        Just _ ->
-            True
-
-        Nothing ->
-            False
-
-
 isAllSeatingOrderInput : SeatingOrderInput -> Bool
 isAllSeatingOrderInput { ton, nan, sha, pei } =
-    isJust ton
-        && isJust nan
-        && isJust sha
-        && isJust pei
+    ExMaybe.isJust ton
+        && ExMaybe.isJust nan
+        && ExMaybe.isJust sha
+        && ExMaybe.isJust pei
 
 
 isInvalidSeatingOrderInput : SeatingOrderInput -> Bool
@@ -277,32 +153,8 @@ toSeatingOrder { ton, nan, sha, pei } =
         pei
 
 
-type Kaze
-    = Ton
-    | Nan
-    | Sha
-    | Pei
 
-
-allKazes : List Kaze
-allKazes =
-    [ Ton, Nan, Sha, Pei ]
-
-
-kazeToString : Kaze -> String
-kazeToString kaze =
-    case kaze of
-        Ton ->
-            "東家"
-
-        Nan ->
-            "南家"
-
-        Sha ->
-            "西家"
-
-        Pei ->
-            "北家"
+-- msg, update
 
 
 type Msg
@@ -394,7 +246,7 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ClickedAddRowButton ->
-            ( { m | rounds = Array.push initRound4 rounds }, Cmd.none )
+            ( { m | rounds = Array.push Rounds.initRound4 rounds }, Cmd.none )
 
         ClickedToggleConfigButton ->
             ( { m | isOpenedConfigArea = not isOpenedConfigArea }, Cmd.none )
@@ -454,16 +306,16 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
             let
                 nextModel =
                     case kaze of
-                        Ton ->
+                        Rounds.Ton ->
                             { m | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } }
 
-                        Nan ->
+                        Rounds.Nan ->
                             { m | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } }
 
-                        Sha ->
+                        Rounds.Sha ->
                             { m | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } }
 
-                        Pei ->
+                        Rounds.Pei ->
                             { m | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } }
 
                 -- TODO: 各家がひとりずつ選択されてなかったら警告をだす
@@ -491,43 +343,14 @@ dto4ToModel model logDto4 =
             , gameFee = String.fromInt logDto4.gameFee
             , rankPoint =
                 Tuple.pair
-                    (String.fromInt <| getArrayElement 0 logDto4.rankPoint)
-                    (String.fromInt <| getArrayElement 1 logDto4.rankPoint)
+                    (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
+                    (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
             , havePoint = String.fromInt logDto4.havePoint
             , returnPoint = String.fromInt logDto4.returnPoint
             }
         , players = logDto4.players
-        , rounds = Array.map toStringRound4 logDto4.rounds
-        , chips = toStringArray logDto4.chips
-    }
-
-
-toStringRound : IntRound -> Round
-toStringRound intRound =
-    { seatingOrder = intRound.seatingOrder
-    , points = Array.map String.fromInt intRound.points
-    }
-
-
-toStringRound4 : RoundObj4 -> Round
-toStringRound4 { points, seatingOrder } =
-    let
-        stringFromInt int =
-            if int == 0 then
-                ""
-
-            else
-                String.fromInt int
-    in
-    { seatingOrder = seatingOrder
-    , points =
-        Array.map stringFromInt <|
-            Array.fromList
-                [ points.data0
-                , points.data1
-                , points.data2
-                , points.data3
-                ]
+        , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+        , chips = ExArray.toStringArray logDto4.chips
     }
 
 
@@ -535,75 +358,15 @@ toLogDto4 : Model -> LogDto4
 toLogDto4 { logId, logConfig, players, rounds, chips } =
     { logId = logId
     , players = players
-    , rate = toIntValue logConfig.rate
-    , chipRate = toIntValue logConfig.chipRate
-    , gameFee = toIntValue logConfig.gameFee
-    , rankPoint = Array.fromList [ toIntValue <| Tuple.first logConfig.rankPoint, toIntValue <| Tuple.second logConfig.rankPoint ]
-    , havePoint = toIntValue logConfig.havePoint
-    , returnPoint = toIntValue logConfig.returnPoint
-    , rounds = Array.map toRoundObj4 rounds
-    , chips = toIntArray chips
+    , rate = ExString.toIntValue logConfig.rate
+    , chipRate = ExString.toIntValue logConfig.chipRate
+    , gameFee = ExString.toIntValue logConfig.gameFee
+    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first logConfig.rankPoint, ExString.toIntValue <| Tuple.second logConfig.rankPoint ]
+    , havePoint = ExString.toIntValue logConfig.havePoint
+    , returnPoint = ExString.toIntValue logConfig.returnPoint
+    , rounds = Array.map Rounds.toRoundObj4 rounds
+    , chips = ExArray.toIntArray chips
     }
-
-
-toRoundObj4 : Round -> RoundObj4
-toRoundObj4 { seatingOrder, points } =
-    let
-        pointsInt =
-            toIntArray points
-    in
-    { seatingOrder = seatingOrder
-    , points =
-        { data0 = getArrayElement 0 pointsInt
-        , data1 = getArrayElement 1 pointsInt
-        , data2 = getArrayElement 2 pointsInt
-        , data3 = getArrayElement 3 pointsInt
-        }
-    }
-
-
-
--- manipulate array, tuple
-
-
-getArrayElement : Int -> Array Int -> Int
-getArrayElement index array =
-    Maybe.withDefault 0 <|
-        Array.get
-            index
-            array
-
-
-toIntValue : String -> Int
-toIntValue string =
-    Maybe.withDefault 0 (String.toInt string)
-
-
-toIntArray : Array String -> Array Int
-toIntArray stringArray =
-    Array.map
-        toIntValue
-        stringArray
-
-
-toIntRound : Round -> IntRound
-toIntRound { seatingOrder, points } =
-    { seatingOrder = seatingOrder
-    , points = toIntArray points
-    }
-
-
-toStringArray : Array Int -> Array String
-toStringArray arrayInt =
-    Array.map String.fromInt arrayInt
-
-
-toIntTuple : ( String, String ) -> ( Int, Int )
-toIntTuple stringTuple =
-    Tuple.mapBoth
-        toIntValue
-        toIntValue
-        stringTuple
 
 
 
@@ -628,7 +391,7 @@ view model =
     in
     div [ class "editLog_container" ]
         [ viewEditLog model
-        , UI.viewButton { phrase = phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
+        , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
         , viewToggleLogConfigAreaBottun
             model.isOpenedConfigArea
         , viewEditLogConfig
@@ -658,7 +421,7 @@ viewToggleHowToUseButton : Bool -> Html Msg
 viewToggleHowToUseButton isOpened =
     if isOpened then
         UI.viewButton
-            { phrase = phrase.closeHowToUseArea
+            { phrase = Phrase.phrase.closeHowToUseArea
             , onClickMsg = ClickedHowToUseButton
             , size = UI.Default
             , isDisabled = False
@@ -666,7 +429,7 @@ viewToggleHowToUseButton isOpened =
 
     else
         UI.viewButton
-            { phrase = phrase.openHowToUseArea
+            { phrase = Phrase.phrase.openHowToUseArea
             , onClickMsg = ClickedHowToUseButton
             , size = UI.Default
             , isDisabled = False
@@ -677,7 +440,7 @@ viewToggleLogConfigAreaBottun : Bool -> Html Msg
 viewToggleLogConfigAreaBottun isOpened =
     if isOpened then
         UI.viewButton
-            { phrase = phrase.closeEditLogConfigArea
+            { phrase = Phrase.phrase.closeEditLogConfigArea
             , onClickMsg = ClickedToggleConfigButton
             , size = UI.Default
             , isDisabled = False
@@ -685,7 +448,7 @@ viewToggleLogConfigAreaBottun isOpened =
 
     else
         UI.viewButton
-            { phrase = phrase.openEditLogConfigArea
+            { phrase = Phrase.phrase.openEditLogConfigArea
             , onClickMsg = ClickedToggleConfigButton
             , size = UI.Default
             , isDisabled = False
@@ -699,13 +462,13 @@ viewEditLogConfig { rate, chipRate, gameFee, rankPoint, havePoint, returnPoint }
     if isOpened then
         div
             [ class "editLog_logConfigContainer" ]
-            [ viewEditLogConfigForm phrase.editLogConfigRate rate ChangedRate
-            , viewEditLogConfigForm phrase.editLogConfigChipRate chipRate ChangedChipRate
-            , viewEditLogConfigForm phrase.editLogConfigGameFee gameFee ChangedGameFee
-            , viewEditLogConfigForm phrase.editLogConfigHavePoint havePoint ChangedHavePoint
-            , viewEditLogConfigForm phrase.editLogConfigReturnPoint returnPoint ChangedReturnPoint
-            , viewEditLogConfigForm phrase.editLogConfigRankPointFirst (Tuple.first rankPoint) ChangedRankPointFirst
-            , viewEditLogConfigForm phrase.editLogConfigRankPointSecond (Tuple.second rankPoint) ChangedRankPointSecond
+            [ viewEditLogConfigForm Phrase.phrase.editLogConfigRate rate ChangedRate
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigChipRate chipRate ChangedChipRate
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigGameFee gameFee ChangedGameFee
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigHavePoint havePoint ChangedHavePoint
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigReturnPoint returnPoint ChangedReturnPoint
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigRankPointFirst (Tuple.first rankPoint) ChangedRankPointFirst
+            , viewEditLogConfigForm Phrase.phrase.editLogConfigRankPointSecond (Tuple.second rankPoint) ChangedRankPointSecond
             ]
 
     else
@@ -731,28 +494,28 @@ viewEditLog { logConfig, players, rounds, chips } =
             rounds
                 |> Array.map
                     (\round ->
-                        if not <| isDefaultPoints round.points then
+                        if not <| Rounds.isDefaultPoints round.points then
                             calculateRoundFromRawPoint
-                                { rankPoint = toIntTuple logConfig.rankPoint
-                                , round = toIntRound round
-                                , havePoint = toIntValue logConfig.havePoint
-                                , returnPoint = toIntValue logConfig.returnPoint
+                                { rankPoint = ExTuple.toIntTuple logConfig.rankPoint
+                                , round = Rounds.toIntRound round
+                                , havePoint = ExString.toIntValue logConfig.havePoint
+                                , returnPoint = ExString.toIntValue logConfig.returnPoint
                                 }
 
                         else
-                            toIntRound round
+                            Rounds.toIntRound round
                     )
                 |> Array.map .points
                 |> calculateTotalPoint
 
         totalPointIncludeChip =
-            calculateTotalPointIncludeChip (toIntValue logConfig.chipRate) totalPoint chips
+            calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
 
         totalBalanceExcludeGameFee =
-            calculateTotalBalanceExcludeGameFee (toIntValue logConfig.rate) totalPointIncludeChip
+            calculateTotalBalanceExcludeGameFee (ExString.toIntValue logConfig.rate) totalPointIncludeChip
 
         totalBalanceIncludeGameFee =
-            calculateTotalBalanceIncludeGameFee (toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
+            calculateTotalBalanceIncludeGameFee (ExString.toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
@@ -770,11 +533,11 @@ viewEditLog { logConfig, players, rounds, chips } =
                         )
                         rounds
                )
-            ++ [ viewInputChipsRow phrase.chip chips
-               , viewCalculatedRow phrase.pointBalance totalPoint
-               , viewCalculatedRow phrase.pointBalanceIncludeChip totalPointIncludeChip
-               , viewCalculatedRow phrase.balance totalBalanceExcludeGameFee
-               , viewCalculatedRow phrase.totalBalance totalBalanceIncludeGameFee
+            ++ [ viewInputChipsRow Phrase.phrase.chip chips
+               , viewCalculatedRow Phrase.phrase.pointBalance totalPoint
+               , viewCalculatedRow Phrase.phrase.pointBalanceIncludeChip totalPointIncludeChip
+               , viewCalculatedRow Phrase.phrase.balance totalBalanceExcludeGameFee
+               , viewCalculatedRow Phrase.phrase.totalBalance totalBalanceIncludeGameFee
                ]
         )
 
@@ -798,12 +561,6 @@ type alias ViewInputRoundRowConfig =
     }
 
 
-isDefaultPoints : Array Point -> Bool
-isDefaultPoints points =
-    (points == initRound4.points)
-        || (points == Array.initialize 4 (always "0"))
-
-
 {-| 点棒入力行
 -}
 viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
@@ -811,16 +568,16 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
             calculateRoundFromRawPoint
-                { rankPoint = toIntTuple rankPoint
-                , round = toIntRound round
-                , havePoint = toIntValue havePoint
-                , returnPoint = toIntValue returnPoint
+                { rankPoint = ExTuple.toIntTuple rankPoint
+                , round = Rounds.toIntRound round
+                , havePoint = ExString.toIntValue havePoint
+                , returnPoint = ExString.toIntValue returnPoint
                 }
-                |> toStringRound
+                |> Rounds.toStringRound
                 >> .points
 
         viewShowPointCell_ =
-            if isDefaultPoints round.points then
+            if Rounds.isDefaultPoints round.points then
                 Array.map
                     viewShowPointCell
                     round.points
@@ -934,7 +691,7 @@ viewCalculatedCell calculatedValue =
 viewInputPointButton : Int -> Html Msg
 viewInputPointButton index =
     UI.viewButton
-        { phrase = phrase.inputPoint
+        { phrase = Phrase.phrase.inputPoint
         , onClickMsg = ClickedEditRoundButton index
         , size = UI.Mini
         , isDisabled = False
@@ -983,27 +740,13 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
         viewRadioButton : Kaze -> Int -> Point -> Html Msg
         viewRadioButton kaze playerIndex _ =
             let
-                selecter =
-                    case kaze of
-                        Ton ->
-                            .ton
-
-                        Nan ->
-                            .nan
-
-                        Sha ->
-                            .sha
-
-                        Pei ->
-                            .pei
-
                 checked_ =
                     case round.seatingOrder of
                         Just seatingOrder ->
-                            selecter seatingOrder == playerIndex
+                            Rounds.kazeToSelecter kaze seatingOrder == playerIndex
 
                         Nothing ->
-                            case selecter seatingOrderInput of
+                            case Rounds.kazeToSelecter kaze seatingOrderInput of
                                 Just playerIndex_ ->
                                     playerIndex == playerIndex_
 
@@ -1014,7 +757,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                 [ input
                     [ type_ "radio"
                     , id (String.fromInt playerIndex)
-                    , name (String.fromInt playerIndex ++ kazeToString kaze)
+                    , name (String.fromInt playerIndex ++ Rounds.kazeToString kaze)
                     , checked checked_
                     , onClick <| ClickedSeatingOrderRadio playerIndex roundIndex round kaze
                     ]
@@ -1031,7 +774,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                 (\kaze_ ->
                     div []
                         [ text <|
-                            kazeToString kaze_
+                            Rounds.kazeToString kaze_
                         , div [ class "editLog_chichaRadioContainer" ]
                             (List.indexedMap
                                 (viewRadioButton kaze_)
@@ -1039,7 +782,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                             )
                         ]
                 )
-                allKazes
+                Rounds.allKazes
             )
         , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
         , invalidSeatingOrderMessage
@@ -1107,7 +850,7 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
     Array.foldl
         (calculateFrom2Arrays (\chip reducedValue -> chip * chipRate + reducedValue))
         totalPoints
-        (Array.initialize 1 (\_ -> toIntArray chips))
+        (Array.initialize 1 (\_ -> ExArray.toIntArray chips))
 
 
 {-| ゲーム代を含まない収支を計算する
@@ -1259,28 +1002,6 @@ hasSamePoint points =
 
             else
                 hasSamePoint <| Array.fromList tail
-
-
-phrase =
-    { pointBalance = "ポイント収支"
-    , pointBalanceIncludeChip = "チップ込収支"
-    , chip = "チップ(枚数)"
-    , balance = "収支"
-    , totalBalance = "ゲーム代込み収支"
-    , editLogConfigRate = "レート"
-    , editLogConfigChipRate = "レート(チップ)"
-    , editLogConfigGameFee = "ゲーム代(一人当たり)"
-    , editLogConfigHavePoint = "持ち点"
-    , editLogConfigReturnPoint = "返し"
-    , editLogConfigRankPointFirst = "ウマ(2, 3着)"
-    , editLogConfigRankPointSecond = "ウマ(1, 4着)"
-    , openEditLogConfigArea = "設定を開く"
-    , closeEditLogConfigArea = "設定を閉じる"
-    , openHowToUseArea = "使い方を開く"
-    , closeHowToUseArea = "使い方を閉じる"
-    , addRow = "行を追加する"
-    , inputPoint = "🖋"
-    }
 
 
 
