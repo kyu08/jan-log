@@ -1,12 +1,12 @@
-module LogDto exposing
+module Dtos.LogDto exposing
     ( LogDto4
-    , RoundObj4
+    , RoundObj4Dto
     )
 
 import Array exposing (Array)
 
 
-type alias RoundObj4 =
+type alias RoundObj4Dto =
     { points :
         { data0 : Int
         , data1 : Int
@@ -29,7 +29,7 @@ type alias LogDto4 =
     , rate : Int
     , chipRate : Int
     , players : Array String
-    , rounds : Array RoundObj4
+    , rounds : Array RoundObj4Dto
     , chips : Array Int
     , rankPoint : Array Int
     , havePoint : Int

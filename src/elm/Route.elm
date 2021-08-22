@@ -1,6 +1,6 @@
 module Route exposing (Route(..), fromUrl, parser, routes)
 
-import LogId exposing (LogId)
+import Common.LogId exposing (LogId)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 

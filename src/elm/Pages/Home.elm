@@ -1,4 +1,12 @@
-module Home exposing (Model, Msg, init, initModel, toSession, update, view)
+module Pages.Home exposing
+    ( Model
+    , Msg
+    , init
+    , initModel
+    , toSession
+    , update
+    , view
+    )
 
 import Html exposing (Html, div)
 import Random
