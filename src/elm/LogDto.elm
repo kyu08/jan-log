@@ -13,7 +13,13 @@ type alias RoundObj4 =
         , data2 : Int
         , data3 : Int
         }
-    , chicha : Maybe Int
+    , seatingOrder :
+        Maybe
+            { ton : Int
+            , nan : Int
+            , sha : Int
+            , pei : Int
+            }
     }
 
 
