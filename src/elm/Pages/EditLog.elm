@@ -11,12 +11,13 @@ port module Pages.EditLog exposing
 
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
-import Dtos.LogDto exposing (LogDto4, RoundObj4Dto)
+import Dtos.LogDto exposing (LogDto4)
 import EditLog.Chips as Chips exposing (Chips)
+import EditLog.Log exposing (Log)
 import EditLog.LogConfig as LogConfig exposing (LogConfig, RankPoint)
 import EditLog.Phrase as Phrase
 import EditLog.Players as Players exposing (Players)
-import EditLog.Rounds as Rounds exposing (IntRound, Kaze, Point, Round, Rounds, SeatingOrder)
+import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, Rounds, SeatingOrder)
 import Expands.Array as ExArray
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
@@ -44,14 +45,13 @@ import UI
 -}
 type alias Model =
     { session : Session
-    , logId : LogId
-    , players : Players
-    , logConfig : LogConfig
-    , rounds : Rounds
-    , chips : Chips
+    , log : Log
+    , uiStatus : UIStatus
+    }
 
-    -- state for UI
-    , isOpenedConfigArea : Bool
+
+type alias UIStatus =
+    { isOpenedConfigArea : Bool
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
     , seatingOrderInput : SeatingOrderInput
@@ -75,12 +75,20 @@ type ModalStatus
 initModel : LogId -> Session -> Model
 initModel logId session =
     { session = session
-    , logId = logId
-    , players = Players.initPlayers
-    , logConfig = LogConfig.initLogConfig
-    , rounds = Rounds.initRounds
-    , chips = Chips.initChips
-    , isOpenedConfigArea = False
+    , log =
+        { logId = logId
+        , players = Players.initPlayers
+        , logConfig = LogConfig.initLogConfig
+        , rounds = Rounds.initRounds
+        , chips = Chips.initChips
+        }
+    , uiStatus = initUIStatus
+    }
+
+
+initUIStatus : UIStatus
+initUIStatus =
+    { isOpenedConfigArea = False
     , isOpenedHowToUseArea = False
     , editRoundModalState = Hide
     , seatingOrderInput =
@@ -121,7 +129,7 @@ isInvalidSeatingOrderInput { ton, nan, sha, pei } =
                 -- 各家に別の playerIndex が入力されていない場合に True をかえす
                 recursive kazes =
                     case kazes of
-                        head :: [] ->
+                        _ :: [] ->
                             False
 
                         head :: tail ->
@@ -180,12 +188,19 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHowToUseArea, seatingOrderInput } as m) =
+update msg ({ log, uiStatus } as m) =
+    let
+        { seatingOrderInput } =
+            uiStatus
+
+        { players, logConfig, rounds } =
+            log
+    in
     case msg of
         ChangedPlayerName index playerName ->
             let
                 nextModel =
-                    { m | players = Array.set index playerName players }
+                    { m | log = { log | players = Array.set index playerName log.players } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
@@ -200,17 +215,17 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
                                     point_
                                     round_.points
                         }
-                        rounds
+                        log.rounds
 
                 maybeUpdatedRounds =
                     Maybe.map
                         (updateRound point)
-                        (Array.get roundIndex rounds)
+                        (Array.get roundIndex log.rounds)
 
                 nextModel =
                     case maybeUpdatedRounds of
                         Just updatedRound ->
-                            { m | rounds = updatedRound }
+                            { m | log = { log | rounds = updatedRound } }
 
                         Nothing ->
                             m
@@ -220,39 +235,39 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
         ChangedChip playerIndex chip ->
             let
                 nextModel =
-                    { m | chips = Array.set playerIndex chip chips }
+                    { m | log = { log | chips = Array.set playerIndex chip log.chips } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedRate inputValue ->
             let
                 nextModel =
-                    { m | logConfig = { logConfig | rate = inputValue } }
+                    { m | log = { log | logConfig = { logConfig | rate = inputValue } } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedChipRate inputValue ->
             let
                 nextModel =
-                    { m | logConfig = { logConfig | chipRate = inputValue } }
+                    { m | log = { log | logConfig = { logConfig | chipRate = inputValue } } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedGameFee inputValue ->
             let
                 nextModel =
-                    { m | logConfig = { logConfig | gameFee = inputValue } }
+                    { m | log = { log | logConfig = { logConfig | gameFee = inputValue } } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ClickedAddRowButton ->
-            ( { m | rounds = Array.push Rounds.initRound4 rounds }, Cmd.none )
+            ( { m | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } }, Cmd.none )
 
         ClickedToggleConfigButton ->
-            ( { m | isOpenedConfigArea = not isOpenedConfigArea }, Cmd.none )
+            ( { m | uiStatus = { uiStatus | isOpenedConfigArea = not uiStatus.isOpenedConfigArea } }, Cmd.none )
 
         ClickedHowToUseButton ->
-            ( { m | isOpenedHowToUseArea = not isOpenedHowToUseArea }, Cmd.none )
+            ( { m | uiStatus = { uiStatus | isOpenedHowToUseArea = not uiStatus.isOpenedHowToUseArea } }, Cmd.none )
 
         FetchedLog dto4 ->
             ( dto4ToModel m dto4, Cmd.none )
@@ -264,8 +279,11 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
             let
                 nextModel =
                     { m
-                        | logConfig =
-                            { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint }
+                        | log =
+                            { log
+                                | logConfig =
+                                    { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint }
+                            }
                     }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
@@ -274,7 +292,10 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
             let
                 nextModel =
                     { m
-                        | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint }
+                        | log =
+                            { log
+                                | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint }
+                            }
                     }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
@@ -282,51 +303,50 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
         ChangedReturnPoint returnPoint ->
             let
                 nextModel =
-                    { m | logConfig = { logConfig | returnPoint = returnPoint } }
+                    { m | log = { log | logConfig = { logConfig | returnPoint = returnPoint } } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ChangedHavePoint havePoint ->
             let
                 nextModel =
-                    { m | logConfig = { logConfig | havePoint = havePoint } }
+                    { m | log = { log | logConfig = { logConfig | havePoint = havePoint } } }
             in
             ( nextModel, updateLog <| toLogDto4 nextModel )
 
         ClickedEditRoundButton roundIndex ->
-            ( { m | editRoundModalState = Shown roundIndex }, Cmd.none )
+            ( { m | uiStatus = { uiStatus | editRoundModalState = Shown roundIndex } }, Cmd.none )
 
         NoOp ->
             ( m, Cmd.none )
 
         ClickedCloseInputPointModalButton ->
-            ( { m | editRoundModalState = Hide }, Cmd.none )
+            ( { m | uiStatus = { uiStatus | editRoundModalState = Hide } }, Cmd.none )
 
         ClickedSeatingOrderRadio playerIndex roundIndex round kaze ->
             let
                 nextModel =
                     case kaze of
                         Rounds.Ton ->
-                            { m | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } }
+                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } } }
 
                         Rounds.Nan ->
-                            { m | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } }
+                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } } }
 
                         Rounds.Sha ->
-                            { m | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } }
+                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } } }
 
                         Rounds.Pei ->
-                            { m | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } }
+                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } } }
 
-                -- TODO: 各家がひとりずつ選択されてなかったら警告をだす
                 nextRounds =
-                    if isAllSeatingOrderInput nextModel.seatingOrderInput then
-                        Array.set roundIndex { round | seatingOrder = toSeatingOrder nextModel.seatingOrderInput } rounds
+                    if isAllSeatingOrderInput nextModel.uiStatus.seatingOrderInput then
+                        Array.set roundIndex { round | seatingOrder = toSeatingOrder nextModel.uiStatus.seatingOrderInput } rounds
 
                     else
                         rounds
             in
-            ( { nextModel | rounds = nextRounds }, updateLog <| toLogDto4 nextModel )
+            ( { nextModel | log = { log | rounds = nextRounds } }, updateLog <| toLogDto4 nextModel )
 
 
 
@@ -335,37 +355,44 @@ update msg ({ rounds, players, logConfig, chips, isOpenedConfigArea, isOpenedHow
 
 dto4ToModel : Model -> LogDto4 -> Model
 dto4ToModel model logDto4 =
+    let
+        { log } =
+            model
+    in
     { model
-        | logId = logDto4.logId
-        , logConfig =
-            { rate = String.fromInt logDto4.rate
-            , chipRate = String.fromInt logDto4.chipRate
-            , gameFee = String.fromInt logDto4.gameFee
-            , rankPoint =
-                Tuple.pair
-                    (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                    (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-            , havePoint = String.fromInt logDto4.havePoint
-            , returnPoint = String.fromInt logDto4.returnPoint
+        | log =
+            { log
+                | logId = logDto4.logId
+                , logConfig =
+                    { rate = String.fromInt logDto4.rate
+                    , chipRate = String.fromInt logDto4.chipRate
+                    , gameFee = String.fromInt logDto4.gameFee
+                    , rankPoint =
+                        Tuple.pair
+                            (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
+                            (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
+                    , havePoint = String.fromInt logDto4.havePoint
+                    , returnPoint = String.fromInt logDto4.returnPoint
+                    }
+                , players = logDto4.players
+                , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+                , chips = ExArray.toStringArray logDto4.chips
             }
-        , players = logDto4.players
-        , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
-        , chips = ExArray.toStringArray logDto4.chips
     }
 
 
 toLogDto4 : Model -> LogDto4
-toLogDto4 { logId, logConfig, players, rounds, chips } =
-    { logId = logId
-    , players = players
-    , rate = ExString.toIntValue logConfig.rate
-    , chipRate = ExString.toIntValue logConfig.chipRate
-    , gameFee = ExString.toIntValue logConfig.gameFee
-    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first logConfig.rankPoint, ExString.toIntValue <| Tuple.second logConfig.rankPoint ]
-    , havePoint = ExString.toIntValue logConfig.havePoint
-    , returnPoint = ExString.toIntValue logConfig.returnPoint
-    , rounds = Array.map Rounds.toRoundObj4 rounds
-    , chips = ExArray.toIntArray chips
+toLogDto4 { log } =
+    { logId = log.logId
+    , players = log.players
+    , rate = ExString.toIntValue log.logConfig.rate
+    , chipRate = ExString.toIntValue log.logConfig.chipRate
+    , gameFee = ExString.toIntValue log.logConfig.gameFee
+    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first log.logConfig.rankPoint, ExString.toIntValue <| Tuple.second log.logConfig.rankPoint ]
+    , havePoint = ExString.toIntValue log.logConfig.havePoint
+    , returnPoint = ExString.toIntValue log.logConfig.returnPoint
+    , rounds = Array.map Rounds.toRoundObj4 log.rounds
+    , chips = ExArray.toIntArray log.chips
     }
 
 
@@ -377,28 +404,29 @@ view : Model -> Html Msg
 view model =
     let
         viewPointInputModal_ =
-            case model.editRoundModalState of
+            case model.uiStatus.editRoundModalState of
                 Hide ->
                     UI.viewBlank
 
                 Shown roundIndex ->
-                    case Array.get roundIndex model.rounds of
+                    case Array.get roundIndex model.log.rounds of
                         Nothing ->
                             UI.viewBlank
 
                         Just round ->
-                            viewPointInputModal model.players round roundIndex model.seatingOrderInput
+                            viewPointInputModal model.log.players round roundIndex model.uiStatus.seatingOrderInput
     in
     div [ class "editLog_container" ]
-        [ viewEditLog model
+        [ viewCreatedAt
+        , viewEditLog model
         , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
         , viewToggleLogConfigAreaBottun
-            model.isOpenedConfigArea
+            model.uiStatus.isOpenedConfigArea
         , viewEditLogConfig
-            model.logConfig
-            model.isOpenedConfigArea
-        , viewToggleHowToUseButton model.isOpenedHowToUseArea
-        , viewHowToUse model.isOpenedHowToUseArea
+            model.log.logConfig
+            model.uiStatus.isOpenedConfigArea
+        , viewToggleHowToUseButton model.uiStatus.isOpenedHowToUseArea
+        , viewHowToUse model.uiStatus.isOpenedHowToUseArea
         , viewPointInputModal_
         ]
 
@@ -488,18 +516,18 @@ viewEditLogConfigForm labelText inputValue onInputMsg =
 {-| 成績編集UI
 -}
 viewEditLog : Model -> Html Msg
-viewEditLog { logConfig, players, rounds, chips } =
+viewEditLog { log } =
     let
         totalPoint =
-            rounds
+            log.rounds
                 |> Array.map
                     (\round ->
                         if not <| Rounds.isDefaultPoints round.points then
                             Rounds.calculateRoundFromRawPoint
-                                { rankPoint = ExTuple.toIntTuple logConfig.rankPoint
+                                { rankPoint = ExTuple.toIntTuple log.logConfig.rankPoint
                                 , round = Rounds.toIntRound round
-                                , havePoint = ExString.toIntValue logConfig.havePoint
-                                , returnPoint = ExString.toIntValue logConfig.returnPoint
+                                , havePoint = ExString.toIntValue log.logConfig.havePoint
+                                , returnPoint = ExString.toIntValue log.logConfig.returnPoint
                                 }
 
                         else
@@ -509,31 +537,31 @@ viewEditLog { logConfig, players, rounds, chips } =
                 |> Rounds.calculateTotalPoint
 
         totalPointIncludeChip =
-            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
+            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue log.logConfig.chipRate) totalPoint log.chips
 
         totalBalanceExcludeGameFee =
-            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue logConfig.rate) totalPointIncludeChip
+            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue log.logConfig.rate) totalPointIncludeChip
 
         totalBalanceIncludeGameFee =
-            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
+            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue log.logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
-        (viewInputPlayersRow players
+        (viewInputPlayersRow log.players
             :: (Array.toList <|
                     Array.indexedMap
                         (\roundIndex round ->
                             viewInputRoundRow
                                 { roundIndex = roundIndex
                                 , round = round
-                                , rankPoint = logConfig.rankPoint
-                                , havePoint = logConfig.havePoint
-                                , returnPoint = logConfig.returnPoint
+                                , rankPoint = log.logConfig.rankPoint
+                                , havePoint = log.logConfig.havePoint
+                                , returnPoint = log.logConfig.returnPoint
                                 }
                         )
-                        rounds
+                        log.rounds
                )
-            ++ [ viewInputChipsRow Phrase.phrase.chip chips
+            ++ [ viewInputChipsRow Phrase.phrase.chip log.chips
                , viewCalculatedRow Phrase.phrase.pointBalance totalPoint
                , viewCalculatedRow Phrase.phrase.pointBalanceIncludeChip totalPointIncludeChip
                , viewCalculatedRow Phrase.phrase.balance totalBalanceExcludeGameFee
@@ -787,6 +815,11 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
         , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
         , invalidSeatingOrderMessage
         ]
+
+
+viewCreatedAt : Html msg
+viewCreatedAt =
+    div [ class "editLog_createdAt" ] [ text "2020/20/20" ]
 
 
 
