@@ -19,31 +19,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const defaultRound4 = {
-  points: { data0: 0, data1: 0, data2: 0, data3: 0 },
-  seatingOrder: null,
-};
-const defaultLog4 = {
-  gameFee: 0,
-  rate: 50,
-  chipRate: 2,
-  players: ["player1", "player2", "player3", "player4"],
-  rounds: Array(4).fill(defaultRound4),
-  chips: [0, 0, 0, 0],
-  rankPoint: [10, 20],
-  havePoint: 25,
-  returnPoint: 30,
-};
-
 app.ports.fetchLog.subscribe((logId) => {
   db.collection("logs")
     .doc(logId)
     .get()
     .then((doc) => {
-      const res = doc.exists
-        ? { ...doc.data(), logId }
-        : { ...defaultLog4, logId };
-      app.ports.fetchedLog.send(res);
+      const res = doc.exists;
+      if (doc.exists) {
+        app.ports.fetchedLog.send({ ...doc.data(), logId });
+      } else {
+        app.ports.fetchedLogButNoLog.send(null);
+      }
     });
 });
 
@@ -76,9 +62,8 @@ app.ports.updateLog.subscribe(
 
 app.ports.listenLog.subscribe((logId) => {
   db.doc(`logs/${logId}`).onSnapshot((doc) => {
-    const res = doc.exists
-      ? { ...doc.data(), logId }
-      : { ...defaultLog4, logId };
-    app.ports.listenedLog.send(res);
+    if (doc.exists) {
+      app.ports.fetchedLog.send({ ...doc.data(), logId });
+    }
   });
 });

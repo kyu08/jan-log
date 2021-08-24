@@ -79,3 +79,7 @@
   display: flex;
   justify-content: space-around;
 }
+
+.editLog_createdAt {
+  margin-bottom: 10px;
+}
