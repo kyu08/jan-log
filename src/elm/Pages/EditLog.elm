@@ -12,12 +12,12 @@ port module Pages.EditLog exposing
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
 import Dtos.LogDto exposing (LogDto4)
-import EditLog.Chips as Chips exposing (Chips)
+import EditLog.Chips exposing (Chips)
 import EditLog.Log as Log exposing (Log)
-import EditLog.LogConfig as LogConfig exposing (LogConfig, RankPoint)
+import EditLog.LogConfig exposing (LogConfig, RankPoint)
 import EditLog.Phrase as Phrase
-import EditLog.Players as Players exposing (Players)
-import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, Rounds, SeatingOrder)
+import EditLog.Players exposing (Players)
+import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
@@ -123,16 +123,6 @@ initCmd logId =
 toSession : Model -> Session
 toSession { session } =
     session
-
-
-toSeatingOrderInput : PageStatus -> Maybe SeatingOrderInput
-toSeatingOrderInput pageStatus =
-    case pageStatus of
-        Loading ->
-            Nothing
-
-        Loaded pageModel ->
-            Just pageModel.uiStatus.seatingOrderInput
 
 
 isDoneSeatingOrderInput : SeatingOrderInput -> Bool
@@ -521,47 +511,45 @@ viewHowToUse isOpened =
 
 viewToggleHowToUseButton : Bool -> Html Msg
 viewToggleHowToUseButton isOpened =
-    if isOpened then
-        UI.viewButton
-            { phrase = Phrase.phrase.closeHowToUseArea
-            , onClickMsg = ClickedHowToUseButton
-            , size = UI.Default
-            , isDisabled = False
-            }
+    let
+        phrase =
+            if isOpened then
+                Phrase.phrase.closeHowToUseArea
 
-    else
-        UI.viewButton
-            { phrase = Phrase.phrase.openHowToUseArea
-            , onClickMsg = ClickedHowToUseButton
-            , size = UI.Default
-            , isDisabled = False
-            }
+            else
+                Phrase.phrase.openHowToUseArea
+    in
+    UI.viewButton
+        { phrase = phrase
+        , onClickMsg = ClickedHowToUseButton
+        , size = UI.Default
+        , isDisabled = False
+        }
 
 
 viewToggleLogConfigAreaBottun : Bool -> Html Msg
 viewToggleLogConfigAreaBottun isOpened =
-    if isOpened then
-        UI.viewButton
-            { phrase = Phrase.phrase.closeEditLogConfigArea
-            , onClickMsg = ClickedToggleConfigButton
-            , size = UI.Default
-            , isDisabled = False
-            }
+    let
+        phrase =
+            if isOpened then
+                Phrase.phrase.closeEditLogConfigArea
 
-    else
-        UI.viewButton
-            { phrase = Phrase.phrase.openEditLogConfigArea
-            , onClickMsg = ClickedToggleConfigButton
-            , size = UI.Default
-            , isDisabled = False
-            }
+            else
+                Phrase.phrase.openEditLogConfigArea
+    in
+    UI.viewButton
+        { phrase = phrase
+        , onClickMsg = ClickedToggleConfigButton
+        , size = UI.Default
+        , isDisabled = False
+        }
 
 
 {-| 対局情報編集UI
 -}
 viewEditLogConfig : LogConfig -> Bool -> Html Msg
 viewEditLogConfig { rate, chipRate, gameFee, rankPoint, havePoint, returnPoint } isOpened =
-    if isOpened then
+    UI.viewIf isOpened <|
         div
             [ class "editLog_logConfigContainer" ]
             [ viewEditLogConfigForm Phrase.phrase.editLogConfigRate rate ChangedRate
@@ -572,9 +560,6 @@ viewEditLogConfig { rate, chipRate, gameFee, rankPoint, havePoint, returnPoint }
             , viewEditLogConfigForm Phrase.phrase.editLogConfigRankPointFirst (Tuple.first rankPoint) ChangedRankPointFirst
             , viewEditLogConfigForm Phrase.phrase.editLogConfigRankPointSecond (Tuple.second rankPoint) ChangedRankPointSecond
             ]
-
-    else
-        UI.viewBlank
 
 
 {-| 対局情報編集フォーム
@@ -756,8 +741,6 @@ viewInputPointCell roundIndex playerIndex point =
 -}
 viewShowPointCell : String -> Html Msg
 viewShowPointCell point =
-    -- viewShowPointCell : Point -> Html Msg
-    -- viewShowPointCell point =
     td
         [ class "editLog_calculatedCell" ]
         [ text point ]
@@ -804,36 +787,33 @@ viewInputPointButton index =
 -}
 viewPointInputModal : Players -> Round -> Int -> SeatingOrderInput -> Html Msg
 viewPointInputModal players round roundIndex seatingOrderInput =
-    let
-        viewContent =
-            div
-                [ class "editLog_inputPointModalContentContainer" ]
-                [ table [ class "editLog_table" ]
-                    [ tr [ class "editLog_tr" ]
-                        (List.map
-                            viewShowPointCell
-                            (Array.toList players)
-                        )
-                    , tr [ class "editLog_tr" ]
-                        (List.indexedMap
-                            (\index_ point -> viewInputPointCell roundIndex index_ point)
-                            (Array.toList round.points)
-                        )
-                    ]
-                , viewInputSeatingOrder roundIndex round seatingOrderInput
-                    |> UI.viewIf
-                        (Rounds.needsSeatingOrderInput round.points)
-                , UI.viewButton
-                    { phrase = "一覧に戻る"
-                    , size = UI.Default
-                    , onClickMsg = ClickedCloseInputPointModalButton
-                    , isDisabled =
-                        Rounds.needsSeatingOrderInput round.points
-                            && isInvalidSeatingOrderInput seatingOrderInput
-                    }
+    UI.viewModal <|
+        div
+            [ class "editLog_inputPointModalContentContainer" ]
+            [ table [ class "editLog_table" ]
+                [ tr [ class "editLog_tr" ]
+                    (List.map
+                        viewShowPointCell
+                        (Array.toList players)
+                    )
+                , tr [ class "editLog_tr" ]
+                    (List.indexedMap
+                        (\index_ point -> viewInputPointCell roundIndex index_ point)
+                        (Array.toList round.points)
+                    )
                 ]
-    in
-    UI.viewModal viewContent
+            , viewInputSeatingOrder roundIndex round seatingOrderInput
+                |> UI.viewIf
+                    (Rounds.needsSeatingOrderInput round.points)
+            , UI.viewButton
+                { phrase = "一覧に戻る"
+                , size = UI.Default
+                , onClickMsg = ClickedCloseInputPointModalButton
+                , isDisabled =
+                    Rounds.needsSeatingOrderInput round.points
+                        && isInvalidSeatingOrderInput seatingOrderInput
+                }
+            ]
 
 
 viewInputSeatingOrder : Int -> Round -> SeatingOrderInput -> Html Msg
@@ -866,7 +846,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                     []
                 ]
 
-        invalidSeatingOrderMessage =
+        viewInvalidSeatingOrderMessage =
             UI.viewIf (isDoneSeatingOrderInput seatingOrderInput && isInvalidSeatingOrderInput seatingOrderInput) <|
                 text "1人ずつ選択してください"
     in
@@ -887,7 +867,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                 Rounds.allKazes
             )
         , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
-        , invalidSeatingOrderMessage
+        , viewInvalidSeatingOrderMessage
         ]
 
 
