@@ -13,7 +13,7 @@ import Array exposing (Array)
 import Common.LogId exposing (LogId)
 import Dtos.LogDto exposing (LogDto4)
 import EditLog.Chips as Chips exposing (Chips)
-import EditLog.Log exposing (Log)
+import EditLog.Log as Log exposing (Log)
 import EditLog.LogConfig as LogConfig exposing (LogConfig, RankPoint)
 import EditLog.Phrase as Phrase
 import EditLog.Players as Players exposing (Players)
@@ -45,7 +45,18 @@ import UI
 -}
 type alias Model =
     { session : Session
-    , log : Log
+    , logId : LogId
+    , pageStatus : PageStatus
+    }
+
+
+type PageStatus
+    = Loading
+    | Loaded PageModel
+
+
+type alias PageModel =
+    { log : Log
     , uiStatus : UIStatus
     }
 
@@ -75,14 +86,8 @@ type ModalStatus
 initModel : LogId -> Session -> Model
 initModel logId session =
     { session = session
-    , log =
-        { logId = logId
-        , players = Players.initPlayers
-        , logConfig = LogConfig.initLogConfig
-        , rounds = Rounds.initRounds
-        , chips = Chips.initChips
-        }
-    , uiStatus = initUIStatus
+    , logId = logId
+    , pageStatus = Loading
     }
 
 
@@ -100,6 +105,13 @@ initUIStatus =
     }
 
 
+initPageModel : PageModel
+initPageModel =
+    { log = Log.initLog
+    , uiStatus = initUIStatus
+    }
+
+
 initCmd : LogId -> Cmd msg
 initCmd logId =
     Cmd.batch
@@ -109,12 +121,22 @@ initCmd logId =
 
 
 toSession : Model -> Session
-toSession model =
-    model.session
+toSession { session } =
+    session
 
 
-isAllSeatingOrderInput : SeatingOrderInput -> Bool
-isAllSeatingOrderInput { ton, nan, sha, pei } =
+toSeatingOrderInput : PageStatus -> Maybe SeatingOrderInput
+toSeatingOrderInput pageStatus =
+    case pageStatus of
+        Loading ->
+            Nothing
+
+        Loaded pageModel ->
+            Just pageModel.uiStatus.seatingOrderInput
+
+
+isDoneSeatingOrderInput : SeatingOrderInput -> Bool
+isDoneSeatingOrderInput { ton, nan, sha, pei } =
     ExMaybe.isJust ton
         && ExMaybe.isJust nan
         && ExMaybe.isJust sha
@@ -177,213 +199,257 @@ type Msg
     | ClickedHowToUseButton
     | FetchedLog LogDto4
     | ListenedLog LogDto4
+    | FetchedLogButNoLog ()
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedHavePoint String
     | ChangedReturnPoint String
     | ClickedEditRoundButton Int
-    | NoOp
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ log, uiStatus } as m) =
-    let
-        { seatingOrderInput } =
-            uiStatus
+update msg ({ logId, pageStatus } as m) =
+    case pageStatus of
+        Loading ->
+            case msg of
+                FetchedLog dto4 ->
+                    ( { m | pageStatus = Loaded { log = dto4ToLog dto4, uiStatus = initUIStatus } }, Cmd.none )
 
-        { players, logConfig, rounds } =
-            log
-    in
-    case msg of
-        ChangedPlayerName index playerName ->
+                FetchedLogButNoLog () ->
+                    ( { m | pageStatus = Loaded initPageModel }, Cmd.none )
+
+                _ ->
+                    ( m, Cmd.none )
+
+        Loaded pageModel ->
             let
-                nextModel =
-                    { m | log = { log | players = Array.set index playerName log.players } }
+                { uiStatus, log } =
+                    pageModel
+
+                { seatingOrderInput } =
+                    uiStatus
+
+                { logConfig, rounds } =
+                    log
             in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+            case msg of
+                ChangedPlayerName index playerName ->
+                    let
+                        nextLog =
+                            { log | players = Array.set index playerName log.players }
 
-        ChangedPoint roundIndex playerIndex point ->
-            let
-                updateRound point_ round_ =
-                    Array.set roundIndex
-                        { round_
-                            | points =
-                                Array.set
-                                    playerIndex
-                                    point_
-                                    round_.points
-                        }
-                        log.rounds
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-                maybeUpdatedRounds =
-                    Maybe.map
-                        (updateRound point)
-                        (Array.get roundIndex log.rounds)
+                ChangedPoint roundIndex playerIndex point ->
+                    let
+                        updateRound point_ round_ =
+                            Array.set roundIndex
+                                { round_
+                                    | points =
+                                        Array.set
+                                            playerIndex
+                                            point_
+                                            round_.points
+                                }
+                                log.rounds
 
-                nextModel =
+                        maybeUpdatedRounds =
+                            Maybe.map
+                                (updateRound point)
+                                (Array.get roundIndex log.rounds)
+                    in
                     case maybeUpdatedRounds of
                         Just updatedRound ->
-                            { m | log = { log | rounds = updatedRound } }
+                            let
+                                nextLog =
+                                    { log | rounds = updatedRound }
+                            in
+                            ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog <| toLogDto4 logId nextLog )
 
                         Nothing ->
-                            m
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                            ( m, Cmd.none )
 
-        ChangedChip playerIndex chip ->
-            let
-                nextModel =
-                    { m | log = { log | chips = Array.set playerIndex chip log.chips } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ChangedChip playerIndex chip ->
+                    let
+                        nextLog =
+                            { log | chips = Array.set playerIndex chip log.chips }
 
-        ChangedRate inputValue ->
-            let
-                nextModel =
-                    { m | log = { log | logConfig = { logConfig | rate = inputValue } } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    -- TODO: ↓これをまとめてやってくれる関数を定義する
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        ChangedChipRate inputValue ->
-            let
-                nextModel =
-                    { m | log = { log | logConfig = { logConfig | chipRate = inputValue } } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ChangedRate inputValue ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | rate = inputValue } }
 
-        ChangedGameFee inputValue ->
-            let
-                nextModel =
-                    { m | log = { log | logConfig = { logConfig | gameFee = inputValue } } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        ClickedAddRowButton ->
-            ( { m | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } }, Cmd.none )
+                ChangedChipRate inputValue ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | chipRate = inputValue } }
 
-        ClickedToggleConfigButton ->
-            ( { m | uiStatus = { uiStatus | isOpenedConfigArea = not uiStatus.isOpenedConfigArea } }, Cmd.none )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        ClickedHowToUseButton ->
-            ( { m | uiStatus = { uiStatus | isOpenedHowToUseArea = not uiStatus.isOpenedHowToUseArea } }, Cmd.none )
+                ChangedGameFee inputValue ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | gameFee = inputValue } }
 
-        FetchedLog dto4 ->
-            ( dto4ToModel m dto4, Cmd.none )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        ListenedLog dto4 ->
-            ( dto4ToModel m dto4, Cmd.none )
+                ClickedAddRowButton ->
+                    ( { m | pageStatus = Loaded { pageModel | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } } }, Cmd.none )
 
-        ChangedRankPointFirst rankpointFirst ->
-            let
-                nextModel =
-                    { m
-                        | log =
-                            { log
-                                | logConfig =
-                                    { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint }
-                            }
-                    }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ClickedToggleConfigButton ->
+                    ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | isOpenedConfigArea = not uiStatus.isOpenedConfigArea } } }
+                    , Cmd.none
+                    )
 
-        ChangedRankPointSecond rankpointSecond ->
-            let
-                nextModel =
-                    { m
-                        | log =
-                            { log
-                                | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint }
-                            }
-                    }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ClickedHowToUseButton ->
+                    ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | isOpenedHowToUseArea = not uiStatus.isOpenedHowToUseArea } } }
+                    , Cmd.none
+                    )
 
-        ChangedReturnPoint returnPoint ->
-            let
-                nextModel =
-                    { m | log = { log | logConfig = { logConfig | returnPoint = returnPoint } } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ListenedLog dto4 ->
+                    ( { m | pageStatus = Loaded { pageModel | log = dto4ToLog dto4 } }, Cmd.none )
 
-        ChangedHavePoint havePoint ->
-            let
-                nextModel =
-                    { m | log = { log | logConfig = { logConfig | havePoint = havePoint } } }
-            in
-            ( nextModel, updateLog <| toLogDto4 nextModel )
+                ChangedRankPointFirst rankpointFirst ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | rankPoint = Tuple.mapFirst (\_ -> rankpointFirst) logConfig.rankPoint } }
 
-        ClickedEditRoundButton roundIndex ->
-            ( { m | uiStatus = { uiStatus | editRoundModalState = Shown roundIndex } }, Cmd.none )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        NoOp ->
-            ( m, Cmd.none )
+                ChangedRankPointSecond rankpointSecond ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | rankPoint = Tuple.mapSecond (\_ -> rankpointSecond) logConfig.rankPoint } }
 
-        ClickedCloseInputPointModalButton ->
-            ( { m | uiStatus = { uiStatus | editRoundModalState = Hide } }, Cmd.none )
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-        ClickedSeatingOrderRadio playerIndex roundIndex round kaze ->
-            let
-                nextModel =
-                    case kaze of
-                        Rounds.Ton ->
-                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } } }
+                ChangedReturnPoint returnPoint ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | returnPoint = returnPoint } }
 
-                        Rounds.Nan ->
-                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } } }
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-                        Rounds.Sha ->
-                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } } }
+                ChangedHavePoint havePoint ->
+                    let
+                        nextLog =
+                            { log | logConfig = { logConfig | havePoint = havePoint } }
 
-                        Rounds.Pei ->
-                            { m | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } } }
+                        nextModel =
+                            { m | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-                nextRounds =
-                    if isAllSeatingOrderInput nextModel.uiStatus.seatingOrderInput then
-                        Array.set roundIndex { round | seatingOrder = toSeatingOrder nextModel.uiStatus.seatingOrderInput } rounds
+                ClickedEditRoundButton roundIndex ->
+                    ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | editRoundModalState = Shown roundIndex } } }, Cmd.none )
 
-                    else
-                        rounds
-            in
-            ( { nextModel | log = { log | rounds = nextRounds } }, updateLog <| toLogDto4 nextModel )
+                ClickedCloseInputPointModalButton ->
+                    ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | editRoundModalState = Hide } } }, Cmd.none )
+
+                ClickedSeatingOrderRadio playerIndex roundIndex round kaze ->
+                    let
+                        modelSeatingOrderInputUpdated =
+                            case kaze of
+                                Rounds.Ton ->
+                                    { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | ton = Just playerIndex } } } }
+
+                                Rounds.Nan ->
+                                    { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | nan = Just playerIndex } } } }
+
+                                Rounds.Sha ->
+                                    { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | sha = Just playerIndex } } } }
+
+                                Rounds.Pei ->
+                                    { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | seatingOrderInput = { seatingOrderInput | pei = Just playerIndex } } } }
+
+                        nextLog =
+                            case modelSeatingOrderInputUpdated.pageStatus of
+                                Loading ->
+                                    log
+
+                                Loaded pageModel_ ->
+                                    if isDoneSeatingOrderInput pageModel_.uiStatus.seatingOrderInput then
+                                        let
+                                            nextRounds =
+                                                Array.set
+                                                    roundIndex
+                                                    { round | seatingOrder = toSeatingOrder pageModel.uiStatus.seatingOrderInput }
+                                                    rounds
+
+                                            log_ =
+                                                pageModel_.log
+                                        in
+                                        { log_ | rounds = nextRounds }
+
+                                    else
+                                        log
+
+                        nextModel =
+                            { modelSeatingOrderInputUpdated | pageStatus = Loaded { pageModel | log = nextLog } }
+                    in
+                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+
+                _ ->
+                    ( m, Cmd.none )
 
 
 
 -- Dto
 
 
-dto4ToModel : Model -> LogDto4 -> Model
-dto4ToModel model logDto4 =
-    let
-        { log } =
-            model
-    in
-    { model
-        | log =
-            { log
-                | logId = logDto4.logId
-                , logConfig =
-                    { rate = String.fromInt logDto4.rate
-                    , chipRate = String.fromInt logDto4.chipRate
-                    , gameFee = String.fromInt logDto4.gameFee
-                    , rankPoint =
-                        Tuple.pair
-                            (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                            (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-                    , havePoint = String.fromInt logDto4.havePoint
-                    , returnPoint = String.fromInt logDto4.returnPoint
-                    }
-                , players = logDto4.players
-                , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
-                , chips = ExArray.toStringArray logDto4.chips
-            }
+dto4ToLog : LogDto4 -> Log
+dto4ToLog logDto4 =
+    { players = logDto4.players
+    , logConfig =
+        { rate = String.fromInt logDto4.rate
+        , chipRate = String.fromInt logDto4.chipRate
+        , gameFee = String.fromInt logDto4.gameFee
+        , rankPoint =
+            Tuple.pair
+                (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
+                (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
+        , havePoint = String.fromInt logDto4.havePoint
+        , returnPoint = String.fromInt logDto4.returnPoint
+        }
+    , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+    , chips = ExArray.toStringArray logDto4.chips
     }
 
 
-toLogDto4 : Model -> LogDto4
-toLogDto4 { log } =
-    { logId = log.logId
+toLogDto4 : LogId -> Log -> LogDto4
+toLogDto4 logId log =
+    { logId = logId
     , players = log.players
     , rate = ExString.toIntValue log.logConfig.rate
     , chipRate = ExString.toIntValue log.logConfig.chipRate
@@ -401,34 +467,42 @@ toLogDto4 { log } =
 
 
 view : Model -> Html Msg
-view model =
-    let
-        viewPointInputModal_ =
-            case model.uiStatus.editRoundModalState of
-                Hide ->
-                    UI.viewBlank
+view { pageStatus } =
+    case pageStatus of
+        Loading ->
+            text "loading"
 
-                Shown roundIndex ->
-                    case Array.get roundIndex model.log.rounds of
-                        Nothing ->
+        Loaded pageModel ->
+            let
+                { uiStatus, log } =
+                    pageModel
+
+                viewPointInputModal_ =
+                    case uiStatus.editRoundModalState of
+                        Hide ->
                             UI.viewBlank
 
-                        Just round ->
-                            viewPointInputModal model.log.players round roundIndex model.uiStatus.seatingOrderInput
-    in
-    div [ class "editLog_container" ]
-        [ viewCreatedAt
-        , viewEditLog model
-        , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
-        , viewToggleLogConfigAreaBottun
-            model.uiStatus.isOpenedConfigArea
-        , viewEditLogConfig
-            model.log.logConfig
-            model.uiStatus.isOpenedConfigArea
-        , viewToggleHowToUseButton model.uiStatus.isOpenedHowToUseArea
-        , viewHowToUse model.uiStatus.isOpenedHowToUseArea
-        , viewPointInputModal_
-        ]
+                        Shown roundIndex ->
+                            case Array.get roundIndex log.rounds of
+                                Nothing ->
+                                    UI.viewBlank
+
+                                Just round ->
+                                    viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
+            in
+            div [ class "editLog_container" ]
+                [ viewCreatedAt
+                , viewEditLog log
+                , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
+                , viewToggleLogConfigAreaBottun
+                    uiStatus.isOpenedConfigArea
+                , viewEditLogConfig
+                    log.logConfig
+                    uiStatus.isOpenedConfigArea
+                , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
+                , viewHowToUse uiStatus.isOpenedHowToUseArea
+                , viewPointInputModal_
+                ]
 
 
 viewHowToUse : Bool -> Html msg
@@ -515,8 +589,8 @@ viewEditLogConfigForm labelText inputValue onInputMsg =
 
 {-| 成績編集UI
 -}
-viewEditLog : Model -> Html Msg
-viewEditLog { log } =
+viewEditLog : Log -> Html Msg
+viewEditLog log =
     let
         totalPoint =
             log.rounds
@@ -793,7 +867,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                 ]
 
         invalidSeatingOrderMessage =
-            UI.viewIf (isAllSeatingOrderInput seatingOrderInput && isInvalidSeatingOrderInput seatingOrderInput) <|
+            UI.viewIf (isDoneSeatingOrderInput seatingOrderInput && isInvalidSeatingOrderInput seatingOrderInput) <|
                 text "1人ずつ選択してください"
     in
     div []
@@ -828,7 +902,11 @@ viewCreatedAt =
 
 subscriptions : Sub Msg
 subscriptions =
-    Sub.batch [ fetchedLog FetchedLog, listenedLog ListenedLog ]
+    Sub.batch
+        [ fetchedLog FetchedLog
+        , listenedLog ListenedLog
+        , fetchedLogButNoLog FetchedLogButNoLog
+        ]
 
 
 
@@ -842,6 +920,9 @@ port fetchLog : String -> Cmd msg
 
 
 port fetchedLog : (LogDto4 -> msg) -> Sub msg
+
+
+port fetchedLogButNoLog : (() -> msg) -> Sub msg
 
 
 port listenLog : String -> Cmd msg
