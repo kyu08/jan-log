@@ -24,7 +24,8 @@ type alias RoundObj4Dto =
 
 
 type alias LogDto4 =
-    { logId : String
+    { createdAt : Int
+    , logId : String
     , gameFee : Int
     , rate : Int
     , chipRate : Int

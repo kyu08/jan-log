@@ -33,32 +33,9 @@ app.ports.fetchLog.subscribe((logId) => {
     });
 });
 
-app.ports.updateLog.subscribe(
-  ({
-    logId,
-    gameFee,
-    rate,
-    chipRate,
-    players,
-    rounds,
-    chips,
-    rankPoint,
-    havePoint,
-    returnPoint,
-  }) => {
-    db.collection("logs").doc(logId).set({
-      gameFee,
-      rate,
-      chipRate,
-      players,
-      rounds,
-      chips,
-      rankPoint,
-      havePoint,
-      returnPoint,
-    });
-  }
-);
+app.ports.updateLog.subscribe((dto) => {
+  db.collection("logs").doc(dto.logId).set(dto);
+});
 
 app.ports.listenLog.subscribe((logId) => {
   db.doc(`logs/${logId}`).onSnapshot((doc) => {

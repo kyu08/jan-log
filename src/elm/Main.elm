@@ -101,7 +101,9 @@ maybeRouteToModel url model =
             ( History session, Cmd.none )
 
         Just (Route.EditLog logId) ->
-            ( EditLog (EditLog.initModel logId session), EditLog.initCmd logId )
+            ( EditLog (EditLog.initModel logId session)
+            , Cmd.map GotEditLogMsg <| EditLog.initCmd logId
+            )
 
         Just Route.Home ->
             updateWith

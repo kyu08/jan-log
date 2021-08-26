@@ -21,11 +21,15 @@ import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
+import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
 import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Process
 import Session exposing (Session)
+import Task exposing (Task)
+import Time
 import UI
 
 
@@ -47,6 +51,7 @@ type alias Model =
     { session : Session
     , logId : LogId
     , pageStatus : PageStatus
+    , currentTime : Maybe Time.Posix
     }
 
 
@@ -88,7 +93,22 @@ initModel logId session =
     { session = session
     , logId = logId
     , pageStatus = Loading
+    , currentTime = Nothing
     }
+
+
+initCmd : LogId -> Cmd Msg
+initCmd logId =
+    Cmd.batch
+        [ fetchLog logId
+        , listenLog logId
+        , Task.perform SetTime initTimeTask
+        ]
+
+
+initTimeTask : Task Never Time.Posix
+initTimeTask =
+    Time.now
 
 
 initUIStatus : UIStatus
@@ -105,19 +125,11 @@ initUIStatus =
     }
 
 
-initPageModel : PageModel
-initPageModel =
-    { log = Log.initLog
+initPageModel : Time.Posix -> PageModel
+initPageModel currentTime =
+    { log = Log.initLog currentTime
     , uiStatus = initUIStatus
     }
-
-
-initCmd : LogId -> Cmd msg
-initCmd logId =
-    Cmd.batch
-        [ fetchLog logId
-        , listenLog logId
-        ]
 
 
 toSession : Model -> Session
@@ -178,7 +190,8 @@ toSeatingOrder { ton, nan, sha, pei } =
 
 
 type Msg
-    = ChangedPlayerName Int String
+    = SetTime Time.Posix
+    | ChangedPlayerName Int String
     | ChangedPoint Int Int Point
     | ChangedChip Int String
     | ChangedRate String
@@ -199,16 +212,30 @@ type Msg
     | ClickedSeatingOrderRadio Int Int Round Kaze
 
 
+sleep50ms : Task Never ()
+sleep50ms =
+    Process.sleep 50
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ logId, pageStatus } as m) =
+update msg ({ logId, pageStatus, currentTime } as m) =
     case pageStatus of
         Loading ->
             case msg of
+                SetTime now ->
+                    ( { m | currentTime = Just now }, Cmd.none )
+
                 FetchedLog dto4 ->
                     ( { m | pageStatus = Loaded { log = dto4ToLog dto4, uiStatus = initUIStatus } }, Cmd.none )
 
                 FetchedLogButNoLog () ->
-                    ( { m | pageStatus = Loaded initPageModel }, Cmd.none )
+                    case currentTime of
+                        Just currentTime_ ->
+                            ( { m | pageStatus = Loaded <| initPageModel currentTime_ }, Cmd.none )
+
+                        Nothing ->
+                            -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
+                            ( m, Task.perform (\_ -> FetchedLogButNoLog ()) sleep50ms )
 
                 _ ->
                     ( m, Cmd.none )
@@ -385,28 +412,38 @@ update msg ({ logId, pageStatus } as m) =
 
                         nextLog =
                             case modelSeatingOrderInputUpdated.pageStatus of
+                                -- 起こり得ないパターン
                                 Loading ->
                                     log
 
                                 Loaded pageModel_ ->
+                                    let
+                                        logUpdated =
+                                            pageModel_.log
+                                    in
                                     if isDoneSeatingOrderInput pageModel_.uiStatus.seatingOrderInput then
                                         let
                                             nextRounds =
                                                 Array.set
                                                     roundIndex
-                                                    { round | seatingOrder = toSeatingOrder pageModel.uiStatus.seatingOrderInput }
+                                                    { round | seatingOrder = toSeatingOrder pageModel_.uiStatus.seatingOrderInput }
                                                     rounds
-
-                                            log_ =
-                                                pageModel_.log
                                         in
-                                        { log_ | rounds = nextRounds }
+                                        { logUpdated | rounds = nextRounds }
 
                                     else
-                                        log
+                                        logUpdated
+
+                        nextPageStatus =
+                            case modelSeatingOrderInputUpdated.pageStatus of
+                                Loading ->
+                                    Loading
+
+                                Loaded pageModel_ ->
+                                    Loaded { pageModel_ | log = nextLog }
 
                         nextModel =
-                            { modelSeatingOrderInputUpdated | pageStatus = Loaded { pageModel | log = nextLog } }
+                            { modelSeatingOrderInputUpdated | pageStatus = nextPageStatus }
                     in
                     ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
@@ -420,7 +457,8 @@ update msg ({ logId, pageStatus } as m) =
 
 dto4ToLog : LogDto4 -> Log
 dto4ToLog logDto4 =
-    { players = logDto4.players
+    { createdAt = Time.millisToPosix logDto4.createdAt
+    , players = logDto4.players
     , logConfig =
         { rate = String.fromInt logDto4.rate
         , chipRate = String.fromInt logDto4.chipRate
@@ -439,7 +477,8 @@ dto4ToLog logDto4 =
 
 toLogDto4 : LogId -> Log -> LogDto4
 toLogDto4 logId log =
-    { logId = logId
+    { createdAt = Time.posixToMillis log.createdAt
+    , logId = logId
     , players = log.players
     , rate = ExString.toIntValue log.logConfig.rate
     , chipRate = ExString.toIntValue log.logConfig.chipRate
@@ -481,7 +520,7 @@ view { pageStatus } =
                                     viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
             in
             div [ class "editLog_container" ]
-                [ viewCreatedAt
+                [ viewCreatedAt log.createdAt
                 , viewEditLog log
                 , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
                 , viewToggleLogConfigAreaBottun
@@ -575,18 +614,18 @@ viewEditLogConfigForm labelText inputValue onInputMsg =
 {-| 成績編集UI
 -}
 viewEditLog : Log -> Html Msg
-viewEditLog log =
+viewEditLog { players, chips, rounds, logConfig } =
     let
         totalPoint =
-            log.rounds
+            rounds
                 |> Array.map
                     (\round ->
                         if not <| Rounds.isDefaultPoints round.points then
                             Rounds.calculateRoundFromRawPoint
-                                { rankPoint = ExTuple.toIntTuple log.logConfig.rankPoint
+                                { rankPoint = ExTuple.toIntTuple logConfig.rankPoint
                                 , round = Rounds.toIntRound round
-                                , havePoint = ExString.toIntValue log.logConfig.havePoint
-                                , returnPoint = ExString.toIntValue log.logConfig.returnPoint
+                                , havePoint = ExString.toIntValue logConfig.havePoint
+                                , returnPoint = ExString.toIntValue logConfig.returnPoint
                                 }
 
                         else
@@ -596,31 +635,31 @@ viewEditLog log =
                 |> Rounds.calculateTotalPoint
 
         totalPointIncludeChip =
-            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue log.logConfig.chipRate) totalPoint log.chips
+            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
 
         totalBalanceExcludeGameFee =
-            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue log.logConfig.rate) totalPointIncludeChip
+            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue logConfig.rate) totalPointIncludeChip
 
         totalBalanceIncludeGameFee =
-            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue log.logConfig.gameFee) totalBalanceExcludeGameFee
+            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
-        (viewInputPlayersRow log.players
+        (viewInputPlayersRow players
             :: (Array.toList <|
                     Array.indexedMap
                         (\roundIndex round ->
                             viewInputRoundRow
                                 { roundIndex = roundIndex
                                 , round = round
-                                , rankPoint = log.logConfig.rankPoint
-                                , havePoint = log.logConfig.havePoint
-                                , returnPoint = log.logConfig.returnPoint
+                                , rankPoint = logConfig.rankPoint
+                                , havePoint = logConfig.havePoint
+                                , returnPoint = logConfig.returnPoint
                                 }
                         )
-                        log.rounds
+                        rounds
                )
-            ++ [ viewInputChipsRow Phrase.phrase.chip log.chips
+            ++ [ viewInputChipsRow Phrase.phrase.chip chips
                , viewCalculatedRow Phrase.phrase.pointBalance totalPoint
                , viewCalculatedRow Phrase.phrase.pointBalanceIncludeChip totalPointIncludeChip
                , viewCalculatedRow Phrase.phrase.balance totalBalanceExcludeGameFee
@@ -871,9 +910,9 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
         ]
 
 
-viewCreatedAt : Html msg
-viewCreatedAt =
-    div [ class "editLog_createdAt" ] [ text "2020/20/20" ]
+viewCreatedAt : Time.Posix -> Html msg
+viewCreatedAt currentTime =
+    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmdhM |> text ]
 
 
 
