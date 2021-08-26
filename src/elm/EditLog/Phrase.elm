@@ -20,4 +20,5 @@ phrase =
     , closeHowToUseArea = "使い方を閉じる"
     , addRow = "行を追加する"
     , inputPoint = "🖋"
+    , backToHome = "🏠"
     }

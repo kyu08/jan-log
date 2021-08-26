@@ -191,6 +191,7 @@ toSeatingOrder { ton, nan, sha, pei } =
 
 type Msg
     = SetTime Time.Posix
+    | BackToHome
     | ChangedPlayerName Int String
     | ChangedPoint Int Int Point
     | ChangedChip Int String
@@ -261,6 +262,9 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
                     ( nextModel, updateLog <| toLogDto4 logId nextLog )
+
+                BackToHome ->
+                    ( m, Cmd.none )
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
@@ -520,7 +524,7 @@ view { pageStatus } =
                                     viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
             in
             div [ class "editLog_container" ]
-                [ viewCreatedAt log.createdAt
+                [ viewHeader log.createdAt
                 , viewEditLog log
                 , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
                 , viewToggleLogConfigAreaBottun
@@ -532,6 +536,24 @@ view { pageStatus } =
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
                 , viewPointInputModal_
                 ]
+
+
+viewHeader : Time.Posix -> Html Msg
+viewHeader createdAt =
+    div [ class "editLog_header" ]
+        [ viewBackToHome
+        , viewCreatedAt createdAt
+        ]
+
+
+viewBackToHome : Html Msg
+viewBackToHome =
+    UI.viewButton { phrase = Phrase.phrase.backToHome, onClickMsg = BackToHome, size = UI.Mini, isDisabled = False }
+
+
+viewCreatedAt : Time.Posix -> Html msg
+viewCreatedAt currentTime =
+    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmdhM |> text ]
 
 
 viewHowToUse : Bool -> Html msg
@@ -908,11 +930,6 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
         , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
         , viewInvalidSeatingOrderMessage
         ]
-
-
-viewCreatedAt : Time.Posix -> Html msg
-viewCreatedAt currentTime =
-    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmdhM |> text ]
 
 
 
