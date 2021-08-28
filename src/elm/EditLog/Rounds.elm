@@ -200,11 +200,6 @@ kazeToSelecter kaze =
             .pei
 
 
-
--- functions for calculation
--- Functions for view
-
-
 {-| Rounds から計算した収支などのデータ
 -}
 type alias Stats =
