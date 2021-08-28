@@ -379,8 +379,6 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
     }
 
 
-{-| TODO: 適切なモジュールに移動する
--}
 needsSeatingOrderInput : Array Point -> Bool
 needsSeatingOrderInput points =
     let

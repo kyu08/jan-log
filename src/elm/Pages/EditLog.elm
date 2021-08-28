@@ -208,7 +208,7 @@ type Msg
     | ChangedRankPointSecond String
     | ChangedHavePoint String
     | ChangedReturnPoint String
-    | ClickedEditRoundButton Int
+    | ClickedEditRoundButton Int Round
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
 
@@ -264,6 +264,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
                 BackToHome ->
+                    -- ここから
                     ( m, Cmd.none )
 
                 ChangedPoint roundIndex playerIndex point ->
@@ -392,13 +393,38 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     in
                     ( nextModel, updateLog <| toLogDto4 logId nextLog )
 
-                ClickedEditRoundButton roundIndex ->
-                    ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | editRoundModalState = Shown roundIndex } } }, Cmd.none )
+                ClickedEditRoundButton roundIndex round_ ->
+                    let
+                        nextSeatingOrderInput =
+                            case round_.seatingOrder of
+                                Just seatingOrder_ ->
+                                    { ton = Just seatingOrder_.ton
+                                    , nan = Just seatingOrder_.nan
+                                    , sha = Just seatingOrder_.sha
+                                    , pei = Just seatingOrder_.pei
+                                    }
+
+                                Nothing ->
+                                    pageModel.uiStatus.seatingOrderInput
+                    in
+                    ( { m
+                        | pageStatus =
+                            Loaded
+                                { pageModel
+                                    | uiStatus =
+                                        { uiStatus
+                                            | editRoundModalState = Shown roundIndex
+                                            , seatingOrderInput = nextSeatingOrderInput
+                                        }
+                                }
+                      }
+                    , Cmd.none
+                    )
 
                 ClickedCloseInputPointModalButton ->
                     ( { m | pageStatus = Loaded { pageModel | uiStatus = { uiStatus | editRoundModalState = Hide } } }, Cmd.none )
 
-                ClickedSeatingOrderRadio playerIndex roundIndex round kaze ->
+                ClickedSeatingOrderRadio playerIndex roundIndex round_ kaze ->
                     let
                         modelSeatingOrderInputUpdated =
                             case kaze of
@@ -430,7 +456,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             nextRounds =
                                                 Array.set
                                                     roundIndex
-                                                    { round | seatingOrder = toSeatingOrder pageModel_.uiStatus.seatingOrderInput }
+                                                    { round_ | seatingOrder = toSeatingOrder pageModel_.uiStatus.seatingOrderInput }
                                                     rounds
                                         in
                                         { logUpdated | rounds = nextRounds }
@@ -739,7 +765,7 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     tr [ class "editLog_tr" ]
         (td
             [ class "editLog_logNumberCell" ]
-            [ viewInputPointButton roundIndex, text <| String.fromInt (roundIndex + 1) ]
+            [ viewInputPointButton roundIndex round, text <| String.fromInt (roundIndex + 1) ]
             :: viewShowPointCell_
         )
 
@@ -834,11 +860,11 @@ viewCalculatedCell calculatedValue =
         [ text <| String.fromInt calculatedValue ]
 
 
-viewInputPointButton : Int -> Html Msg
-viewInputPointButton index =
+viewInputPointButton : Int -> Round -> Html Msg
+viewInputPointButton index round =
     UI.viewButton
         { phrase = Phrase.phrase.inputPoint
-        , onClickMsg = ClickedEditRoundButton index
+        , onClickMsg = ClickedEditRoundButton index round
         , size = UI.Mini
         , isDisabled = False
         }
