@@ -873,16 +873,7 @@ viewCalculatedCell calculatedValue =
 
 viewInputPointButton : Int -> Round -> Html Msg
 viewInputPointButton index round =
-    img [ class "editLog_iconEdit", src "%PUBLIC_URL%/icon-edit.svg" ] []
-
-
-
--- UI.viewButton
---     { phrase = Phrase.phrase.inputPoint
---     , onClickMsg = ClickedEditRoundButton index round
---     , size = UI.Mini
---     , isDisabled = False
---     }
+    img [ class "editLog_iconEdit", src "%PUBLIC_URL%/icon-edit.svg", onClick <| ClickedEditRoundButton index round ] []
 
 
 {-| FIXME: 数字以外を入力すると入力欄が blank になる
