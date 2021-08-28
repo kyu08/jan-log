@@ -3,10 +3,12 @@ module UI exposing
     , viewBlank
     , viewButton
     , viewIf
+    , viewLink
     , viewLinkButton
     , viewModal
     )
 
+import EditLog.Phrase exposing (phrase)
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, classList, contenteditable, disabled, href)
 import Html.Events exposing (onClick)
@@ -29,11 +31,23 @@ viewLinkButton : String -> String -> Html msg
 viewLinkButton phrase pathString =
     div
         [ class "button_container" ]
-        [ a [ href pathString ]
-            [ div
-                [ class "button_primary" ]
-                [ text phrase ]
-            ]
+        [ viewLink { path = pathString, phrase = phrase, cls = "button_primary" }
+        ]
+
+
+type alias ViewLinkConfig =
+    { path : String
+    , phrase : String
+    , cls : String
+    }
+
+
+viewLink : ViewLinkConfig -> Html msg
+viewLink { path, phrase, cls } =
+    a [ href path ]
+        [ div
+            [ class cls ]
+            [ text phrase ]
         ]
 
 
@@ -49,9 +63,7 @@ viewButton { phrase, onClickMsg, size, isDisabled } =
                     "button_container_mini"
     in
     div
-        [ classList [ ( containerClass, True ) ]
-        , onClick onClickMsg
-        ]
+        [ class containerClass, onClick onClickMsg ]
         [ div
             [ classList [ ( "button_primary", True ), ( "is-disabled", isDisabled ) ] ]
             [ text phrase ]

@@ -31,4 +31,5 @@ fromUrl url =
 routes =
     { editLog = "editLog"
     , history = "history"
+    , home = "/"
     }

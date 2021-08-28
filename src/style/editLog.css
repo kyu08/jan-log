@@ -5,6 +5,16 @@
   height: 100%;
 }
 
+.editLog_header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.editLog_createdAt {
+  margin: 0 auto 0;
+}
+
 .editLog_table {
   width: 100%;
   table-layout: fixed;
