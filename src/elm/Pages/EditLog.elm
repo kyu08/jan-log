@@ -802,7 +802,10 @@ viewInputPlayerCell playerIndex playerName =
     th
         [ class "editLog_th" ]
         [ input
-            [ class "editLog_inputCellInput", value playerName, onInput <| ChangedPlayerName playerIndex ]
+            [ class "editLog_inputCellInput"
+            , value playerName
+            , onInput <| ChangedPlayerName playerIndex
+            ]
             []
         ]
 
@@ -817,6 +820,7 @@ viewInputPointCell roundIndex playerIndex point =
             [ class "editLog_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundIndex playerIndex
+            , type_ "number"
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
@@ -845,6 +849,7 @@ viewInputChipsCell playerIndex chip =
             [ class "editLog_inputCellInput"
             , value chip
             , onInput <| ChangedChip playerIndex
+            , type_ "number"
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
