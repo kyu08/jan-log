@@ -27,6 +27,7 @@ import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Process
+import Route exposing (Route)
 import Session exposing (Session)
 import Task exposing (Task)
 import Time
@@ -191,7 +192,6 @@ toSeatingOrder { ton, nan, sha, pei } =
 
 type Msg
     = SetTime Time.Posix
-    | BackToHome
     | ChangedPlayerName Int String
     | ChangedPoint Int Int Point
     | ChangedChip Int String
@@ -262,10 +262,6 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
                     ( nextModel, updateLog <| toLogDto4 logId nextLog )
-
-                BackToHome ->
-                    -- ここから
-                    ( m, Cmd.none )
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
@@ -574,7 +570,13 @@ viewHeader createdAt =
 
 viewBackToHome : Html Msg
 viewBackToHome =
-    UI.viewButton { phrase = Phrase.phrase.backToHome, onClickMsg = BackToHome, size = UI.Mini, isDisabled = False }
+    div [ class "button_container_mini" ]
+        [ UI.viewLink
+            { phrase = Phrase.phrase.backToHome
+            , path = Route.routes.home
+            , cls = "button_primary"
+            }
+        ]
 
 
 viewCreatedAt : Time.Posix -> Html msg
