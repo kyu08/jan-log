@@ -19,12 +19,13 @@ import EditLog.Phrase as Phrase
 import EditLog.Players exposing (Players)
 import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
+import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
-import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, type_, value)
+import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
+import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Process
 import Route exposing (Route)
@@ -766,8 +767,12 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     in
     tr [ class "editLog_tr" ]
         (td
-            [ class "editLog_logNumberCell" ]
-            [ viewInputPointButton roundIndex round, text <| String.fromInt (roundIndex + 1) ]
+            [ class "editLog_calculatedCell" ]
+            [ div [ class "editLog_logNumberCellContainer" ]
+                [ div [] [ viewInputPointButton roundIndex round ]
+                , div [] [ text <| String.fromInt (roundIndex + 1) ]
+                ]
+            ]
             :: viewShowPointCell_
         )
 
@@ -778,7 +783,7 @@ viewInputChipsRow : String -> Chips -> Html Msg
 viewInputChipsRow title chips =
     tr [ class "editLog_tr" ]
         (td [ class "editLog_title" ]
-            [ text title ]
+            (ExHtml.stringToHtmlIncludingBr title)
             :: List.indexedMap
                 (\index chip -> viewInputChipsCell index chip)
                 (Array.toList chips)
@@ -790,7 +795,7 @@ viewInputChipsRow title chips =
 viewCalculatedRow : String -> Array Int -> Html msg
 viewCalculatedRow title calculatedValues =
     tr [ class "editLog_tr" ]
-        (td [ class "editLog_title" ] [ text title ]
+        (td [ class "editLog_title" ] (ExHtml.stringToHtmlIncludingBr title)
             :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
         )
 
@@ -868,12 +873,16 @@ viewCalculatedCell calculatedValue =
 
 viewInputPointButton : Int -> Round -> Html Msg
 viewInputPointButton index round =
-    UI.viewButton
-        { phrase = Phrase.phrase.inputPoint
-        , onClickMsg = ClickedEditRoundButton index round
-        , size = UI.Mini
-        , isDisabled = False
-        }
+    img [ class "editLog_iconEdit", src "%PUBLIC_URL%/icon-edit.svg" ] []
+
+
+
+-- UI.viewButton
+--     { phrase = Phrase.phrase.inputPoint
+--     , onClickMsg = ClickedEditRoundButton index round
+--     , size = UI.Mini
+--     , isDisabled = False
+--     }
 
 
 {-| FIXME: 数字以外を入力すると入力欄が blank になる

@@ -2,11 +2,11 @@ module EditLog.Phrase exposing (phrase)
 
 
 phrase =
-    { pointBalance = "ポイント収支"
-    , pointBalanceIncludeChip = "チップ込収支"
-    , chip = "チップ(枚数)"
+    { pointBalance = "ポイント\n収支"
+    , pointBalanceIncludeChip = "チップ\n込収支"
+    , chip = "チップ\n(枚数)"
     , balance = "収支"
-    , totalBalance = "ゲーム代込み収支"
+    , totalBalance = "ゲーム代\n込み収支"
     , editLogConfigRate = "レート"
     , editLogConfigChipRate = "レート(チップ)"
     , editLogConfigGameFee = "ゲーム代(一人当たり)"
