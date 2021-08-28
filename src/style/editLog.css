@@ -46,6 +46,9 @@
 
 .editLog_calculatedCell {
   width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .editLog_inputCellInput {

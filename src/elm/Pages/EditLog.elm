@@ -829,8 +829,7 @@ viewInputPointCell roundIndex playerIndex point =
         ]
 
 
-{-| 点数表示マス
-ここでウマオカとかを計算して表示する
+{-| 表示用マス
 -}
 viewShowPointCell : String -> Html Msg
 viewShowPointCell point =
