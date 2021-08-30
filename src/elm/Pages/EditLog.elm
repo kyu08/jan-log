@@ -9,8 +9,11 @@ port module Pages.EditLog exposing
     , view
     )
 
+-- iphone でのデバッグ用↓
+
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
+import Debug.ForIphoneDebug as Iphone
 import Dtos.LogDto exposing (LogDto4)
 import EditLog.Chips exposing (Chips)
 import EditLog.Log as Log exposing (Log)
@@ -19,12 +22,13 @@ import EditLog.Phrase as Phrase
 import EditLog.Players exposing (Players)
 import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
+import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
-import Html exposing (Html, div, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, type_, value)
+import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
+import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Process
 import Route exposing (Route)
@@ -224,6 +228,8 @@ update msg ({ logId, pageStatus, currentTime } as m) =
         Loading ->
             case msg of
                 SetTime now ->
+                    -- iphone でのデバッグ用
+                    -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
                     ( { m | currentTime = Just now }, Cmd.none )
 
                 FetchedLog dto4 ->
@@ -546,7 +552,8 @@ view { pageStatus } =
                                     viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
             in
             div [ class "editLog_container" ]
-                [ viewHeader log.createdAt
+                [ viewHeader
+                , viewCreatedAt log.createdAt
                 , viewEditLog log
                 , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
                 , viewToggleLogConfigAreaBottun
@@ -560,19 +567,18 @@ view { pageStatus } =
                 ]
 
 
-viewHeader : Time.Posix -> Html Msg
-viewHeader createdAt =
+viewHeader : Html Msg
+viewHeader =
     div [ class "editLog_header" ]
         [ viewBackToHome
-        , viewCreatedAt createdAt
         ]
 
 
 viewBackToHome : Html Msg
 viewBackToHome =
-    div [ class "button_container_mini" ]
+    div [ class "editLog_logo" ]
         [ UI.viewLink
-            { phrase = Phrase.phrase.backToHome
+            { phrase = Phrase.phrase.logo
             , path = Route.routes.home
             , cls = "button_primary"
             }
@@ -766,8 +772,12 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     in
     tr [ class "editLog_tr" ]
         (td
-            [ class "editLog_logNumberCell" ]
-            [ viewInputPointButton roundIndex round, text <| String.fromInt (roundIndex + 1) ]
+            [ class "editLog_calculatedCell" ]
+            [ div [ class "editLog_logNumberCellContainer" ]
+                [ div [] [ viewInputPointButton roundIndex round ]
+                , div [] [ text <| String.fromInt (roundIndex + 1) ]
+                ]
+            ]
             :: viewShowPointCell_
         )
 
@@ -778,7 +788,7 @@ viewInputChipsRow : String -> Chips -> Html Msg
 viewInputChipsRow title chips =
     tr [ class "editLog_tr" ]
         (td [ class "editLog_title" ]
-            [ text title ]
+            (ExHtml.stringToHtmlIncludingBr title)
             :: List.indexedMap
                 (\index chip -> viewInputChipsCell index chip)
                 (Array.toList chips)
@@ -790,7 +800,7 @@ viewInputChipsRow title chips =
 viewCalculatedRow : String -> Array Int -> Html msg
 viewCalculatedRow title calculatedValues =
     tr [ class "editLog_tr" ]
-        (td [ class "editLog_title" ] [ text title ]
+        (td [ class "editLog_title" ] (ExHtml.stringToHtmlIncludingBr title)
             :: (List.map viewCalculatedCell <| Array.toList calculatedValues)
         )
 
@@ -802,7 +812,10 @@ viewInputPlayerCell playerIndex playerName =
     th
         [ class "editLog_th" ]
         [ input
-            [ class "editLog_inputCellInput", value playerName, onInput <| ChangedPlayerName playerIndex ]
+            [ class "editLog_inputCellInput"
+            , value playerName
+            , onInput <| ChangedPlayerName playerIndex
+            ]
             []
         ]
 
@@ -817,6 +830,7 @@ viewInputPointCell roundIndex playerIndex point =
             [ class "editLog_inputCellInput"
             , value point
             , onInput <| ChangedPoint roundIndex playerIndex
+            , type_ "number"
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
@@ -825,8 +839,7 @@ viewInputPointCell roundIndex playerIndex point =
         ]
 
 
-{-| 点数表示マス
-ここでウマオカとかを計算して表示する
+{-| 表示用マス
 -}
 viewShowPointCell : String -> Html Msg
 viewShowPointCell point =
@@ -845,6 +858,7 @@ viewInputChipsCell playerIndex chip =
             [ class "editLog_inputCellInput"
             , value chip
             , onInput <| ChangedChip playerIndex
+            , type_ "number"
 
             -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
             -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
@@ -864,12 +878,7 @@ viewCalculatedCell calculatedValue =
 
 viewInputPointButton : Int -> Round -> Html Msg
 viewInputPointButton index round =
-    UI.viewButton
-        { phrase = Phrase.phrase.inputPoint
-        , onClickMsg = ClickedEditRoundButton index round
-        , size = UI.Mini
-        , isDisabled = False
-        }
+    img [ class "editLog_iconEdit", src "%PUBLIC_URL%/icon-edit.svg", onClick <| ClickedEditRoundButton index round ] []
 
 
 {-| FIXME: 数字以外を入力すると入力欄が blank になる

@@ -27,4 +27,9 @@ type alias Player =
 -}
 initPlayers : Players
 initPlayers =
-    Array.fromList [ "player1", "player2", "player3", "player4" ]
+    Array.fromList
+        [ "A"
+        , "B"
+        , "C"
+        , "D"
+        ]
