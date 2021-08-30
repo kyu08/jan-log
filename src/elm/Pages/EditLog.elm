@@ -229,9 +229,9 @@ update msg ({ logId, pageStatus, currentTime } as m) =
             case msg of
                 SetTime now ->
                     -- iphone でのデバッグ用
-                    ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
+                    -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
+                    ( { m | currentTime = Just now }, Cmd.none )
 
-                -- ( { m | currentTime = Just now }, Cmd.none )
                 FetchedLog dto4 ->
                     ( { m | pageStatus = Loaded { log = dto4ToLog dto4, uiStatus = initUIStatus } }, Cmd.none )
 
