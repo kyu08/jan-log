@@ -10,10 +10,10 @@ port module Pages.EditLog exposing
     )
 
 -- iphone でのデバッグ用↓
--- import Debug.ForIphoneDebug as Iphone
 
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
+import Debug.ForIphoneDebug as Iphone
 import Dtos.LogDto exposing (LogDto4)
 import EditLog.Chips exposing (Chips)
 import EditLog.Log as Log exposing (Log)
@@ -229,9 +229,9 @@ update msg ({ logId, pageStatus, currentTime } as m) =
             case msg of
                 SetTime now ->
                     -- iphone でのデバッグ用
-                    -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
-                    ( { m | currentTime = Just now }, Cmd.none )
+                    ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
 
+                -- ( { m | currentTime = Just now }, Cmd.none )
                 FetchedLog dto4 ->
                     ( { m | pageStatus = Loaded { log = dto4ToLog dto4, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -552,7 +552,8 @@ view { pageStatus } =
                                     viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
             in
             div [ class "editLog_container" ]
-                [ viewHeader log.createdAt
+                [ viewHeader
+                , viewCreatedAt log.createdAt
                 , viewEditLog log
                 , UI.viewButton { phrase = Phrase.phrase.addRow, onClickMsg = ClickedAddRowButton, size = UI.Default, isDisabled = False }
                 , viewToggleLogConfigAreaBottun
@@ -566,19 +567,18 @@ view { pageStatus } =
                 ]
 
 
-viewHeader : Time.Posix -> Html Msg
-viewHeader createdAt =
+viewHeader : Html Msg
+viewHeader =
     div [ class "editLog_header" ]
         [ viewBackToHome
-        , viewCreatedAt createdAt
         ]
 
 
 viewBackToHome : Html Msg
 viewBackToHome =
-    div [ class "button_container_mini" ]
+    div [ class "editLog_logo" ]
         [ UI.viewLink
-            { phrase = Phrase.phrase.backToHome
+            { phrase = Phrase.phrase.logo
             , path = Route.routes.home
             , cls = "button_primary"
             }

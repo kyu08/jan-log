@@ -6,13 +6,20 @@
 }
 
 .editLog_header {
-  display: flex;
-  align-items: center;
   width: 100%;
+  margin: 0 auto;
+  background-color: #6c733d;
+  border-radius: 6px;
+}
+
+.editLog_logo {
+  margin: 0 auto;
+  color: white;
+  font-size: 20px;
 }
 
 .editLog_createdAt {
-  margin: 0 auto 0;
+  margin: 10px auto 0;
 }
 
 .editLog_table {
@@ -34,6 +41,7 @@
 
 .editLog_title {
   width: 100%;
+  font-weight: 800;
   font-size: 10px;
 }
 
