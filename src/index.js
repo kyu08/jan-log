@@ -24,7 +24,6 @@ app.ports.fetchLog.subscribe((logId) => {
     .doc(logId)
     .get()
     .then((doc) => {
-      const res = doc.exists;
       if (doc.exists) {
         app.ports.fetchedLog.send({ ...doc.data(), logId });
       } else {

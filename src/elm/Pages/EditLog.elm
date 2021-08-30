@@ -9,6 +9,9 @@ port module Pages.EditLog exposing
     , view
     )
 
+-- iphone でのデバッグ用↓
+-- import Debug.ForIphoneDebug as Iphone
+
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
 import Dtos.LogDto exposing (LogDto4)
@@ -225,6 +228,8 @@ update msg ({ logId, pageStatus, currentTime } as m) =
         Loading ->
             case msg of
                 SetTime now ->
+                    -- iphone でのデバッグ用
+                    -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
                     ( { m | currentTime = Just now }, Cmd.none )
 
                 FetchedLog dto4 ->
