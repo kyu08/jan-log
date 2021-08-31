@@ -15,7 +15,7 @@ import Array exposing (Array)
 import Common.LogId exposing (LogId)
 import Debug.ForIphoneDebug as Iphone
 import Dtos.LogDto exposing (LogDto4)
-import EditLog.Chips exposing (Chips)
+import EditLog.Chips as Chips exposing (Chips)
 import EditLog.Log as Log exposing (Log)
 import EditLog.LogConfig exposing (LogConfig, RankPoint)
 import EditLog.Phrase as Phrase
@@ -313,7 +313,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ChangedChip playerIndex chip ->
                     let
                         nextLog =
-                            { log | chips = Array.set playerIndex chip log.chips }
+                            { log | chips = StaticArray.set (Index.fromModBy Length.four playerIndex) chip log.chips }
 
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
@@ -506,27 +506,27 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
 dto4ToLog : LogDto4 -> Maybe Log
 dto4ToLog logDto4 =
-    Players.fromDto logDto4.players
-        |> Maybe.andThen
-            (\players_ ->
-                Just
-                    { createdAt = Time.millisToPosix logDto4.createdAt
-                    , players = players_
-                    , logConfig =
-                        { rate = String.fromInt logDto4.rate
-                        , chipRate = String.fromInt logDto4.chipRate
-                        , gameFee = String.fromInt logDto4.gameFee
-                        , rankPoint =
-                            Tuple.pair
-                                (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                                (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-                        , havePoint = String.fromInt logDto4.havePoint
-                        , returnPoint = String.fromInt logDto4.returnPoint
-                        }
-                    , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
-                    , chips = ExArray.toStringArray logDto4.chips
-                    }
-            )
+    Maybe.map2
+        (\players_ chips_ ->
+            { createdAt = Time.millisToPosix logDto4.createdAt
+            , players = players_
+            , logConfig =
+                { rate = String.fromInt logDto4.rate
+                , chipRate = String.fromInt logDto4.chipRate
+                , gameFee = String.fromInt logDto4.gameFee
+                , rankPoint =
+                    Tuple.pair
+                        (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
+                        (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
+                , havePoint = String.fromInt logDto4.havePoint
+                , returnPoint = String.fromInt logDto4.returnPoint
+                }
+            , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+            , chips = chips_
+            }
+        )
+        (Players.fromDto logDto4.players)
+        (Chips.fromDto logDto4.chips)
 
 
 toLogDto4 : LogId -> Log -> LogDto4
@@ -541,7 +541,10 @@ toLogDto4 logId log =
     , havePoint = ExString.toIntValue log.logConfig.havePoint
     , returnPoint = ExString.toIntValue log.logConfig.returnPoint
     , rounds = Array.map Rounds.toRoundObj4 log.rounds
-    , chips = ExArray.toIntArray log.chips
+    , chips =
+        log.chips
+            |> StaticArray.toArray
+            |> ExArray.toIntArray
     }
 
 
@@ -813,7 +816,7 @@ viewInputChipsRow title chips =
             (ExHtml.stringToHtmlIncludingBr title)
             :: List.indexedMap
                 (\index chip -> viewInputChipsCell index chip)
-                (Array.toList chips)
+                (StaticArray.toList chips)
         )
 
 

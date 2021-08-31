@@ -30,6 +30,7 @@ import Array exposing (Array)
 import Dtos.LogDto exposing (RoundObj4Dto)
 import EditLog.Chips exposing (Chips)
 import Expands.Array as ExArray
+import StaticArray exposing (StaticArray)
 
 
 
@@ -257,7 +258,13 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
     Array.foldl
         (calculateFrom2Arrays (\chip reducedValue -> chip * chipRate + reducedValue))
         totalPoints
-        (Array.initialize 1 (\_ -> ExArray.toIntArray chips))
+        (Array.initialize 1
+            (\_ ->
+                chips
+                    |> StaticArray.toArray
+                    |> ExArray.toIntArray
+            )
+        )
 
 
 {-| ゲーム代を含まない収支を計算する
