@@ -91,7 +91,7 @@ roundInitializer =
     \_ -> initRound4
 
 
-{-| TODO: Rounds.elm をつくってファクトリーメソッドをつくる?
+{-| TODO: validation とかどうしよう
 -}
 initRounds : Rounds
 initRounds =
@@ -282,9 +282,9 @@ type alias CalculateRoundFromRawPointConfig =
     }
 
 
-{-| 入力されたポイントをもとに順位点を加算したポイントを返す関数
+{-| 入力された round, config をもとに順位点を加算した round を返す関数
 トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-TODO: トビは現状の実装だと場外で(チップなどで)やりとりするしかないので↑の計算方法をやめる。
+トビは現状の実装だと場外で(チップなどで)やりとりするしかないので微妙ではある
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =

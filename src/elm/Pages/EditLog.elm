@@ -19,7 +19,7 @@ import EditLog.Chips exposing (Chips)
 import EditLog.Log as Log exposing (Log)
 import EditLog.LogConfig exposing (LogConfig, RankPoint)
 import EditLog.Phrase as Phrase
-import EditLog.Players exposing (Players)
+import EditLog.Players as Players exposing (Players)
 import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
 import Expands.Html as ExHtml
@@ -33,6 +33,9 @@ import Html.Events exposing (onClick, onInput)
 import Process
 import Route exposing (Route)
 import Session exposing (Session)
+import StaticArray exposing (StaticArray)
+import StaticArray.Index as Index
+import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
 import UI
@@ -77,6 +80,10 @@ type alias UIStatus =
     , editRoundModalState : ModalStatus
     , seatingOrderInput : SeatingOrderInput
     }
+
+
+
+-- TODO: これをmodalStatus に入れるべき
 
 
 type alias SeatingOrderInput =
@@ -233,7 +240,12 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     ( { m | currentTime = Just now }, Cmd.none )
 
                 FetchedLog dto4 ->
-                    ( { m | pageStatus = Loaded { log = dto4ToLog dto4, uiStatus = initUIStatus } }, Cmd.none )
+                    case dto4ToLog dto4 of
+                        Just log ->
+                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
 
                 FetchedLogButNoLog () ->
                     case currentTime of
@@ -262,7 +274,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ChangedPlayerName index playerName ->
                     let
                         nextLog =
-                            { log | players = Array.set index playerName log.players }
+                            { log | players = StaticArray.set (Index.fromModBy Length.four index) playerName log.players }
 
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
@@ -353,7 +365,12 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     )
 
                 ListenedLog dto4 ->
-                    ( { m | pageStatus = Loaded { pageModel | log = dto4ToLog dto4 } }, Cmd.none )
+                    case dto4ToLog dto4 of
+                        Just log_ ->
+                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
 
                 ChangedRankPointFirst rankpointFirst ->
                     let
@@ -487,31 +504,36 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 -- Dto
 
 
-dto4ToLog : LogDto4 -> Log
+dto4ToLog : LogDto4 -> Maybe Log
 dto4ToLog logDto4 =
-    { createdAt = Time.millisToPosix logDto4.createdAt
-    , players = logDto4.players
-    , logConfig =
-        { rate = String.fromInt logDto4.rate
-        , chipRate = String.fromInt logDto4.chipRate
-        , gameFee = String.fromInt logDto4.gameFee
-        , rankPoint =
-            Tuple.pair
-                (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-        , havePoint = String.fromInt logDto4.havePoint
-        , returnPoint = String.fromInt logDto4.returnPoint
-        }
-    , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
-    , chips = ExArray.toStringArray logDto4.chips
-    }
+    Players.fromDto logDto4.players
+        |> Maybe.andThen
+            (\players_ ->
+                Just
+                    { createdAt = Time.millisToPosix logDto4.createdAt
+                    , players = players_
+                    , logConfig =
+                        { rate = String.fromInt logDto4.rate
+                        , chipRate = String.fromInt logDto4.chipRate
+                        , gameFee = String.fromInt logDto4.gameFee
+                        , rankPoint =
+                            Tuple.pair
+                                (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
+                                (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
+                        , havePoint = String.fromInt logDto4.havePoint
+                        , returnPoint = String.fromInt logDto4.returnPoint
+                        }
+                    , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+                    , chips = ExArray.toStringArray logDto4.chips
+                    }
+            )
 
 
 toLogDto4 : LogId -> Log -> LogDto4
 toLogDto4 logId log =
     { createdAt = Time.posixToMillis log.createdAt
     , logId = logId
-    , players = log.players
+    , players = StaticArray.toArray log.players
     , rate = ExString.toIntValue log.logConfig.rate
     , chipRate = ExString.toIntValue log.logConfig.chipRate
     , gameFee = ExString.toIntValue log.logConfig.gameFee
@@ -730,7 +752,7 @@ viewInputPlayersRow : Players -> Html Msg
 viewInputPlayersRow players =
     tr [ class "editLog_tr" ]
         (th [ class "editLog_th" ] [ text "" ]
-            :: List.indexedMap viewInputPlayerCell (Array.toList players)
+            :: List.indexedMap viewInputPlayerCell (StaticArray.toList players)
         )
 
 
@@ -892,7 +914,7 @@ viewPointInputModal players round roundIndex seatingOrderInput =
                 [ tr [ class "editLog_tr" ]
                     (List.map
                         viewShowPointCell
-                        (Array.toList players)
+                        (StaticArray.toList players)
                     )
                 , tr [ class "editLog_tr" ]
                     (List.indexedMap

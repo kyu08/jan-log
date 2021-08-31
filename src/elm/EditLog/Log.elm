@@ -13,7 +13,6 @@ import Time
 {-| 現状 EditLog.elm で更新も行っているが、EditLog が更新方法の詳細を知っている必要はないのでこのモジュールでやるべき。
 -}
 type alias Log =
-    -- createdAt を追加するぞ
     { createdAt : Time.Posix
     , players : Players
     , logConfig : LogConfig
