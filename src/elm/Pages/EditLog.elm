@@ -9,18 +9,9 @@ port module Pages.EditLog exposing
     , view
     )
 
--- iphone でのデバッグ用↓
-
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
-import Debug.ForIphoneDebug as Iphone
 import Dtos.LogDto exposing (LogDto4)
-import EditLog.Chips as Chips exposing (Chips)
-import EditLog.Log as Log exposing (Log)
-import EditLog.LogConfig exposing (LogConfig, RankPoint)
-import EditLog.Phrase as Phrase
-import EditLog.Players as Players exposing (Players)
-import EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
 import Expands.Array as ExArray
 import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
@@ -30,6 +21,13 @@ import Expands.Tuple as ExTuple
 import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Pages.EditLog.Chips as Chips exposing (Chips)
+import Pages.EditLog.Log as Log exposing (Log)
+import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
+import Pages.EditLog.Phrase as Phrase
+import Pages.EditLog.Players as Players exposing (Players)
+import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
+import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route exposing (Route)
 import Session exposing (Session)
@@ -79,18 +77,6 @@ type alias UIStatus =
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
     , seatingOrderInput : SeatingOrderInput
-    }
-
-
-
--- TODO: これをmodalStatus に入れるべき
-
-
-type alias SeatingOrderInput =
-    { ton : Maybe Int
-    , nan : Maybe Int
-    , sha : Maybe Int
-    , pei : Maybe Int
     }
 
 
@@ -187,16 +173,6 @@ isInvalidSeatingOrderInput { ton, nan, sha, pei } =
         |> Maybe.withDefault True
 
 
-toSeatingOrder : SeatingOrderInput -> Maybe SeatingOrder
-toSeatingOrder { ton, nan, sha, pei } =
-    Maybe.map4
-        (\ton_ nan_ sha_ pei_ -> { ton = ton_, nan = nan_, sha = sha_, pei = pei_ })
-        ton
-        nan
-        sha
-        pei
-
-
 
 -- msg, update
 
@@ -283,32 +259,18 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
-                        updateRound point_ round_ =
-                            Array.set roundIndex
-                                { round_
-                                    | points =
-                                        Array.set
-                                            playerIndex
-                                            point_
-                                            round_.points
+                        updatedRounds =
+                            Rounds.updatePoints
+                                { point = point
+                                , rounds = rounds
+                                , roundIndex = roundIndex
+                                , playerIndex = playerIndex
                                 }
-                                log.rounds
 
-                        maybeUpdatedRounds =
-                            Maybe.map
-                                (updateRound point)
-                                (Array.get roundIndex log.rounds)
+                        nextLog =
+                            { log | rounds = updatedRounds }
                     in
-                    case maybeUpdatedRounds of
-                        Just updatedRound ->
-                            let
-                                nextLog =
-                                    { log | rounds = updatedRound }
-                            in
-                            ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog <| toLogDto4 logId nextLog )
-
-                        Nothing ->
-                            ( m, Cmd.none )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog <| toLogDto4 logId nextLog )
 
                 ChangedChip playerIndex chip ->
                     let
@@ -415,16 +377,9 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ClickedEditRoundButton roundIndex round_ ->
                     let
                         nextSeatingOrderInput =
-                            case round_.seatingOrder of
-                                Just seatingOrder_ ->
-                                    { ton = Just seatingOrder_.ton
-                                    , nan = Just seatingOrder_.nan
-                                    , sha = Just seatingOrder_.sha
-                                    , pei = Just seatingOrder_.pei
-                                    }
-
-                                Nothing ->
-                                    pageModel.uiStatus.seatingOrderInput
+                            Maybe.withDefault
+                                pageModel.uiStatus.seatingOrderInput
+                                (Rounds.getSeatingOrderInput round_)
                     in
                     ( { m
                         | pageStatus =
@@ -475,7 +430,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             nextRounds =
                                                 Array.set
                                                     roundIndex
-                                                    { round_ | seatingOrder = toSeatingOrder pageModel_.uiStatus.seatingOrderInput }
+                                                    (Rounds.updateSeatingOrder pageModel_.uiStatus.seatingOrderInput round_)
                                                     rounds
                                         in
                                         { logUpdated | rounds = nextRounds }
@@ -521,7 +476,7 @@ dto4ToLog logDto4 =
                 , havePoint = String.fromInt logDto4.havePoint
                 , returnPoint = String.fromInt logDto4.returnPoint
                 }
-            , rounds = Array.map Rounds.toStringRound4 logDto4.rounds
+            , rounds = Array.map Rounds.roundFromDto logDto4.rounds
             , chips = chips_
             }
         )
@@ -569,12 +524,14 @@ view { pageStatus } =
                             UI.viewBlank
 
                         Shown roundIndex ->
-                            case Array.get roundIndex log.rounds of
-                                Nothing ->
-                                    UI.viewBlank
-
-                                Just round ->
-                                    viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
+                            let
+                                round =
+                                    Array.get
+                                        roundIndex
+                                        log.rounds
+                                        |> Maybe.withDefault Rounds.initRound4
+                            in
+                            viewPointInputModal log.players round roundIndex uiStatus.seatingOrderInput
             in
             div [ class "editLog_container" ]
                 [ viewHeader
@@ -698,22 +655,11 @@ viewEditLog : Log -> Html Msg
 viewEditLog { players, chips, rounds, logConfig } =
     let
         totalPoint =
-            rounds
-                |> Array.map
-                    (\round ->
-                        if not <| Rounds.isDefaultPoints round.points then
-                            Rounds.calculateRoundFromRawPoint
-                                { rankPoint = ExTuple.toIntTuple logConfig.rankPoint
-                                , round = Rounds.toIntRound round
-                                , havePoint = ExString.toIntValue logConfig.havePoint
-                                , returnPoint = ExString.toIntValue logConfig.returnPoint
-                                }
-
-                        else
-                            Rounds.toIntRound round
-                    )
-                |> Array.map .points
-                |> Rounds.calculateTotalPoint
+            Rounds.totalPoint
+                rounds
+                logConfig.rankPoint
+                logConfig.havePoint
+                logConfig.returnPoint
 
         totalPointIncludeChip =
             Rounds.calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
@@ -768,7 +714,7 @@ type alias ViewInputRoundRowConfig =
     }
 
 
-{-| 点棒入力行
+{-| 点数表示行
 -}
 viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
@@ -781,14 +727,13 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
                 , returnPoint = ExString.toIntValue returnPoint
                 }
                 |> Rounds.toStringRound
-                >> .points
+                |> Rounds.getPoints
 
         viewShowPointCell_ =
-            if Rounds.isDefaultPoints round.points then
-                Array.map
+            if Rounds.isDefaultPoints round then
+                List.map
                     viewShowPointCell
-                    round.points
-                    |> Array.toList
+                    (round |> Rounds.initPoint |> Array.toList)
 
             else
                 points
@@ -922,18 +867,18 @@ viewPointInputModal players round roundIndex seatingOrderInput =
                 , tr [ class "editLog_tr" ]
                     (List.indexedMap
                         (\index_ point -> viewInputPointCell roundIndex index_ point)
-                        (Array.toList round.points)
+                        ((Rounds.unwrapRound >> .points >> Array.toList) round)
                     )
                 ]
             , viewInputSeatingOrder roundIndex round seatingOrderInput
                 |> UI.viewIf
-                    (Rounds.needsSeatingOrderInput round.points)
+                    (Rounds.needsSeatingOrderInput round)
             , UI.viewButton
                 { phrase = "一覧に戻る"
                 , size = UI.Default
                 , onClickMsg = ClickedCloseInputPointModalButton
                 , isDisabled =
-                    Rounds.needsSeatingOrderInput round.points
+                    Rounds.needsSeatingOrderInput round
                         && isInvalidSeatingOrderInput seatingOrderInput
                 }
             ]
@@ -944,26 +889,12 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
     let
         viewRadioButton : Kaze -> Int -> Point -> Html Msg
         viewRadioButton kaze playerIndex _ =
-            let
-                checked_ =
-                    case round.seatingOrder of
-                        Just seatingOrder ->
-                            Rounds.kazeToSelecter kaze seatingOrder == playerIndex
-
-                        Nothing ->
-                            case Rounds.kazeToSelecter kaze seatingOrderInput of
-                                Just playerIndex_ ->
-                                    playerIndex == playerIndex_
-
-                                Nothing ->
-                                    False
-            in
             div [ class "editLog_chichaRadio" ]
                 [ input
                     [ type_ "radio"
                     , id (String.fromInt playerIndex)
                     , name (String.fromInt playerIndex ++ Rounds.kazeToString kaze)
-                    , checked checked_
+                    , checked <| Rounds.isRadioButtonChecked round kaze playerIndex seatingOrderInput
                     , onClick <| ClickedSeatingOrderRadio playerIndex roundIndex round kaze
                     ]
                     []
@@ -983,7 +914,7 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
                         , div [ class "editLog_chichaRadioContainer" ]
                             (List.indexedMap
                                 (viewRadioButton kaze_)
-                                (Array.toList round.points)
+                                ((Rounds.unwrapRound >> .points >> Array.toList) round)
                             )
                         ]
                 )

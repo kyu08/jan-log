@@ -1,12 +1,12 @@
-module EditLog.Log exposing
+module Pages.EditLog.Log exposing
     ( Log
     , initLog
     )
 
-import EditLog.Chips as Chips exposing (Chips)
-import EditLog.LogConfig as LogConfig exposing (LogConfig)
-import EditLog.Players as Players exposing (Players)
-import EditLog.Rounds as Rounds exposing (Rounds)
+import Pages.EditLog.Chips as Chips exposing (Chips)
+import Pages.EditLog.LogConfig as LogConfig exposing (LogConfig)
+import Pages.EditLog.Players as Players exposing (Players)
+import Pages.EditLog.Rounds as Rounds exposing (Rounds)
 import Time
 
 

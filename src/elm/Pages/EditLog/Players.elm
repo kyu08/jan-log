@@ -1,4 +1,4 @@
-module EditLog.Players exposing
+module Pages.EditLog.Players exposing
     ( Player
     , Players
     , fromDto

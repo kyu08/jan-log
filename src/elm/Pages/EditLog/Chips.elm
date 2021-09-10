@@ -1,4 +1,4 @@
-module EditLog.Chips exposing
+module Pages.EditLog.Chips exposing
     ( Chips
     , fromDto
     , initChips
