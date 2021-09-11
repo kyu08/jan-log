@@ -36,11 +36,11 @@ module Pages.EditLog.Rounds exposing
     )
 
 import Array exposing (Array)
-import Dtos.LogDto exposing (RoundObj4Dto)
 import Expands.Array as ExArray
 import Expands.String as ExString
 import Expands.Tuple as ExTuple
 import Pages.EditLog.Chips exposing (Chips)
+import Pages.EditLog.Dtos.LogDto exposing (RoundObj4Dto)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import StaticArray exposing (StaticArray)
 import StaticArray.Index as Index exposing (Four)
@@ -139,6 +139,18 @@ initRounds =
     Array.initialize 4 roundInitializer
 
 
+isDoneInput : Round -> Bool
+isDoneInput round =
+    case round of
+        -- 入力済みのポイントが4つ以上ある -> 入力済みとみなす
+        Round4 round4 ->
+            round4.points
+                |> StaticArray.toList
+                |> List.filter ((/=) "")
+                |> List.length
+                |> (<=) 4
+
+
 toStringRound : IntRound -> Round
 toStringRound intRound =
     case intRound of
@@ -162,15 +174,8 @@ toIntRound round =
 toStringRound4 : RoundObj4Dto -> Round
 toStringRound4 { points, seatingOrder } =
     let
-        stringFromInt int =
-            if int == 0 then
-                ""
-
-            else
-                String.fromInt int
-
         points_ =
-            case List.map stringFromInt <| [ points.data0, points.data1, points.data2, points.data3 ] of
+            case List.map ExString.fromInt <| [ points.data0, points.data1, points.data2, points.data3 ] of
                 head :: tail ->
                     StaticArray.fromList Length.four head tail
 
@@ -205,7 +210,7 @@ roundFromDto : RoundObj4Dto -> Round
 roundFromDto { points, seatingOrder } =
     let
         points_ =
-            StaticArray.map String.fromInt <|
+            StaticArray.map ExString.fromInt <|
                 StaticArray.fromList
                     Length.four
                     points.data0
@@ -382,6 +387,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                         Just seatingOrder_ ->
                             StaticArray.fromList Length.four
                                 (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) returnedPoints)
+                                -- (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) (Debug.log "returnedPoints---------------------------" returnedPoints))
                                 [ StaticArray.get (Index.fromModBy Length.four seatingOrder_.sha) returnedPoints
                                 , StaticArray.get (Index.fromModBy Length.four seatingOrder_.nan) returnedPoints
                                 , StaticArray.get (Index.fromModBy Length.four seatingOrder_.ton) returnedPoints
@@ -455,15 +461,9 @@ needsSeatingOrderInput round =
     let
         points =
             (unwrapRound >> .points) round
-
-        isDoneInput points_ =
-            points_
-                |> Array.filter ((/=) "")
-                |> Array.length
-                |> (<=) 4
     in
     -- 入力が完了していない場合は起家の入力を求めない
-    if not <| isDoneInput points then
+    if not <| isDoneInput round then
         False
 
     else
@@ -527,7 +527,7 @@ type alias UpdatePointConfig =
 
 updatePoints : UpdatePointConfig -> Rounds
 updatePoints { point, rounds, roundIndex, playerIndex } =
-    case rounds |> Array.toList |> List.head of
+    case Array.get roundIndex rounds of
         Just (Round4 round4) ->
             Array.set
                 roundIndex

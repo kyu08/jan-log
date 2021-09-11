@@ -11,7 +11,6 @@ port module Pages.EditLog exposing
 
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
-import Dtos.LogDto exposing (LogDto4)
 import Expands.Array as ExArray
 import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
@@ -22,6 +21,7 @@ import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Pages.EditLog.Chips as Chips exposing (Chips)
+import Pages.EditLog.Dtos.LogDto exposing (LogDto4)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
@@ -720,14 +720,18 @@ viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
-            Rounds.calculateRoundFromRawPoint
-                { rankPoint = ExTuple.toIntTuple rankPoint
-                , round = Rounds.toIntRound round
-                , havePoint = ExString.toIntValue havePoint
-                , returnPoint = ExString.toIntValue returnPoint
-                }
-                |> Rounds.toStringRound
-                |> Rounds.getPoints
+            if not <| Rounds.isDefaultPoints (Debug.log "round-----" round) then
+                Rounds.calculateRoundFromRawPoint
+                    { rankPoint = ExTuple.toIntTuple rankPoint
+                    , round = Rounds.toIntRound round
+                    , havePoint = ExString.toIntValue havePoint
+                    , returnPoint = ExString.toIntValue returnPoint
+                    }
+                    |> Rounds.toStringRound
+                    |> Rounds.getPoints
+
+            else
+                Rounds.getPoints round
 
         viewShowPointCell_ =
             if Rounds.isDefaultPoints round then

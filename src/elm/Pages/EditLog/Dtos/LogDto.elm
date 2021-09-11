@@ -1,4 +1,4 @@
-module Dtos.LogDto exposing
+module Pages.EditLog.Dtos.LogDto exposing
     ( LogDto4
     , RoundObj4Dto
     )
