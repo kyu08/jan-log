@@ -720,7 +720,7 @@ viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
-            if not <| Rounds.isDefaultPoints (Debug.log "round-----" round) then
+            if not <| Rounds.isDefaultPoints round then
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
                     , round = Rounds.toIntRound round

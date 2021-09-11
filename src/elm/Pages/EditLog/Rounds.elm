@@ -377,17 +377,35 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
                 -- n万点返しした
                 returnedPoints =
-                    StaticArray.indexedMap
-                        (\index point -> ( Index.toInt index, point - returnPoint ))
-                        points
+                    points
+                        |> StaticArray.indexedMap
+                            (\index point -> ( Index.toInt index, point - returnPoint ))
+                        |> StaticArray.toList
+                        |> (\points_ ->
+                                case points_ of
+                                    head :: tail ->
+                                        StaticArray.fromList Length.four
+                                            head
+                                            (List.map
+                                                -- StaticArray.indexedMap だと index がうまくとれないので +2 している
+                                                (\( a, b ) -> ( a + 2, b ))
+                                                tail
+                                            )
 
+                                    [] ->
+                                        points
+                                            |> StaticArray.indexedMap
+                                                (\index point -> ( Index.toInt index, point - returnPoint ))
+                           )
+
+                -- (\index point -> ( index, point - returnPoint ))
+                -- (StaticArray.toArray points)
                 -- 座順データが存在すれば起家ソートを行う
                 chichaSortedPoints =
                     case seatingOrder of
                         Just seatingOrder_ ->
                             StaticArray.fromList Length.four
                                 (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) returnedPoints)
-                                -- (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) (Debug.log "returnedPoints---------------------------" returnedPoints))
                                 [ StaticArray.get (Index.fromModBy Length.four seatingOrder_.sha) returnedPoints
                                 , StaticArray.get (Index.fromModBy Length.four seatingOrder_.nan) returnedPoints
                                 , StaticArray.get (Index.fromModBy Length.four seatingOrder_.ton) returnedPoints
@@ -401,7 +419,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                     List.reverse <|
                         List.sortBy
                             Tuple.second
-                            (StaticArray.toList chichaSortedPoints)
+                            (StaticArray.toList (Debug.log "chichaSortedPoints------" chichaSortedPoints))
 
                 -- 順位点を加算
                 rankPointedPoints =
@@ -410,7 +428,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                             ( rank, ( index, point + rankPoint_ ) )
                         )
                         rankPointArray
-                        (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedPoints)
+                        (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) (Debug.log "sortedPoints=-============" sortedPoints))
 
                 -- 2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)
                 totalPointsWithout1st =
