@@ -510,18 +510,15 @@ totalPoint rounds rankPoint havePoint returnPoint =
     let
         calculatedRounds =
             rounds
+                |> Array.filter isDoneInput
                 |> Array.map
                     (\round ->
-                        if not <| isDefaultPoints round then
-                            calculateRoundFromRawPoint
-                                { rankPoint = ExTuple.toIntTuple rankPoint
-                                , round = toIntRound round
-                                , havePoint = ExString.toIntValue havePoint
-                                , returnPoint = ExString.toIntValue returnPoint
-                                }
-
-                        else
-                            toIntRound round
+                        calculateRoundFromRawPoint
+                            { rankPoint = ExTuple.toIntTuple rankPoint
+                            , round = toIntRound round
+                            , havePoint = ExString.toIntValue havePoint
+                            , returnPoint = ExString.toIntValue returnPoint
+                            }
                     )
     in
     calculatedRounds
