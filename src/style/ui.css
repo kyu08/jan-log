@@ -1,6 +1,6 @@
 /* 共通で使うクラス */
 .container {
-  margin: 10px;
+  margin: 10px auto;
   display: flex;
   flex-flow: column;
   padding: 8px;
@@ -48,6 +48,7 @@
   background-color: white;
   width: 90%;
   min-height: 400px;
+  max-width: 500px;
   box-shadow: 0 0 8px gray;
   border-radius: 5%;
   overflow: hidden;
