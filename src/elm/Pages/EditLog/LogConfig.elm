@@ -1,10 +1,10 @@
-module EditLog.LogConfig exposing
+module Pages.EditLog.LogConfig exposing
     ( LogConfig
     , RankPoint
     , initLogConfig
     )
 
-import EditLog.Rounds exposing (Point)
+import Pages.EditLog.Rounds exposing (Point)
 
 
 

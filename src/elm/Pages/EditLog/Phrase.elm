@@ -1,4 +1,4 @@
-module EditLog.Phrase exposing (phrase)
+module Pages.EditLog.Phrase exposing (phrase)
 
 
 phrase =

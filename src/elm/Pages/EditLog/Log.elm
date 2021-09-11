@@ -1,19 +1,18 @@
-module EditLog.Log exposing
+module Pages.EditLog.Log exposing
     ( Log
     , initLog
     )
 
-import EditLog.Chips as Chips exposing (Chips)
-import EditLog.LogConfig as LogConfig exposing (LogConfig)
-import EditLog.Players as Players exposing (Players)
-import EditLog.Rounds as Rounds exposing (Rounds)
+import Pages.EditLog.Chips as Chips exposing (Chips)
+import Pages.EditLog.LogConfig as LogConfig exposing (LogConfig)
+import Pages.EditLog.Players as Players exposing (Players)
+import Pages.EditLog.Rounds as Rounds exposing (Rounds)
 import Time
 
 
 {-| 現状 EditLog.elm で更新も行っているが、EditLog が更新方法の詳細を知っている必要はないのでこのモジュールでやるべき。
 -}
 type alias Log =
-    -- createdAt を追加するぞ
     { createdAt : Time.Posix
     , players : Players
     , logConfig : LogConfig

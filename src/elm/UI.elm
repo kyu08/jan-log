@@ -8,10 +8,10 @@ module UI exposing
     , viewModal
     )
 
-import EditLog.Phrase exposing (phrase)
 import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, classList, contenteditable, disabled, href)
 import Html.Events exposing (onClick)
+import Pages.EditLog.Phrase exposing (phrase)
 
 
 type Size
