@@ -734,7 +734,7 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
                 Rounds.getPoints round
 
         viewShowPointCell_ =
-            if Rounds.isDefaultPoints round then
+            if not <| Rounds.isDoneInput round then
                 List.map
                     viewShowPointCell
                     (round |> Rounds.initPoint |> Array.toList)

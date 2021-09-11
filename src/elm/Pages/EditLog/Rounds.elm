@@ -19,6 +19,7 @@ module Pages.EditLog.Rounds exposing
     , initRound4
     , initRounds
     , isDefaultPoints
+    , isDoneInput
     , isRadioButtonChecked
     , kazeToSelecter
     , kazeToString
@@ -398,8 +399,6 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                                                 (\index point -> ( Index.toInt index, point - returnPoint ))
                            )
 
-                -- (\index point -> ( index, point - returnPoint ))
-                -- (StaticArray.toArray points)
                 -- 座順データが存在すれば起家ソートを行う
                 chichaSortedPoints =
                     case seatingOrder of
@@ -419,7 +418,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                     List.reverse <|
                         List.sortBy
                             Tuple.second
-                            (StaticArray.toList (Debug.log "chichaSortedPoints------" chichaSortedPoints))
+                            (StaticArray.toList chichaSortedPoints)
 
                 -- 順位点を加算
                 rankPointedPoints =
@@ -428,7 +427,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                             ( rank, ( index, point + rankPoint_ ) )
                         )
                         rankPointArray
-                        (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) (Debug.log "sortedPoints=-============" sortedPoints))
+                        (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedPoints)
 
                 -- 2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)
                 totalPointsWithout1st =
