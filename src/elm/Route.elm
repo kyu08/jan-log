@@ -16,7 +16,7 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map EditLog (s routes.editLog </> string)
+        , Parser.map EditLog (s routes.editLog4 </> string)
         , Parser.map History (s routes.history)
         ]
 
@@ -29,7 +29,7 @@ fromUrl url =
 
 
 routes =
-    { editLog = "editLog"
+    { editLog4 = "editLog4"
     , history = "history"
     , home = "/"
     }

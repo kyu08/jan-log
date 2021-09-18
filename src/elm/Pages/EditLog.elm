@@ -1,7 +1,7 @@
 port module Pages.EditLog exposing
     ( Model
     , Msg
-    , initCmd
+    , initCmd4
     , initModel
     , subscriptions
     , toSession
@@ -43,16 +43,6 @@ import UI
 -- types
 
 
-{-| 当初は
-
-    type Model
-        = FourPlayersLog Info
-        | FivePlayersLog Info
-
-のように実装していたが、分岐が増えて大変なので players, rounds をあえて Array で持つことにした。
-詳しくはこちら <https://github.com/kyu08/jan-log/issues/15>
-
--}
 type alias Model =
     { session : Session
     , logId : LogId
@@ -82,7 +72,7 @@ type alias UIStatus =
 
 type ModalStatus
     = Hide
-      -- Shown {編集中のroundIndex} {同点者がいるかどうか}
+      -- Shown {編集中のroundIndex}
     | Shown Int
 
 
@@ -95,11 +85,11 @@ initModel logId session =
     }
 
 
-initCmd : LogId -> Cmd Msg
-initCmd logId =
+initCmd4 : LogId -> Cmd Msg
+initCmd4 logId =
     Cmd.batch
-        [ fetchLog logId
-        , listenLog logId
+        [ fetchLog4 logId
+        , listenLog4 logId
         , Task.perform SetTime initTimeTask
         ]
 
@@ -250,12 +240,12 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ChangedPlayerName index playerName ->
                     let
                         nextLog =
-                            { log | players = StaticArray.set (Index.fromModBy Length.four index) playerName log.players }
+                            { log | players = Players.updatePlayerName index playerName log.players }
 
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
@@ -270,7 +260,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextLog =
                             { log | rounds = updatedRounds }
                     in
-                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog <| toLogDto4 logId nextLog )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedChip playerIndex chip ->
                     let
@@ -281,7 +271,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
                     -- TODO: ↓これをまとめてやってくれる関数を定義する
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedRate inputValue ->
                     let
@@ -291,7 +281,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedChipRate inputValue ->
                     let
@@ -301,7 +291,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedGameFee inputValue ->
                     let
@@ -311,7 +301,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ClickedAddRowButton ->
                     ( { m | pageStatus = Loaded { pageModel | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } } }, Cmd.none )
@@ -342,7 +332,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedRankPointSecond rankpointSecond ->
                     let
@@ -352,7 +342,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedReturnPoint returnPoint ->
                     let
@@ -362,7 +352,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ChangedHavePoint havePoint ->
                     let
@@ -372,7 +362,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 ClickedEditRoundButton roundIndex round_ ->
                     let
@@ -449,7 +439,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { modelSeatingOrderInputUpdated | pageStatus = nextPageStatus }
                     in
-                    ( nextModel, updateLog <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
 
                 _ ->
                     ( m, Cmd.none )
@@ -488,7 +478,7 @@ toLogDto4 : LogId -> Log -> LogDto4
 toLogDto4 logId log =
     { createdAt = Time.posixToMillis log.createdAt
     , logId = logId
-    , players = StaticArray.toArray log.players
+    , players = Players.toArray log.players
     , rate = ExString.toIntValue log.logConfig.rate
     , chipRate = ExString.toIntValue log.logConfig.chipRate
     , gameFee = ExString.toIntValue log.logConfig.gameFee
@@ -701,7 +691,7 @@ viewInputPlayersRow : Players -> Html Msg
 viewInputPlayersRow players =
     tr [ class "editLog_tr" ]
         (th [ class "editLog_th" ] [ text "" ]
-            :: List.indexedMap viewInputPlayerCell (StaticArray.toList players)
+            :: List.indexedMap viewInputPlayerCell (players |> Players.toArray |> Array.toList)
         )
 
 
@@ -866,7 +856,7 @@ viewPointInputModal players round roundIndex seatingOrderInput =
                 [ tr [ class "editLog_tr" ]
                     (List.map
                         viewShowPointCell
-                        (StaticArray.toList players)
+                        (players |> Players.toArray |> Array.toList)
                     )
                 , tr [ class "editLog_tr" ]
                     (List.indexedMap
@@ -936,8 +926,8 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
 subscriptions : Sub Msg
 subscriptions =
     Sub.batch
-        [ fetchedLog FetchedLog
-        , listenedLog ListenedLog
+        [ fetchedLog4 FetchedLog
+        , listenedLog4 ListenedLog
         , fetchedLogButNoLog FetchedLogButNoLog
         ]
 
@@ -946,19 +936,19 @@ subscriptions =
 -- Ports
 
 
-port updateLog : LogDto4 -> Cmd msg
+port updateLog4 : LogDto4 -> Cmd msg
 
 
-port fetchLog : String -> Cmd msg
+port fetchLog4 : String -> Cmd msg
 
 
-port fetchedLog : (LogDto4 -> msg) -> Sub msg
+port fetchedLog4 : (LogDto4 -> msg) -> Sub msg
 
 
 port fetchedLogButNoLog : (() -> msg) -> Sub msg
 
 
-port listenLog : String -> Cmd msg
+port listenLog4 : String -> Cmd msg
 
 
-port listenedLog : (LogDto4 -> msg) -> Sub msg
+port listenedLog4 : (LogDto4 -> msg) -> Sub msg
