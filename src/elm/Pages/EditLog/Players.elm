@@ -9,7 +9,7 @@ module Pages.EditLog.Players exposing
 
 import Array exposing (Array)
 import StaticArray exposing (StaticArray, fromList)
-import StaticArray.Index as Index exposing (Four)
+import StaticArray.Index as Index
 import StaticArray.Length as Length
 
 
@@ -18,7 +18,8 @@ import StaticArray.Length as Length
 
 
 type Players
-    = Players4 (StaticArray Four Player)
+    = Players4 (StaticArray Index.Four Player)
+    | Players5 (StaticArray Index.Five Player)
 
 
 type alias Player =
@@ -56,9 +57,15 @@ toArray players =
         Players4 players_ ->
             StaticArray.toArray players_
 
+        Players5 players_ ->
+            StaticArray.toArray players_
+
 
 updatePlayerName : Int -> String -> Players -> Players
 updatePlayerName playerIndex playerName players =
     case players of
         Players4 players_ ->
             Players4 <| StaticArray.set (Index.fromModBy Length.four playerIndex) playerName players_
+
+        Players5 players_ ->
+            Players5 <| StaticArray.set (Index.fromModBy Length.five playerIndex) playerName players_
