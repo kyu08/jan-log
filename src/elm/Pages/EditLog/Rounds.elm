@@ -302,6 +302,16 @@ toRoundObj4 round =
             }
 
 
+getSeatingOrder : Round -> Maybe SeatingOrder
+getSeatingOrder round =
+    case round of
+        Round4 round4 ->
+            round4.seatingOrder
+
+        Round5 round5 ->
+            round5.seatingOrder
+
+
 roundFromDto : Round4Dto -> Round
 roundFromDto { points, seatingOrder } =
     let
@@ -643,6 +653,9 @@ totalPoint rounds rankPoint havePoint returnPoint =
                 case round of
                     IntRound4 round4 ->
                         StaticArray.toArray round4.points
+
+                    IntRound5 round5 ->
+                        StaticArray.toArray round5.points
             )
         |> calculateTotalPoint
 
@@ -676,34 +689,30 @@ updatePoints { point, rounds, roundIndex, playerIndex } =
             rounds
 
 
-type alias UpdateRoundsConfig =
-    { roundIndex : Int
-    , rounds : Rounds
-    , round : Round
-    }
-
-
 getSeatingOrderInput : Round -> Maybe SeatingOrderInput
 getSeatingOrderInput round =
-    case round of
-        Round4 round4 ->
-            Maybe.andThen
-                (\seatingOrder ->
-                    Just
-                        { ton = Just seatingOrder.ton
-                        , nan = Just seatingOrder.nan
-                        , sha = Just seatingOrder.sha
-                        , pei = Just seatingOrder.pei
-                        }
-                )
-                round4.seatingOrder
+    Maybe.andThen
+        (\seatingOrder ->
+            Just
+                { ton = Just seatingOrder.ton
+                , nan = Just seatingOrder.nan
+                , sha = Just seatingOrder.sha
+                , pei = Just seatingOrder.pei
+                }
+        )
+        (getSeatingOrder round)
 
 
+{-| TODO: update でやる
+-}
 updateSeatingOrder : SeatingOrderInput -> Round -> Round
 updateSeatingOrder seatingOrderInput round =
     case round of
         Round4 round4 ->
             Round4 { round4 | seatingOrder = toSeatingOrder seatingOrderInput }
+
+        Round5 round5 ->
+            Round5 { round5 | seatingOrder = toSeatingOrder seatingOrderInput }
 
 
 toSeatingOrder : SeatingOrderInput -> Maybe SeatingOrder
@@ -728,19 +737,20 @@ getPoints round =
         Round4 round4 ->
             StaticArray.toArray round4.points
 
+        Round5 round5 ->
+            StaticArray.toArray round5.points
+
 
 isRadioButtonChecked : Round -> Kaze -> Int -> SeatingOrderInput -> Bool
 isRadioButtonChecked round kaze playerIndex seatingOrderInput =
-    case round of
-        Round4 round4 ->
-            case round4.seatingOrder of
-                Just seatingOrder ->
-                    kazeToSelecter kaze seatingOrder == playerIndex
+    case getSeatingOrder round of
+        Just seatingOrder ->
+            kazeToSelecter kaze seatingOrder == playerIndex
+
+        Nothing ->
+            case kazeToSelecter kaze seatingOrderInput of
+                Just playerIndex_ ->
+                    playerIndex == playerIndex_
 
                 Nothing ->
-                    case kazeToSelecter kaze seatingOrderInput of
-                        Just playerIndex_ ->
-                            playerIndex == playerIndex_
-
-                        Nothing ->
-                            False
+                    False
