@@ -94,12 +94,13 @@ type alias SeatingOrder =
 
 type IntRound
     = IntRound4
-        { seatingOrder : Maybe SeatingOrder
-        , points : StaticArray Index.Four Int
+        { points : StaticArray Index.Four Int
+        , seatingOrder : Maybe SeatingOrder
+        , tobiSho : StaticArray Index.Four Int
         }
     | IntRound5
-        { seatingOrder : Maybe SeatingOrder
-        , points : StaticArray Index.Five Int
+        { points : StaticArray Index.Five Int
+        , seatingOrder : Maybe SeatingOrder
         }
 
 
@@ -117,6 +118,11 @@ isDefaultPoints round =
             round == initRound5
 
 
+initTobisho4 : StaticArray Index.Four Point
+initTobisho4 =
+    StaticArray.initialize Length.four (always "")
+
+
 initPoints4 : StaticArray Index.Four Point
 initPoints4 =
     StaticArray.initialize Length.four (always "")
@@ -130,8 +136,9 @@ initPoints5 =
 initRound4 : Round
 initRound4 =
     Round4
-        { points = initPoints4
+        { points = initTobisho4
         , seatingOrder = Nothing
+        , tobiSho = initTobisho4
         }
 
 
@@ -193,6 +200,7 @@ test__intRound4ForTesting1 =
                 , pei = 3
                 }
         , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
         }
 
 
@@ -209,6 +217,7 @@ test__intRound4ForTesting1Expected =
                 , pei = 3
                 }
         , points = StaticArray.fromList Length.four -40 [ -20, 10, 50 ]
+        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
         }
 
 
@@ -234,10 +243,11 @@ isDoneInput round =
 toStringRound : IntRound -> Round
 toStringRound intRound =
     case intRound of
-        IntRound4 { seatingOrder, points } ->
+        IntRound4 { seatingOrder, points, tobiSho } ->
             Round4
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map String.fromInt points
+                , tobiSho = StaticArray.map String.fromInt tobiSho
                 }
 
         IntRound5 { seatingOrder, points } ->
@@ -250,10 +260,11 @@ toStringRound intRound =
 toIntRound : Round -> IntRound
 toIntRound round =
     case round of
-        Round4 { seatingOrder, points } ->
+        Round4 { seatingOrder, points, tobiSho } ->
             IntRound4
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map (\point -> Maybe.withDefault 0 (String.toInt point)) points
+                , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobiSho
                 }
 
         Round5 { seatingOrder, points } ->
@@ -264,7 +275,7 @@ toIntRound round =
 
 
 toStringRound4 : Round4Dto -> Round
-toStringRound4 { points, seatingOrder } =
+toStringRound4 { points, seatingOrder, tobiSho } =
     let
         points_ =
             case List.map ExString.fromInt <| [ points.data0, points.data1, points.data2, points.data3 ] of
@@ -272,21 +283,33 @@ toStringRound4 { points, seatingOrder } =
                     StaticArray.fromList Length.four head tail
 
                 [] ->
-                    initPoints4
+                    initTobisho4
+
+        tobisho_ =
+            case List.map ExString.fromInt <| [ tobiSho.data0, tobiSho.data1, tobiSho.data2, tobiSho.data3 ] of
+                head :: tail ->
+                    StaticArray.fromList Length.four head tail
+
+                [] ->
+                    initTobisho4
     in
     Round4
         { seatingOrder = seatingOrder
         , points = points_
+        , tobiSho = tobisho_
         }
 
 
 toRoundObj4 : Round -> Round4Dto
 toRoundObj4 round =
     case round of
-        Round4 { points, seatingOrder } ->
+        Round4 { points, seatingOrder, tobiSho } ->
             let
                 pointsInt =
                     StaticArray.map ExString.toIntValue points
+
+                tobiShoInt =
+                    StaticArray.map ExString.toIntValue tobiSho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -294,6 +317,12 @@ toRoundObj4 round =
                 , data1 = StaticArray.get (Index.fromModBy Length.four 1) pointsInt
                 , data2 = StaticArray.get (Index.fromModBy Length.four 2) pointsInt
                 , data3 = StaticArray.get (Index.fromModBy Length.four 3) pointsInt
+                }
+            , tobiSho =
+                { data0 = StaticArray.get (Index.fromModBy Length.four 0) tobiShoInt
+                , data1 = StaticArray.get (Index.fromModBy Length.four 1) tobiShoInt
+                , data2 = StaticArray.get (Index.fromModBy Length.four 2) tobiShoInt
+                , data3 = StaticArray.get (Index.fromModBy Length.four 3) tobiShoInt
                 }
             }
 
@@ -309,6 +338,12 @@ toRoundObj4 round =
                 , data2 = StaticArray.get (Index.fromModBy Length.five 2) pointsInt
                 , data3 = StaticArray.get (Index.fromModBy Length.five 3) pointsInt
                 }
+            , tobiSho =
+                { data0 = 0
+                , data1 = 0
+                , data2 = 0
+                , data3 = 0
+                }
             }
 
 
@@ -323,7 +358,7 @@ getSeatingOrder round =
 
 
 roundFromDto : Round4Dto -> Round
-roundFromDto { points, seatingOrder } =
+roundFromDto { points, seatingOrder, tobiSho } =
     let
         points_ =
             StaticArray.map ExString.fromInt <|
@@ -331,10 +366,18 @@ roundFromDto { points, seatingOrder } =
                     Length.four
                     points.data0
                     [ points.data1, points.data2, points.data3 ]
+
+        tobiSho_ =
+            StaticArray.map ExString.fromInt <|
+                StaticArray.fromList
+                    Length.four
+                    tobiSho.data0
+                    [ tobiSho.data1, tobiSho.data2, tobiSho.data3 ]
     in
     Round4
         { points = points_
         , seatingOrder = seatingOrder
+        , tobiSho = tobiSho_
         }
 
 
@@ -505,12 +548,12 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                     points
     in
     case round of
-        IntRound4 { points, seatingOrder } ->
+        IntRound4 round_ ->
             let
                 rankPointedPoints__ =
-                    points
+                    round_.points
                         |> returnedPoints returnPoint
-                        |> chichaSortedPoints seatingOrder
+                        |> chichaSortedPoints round_.seatingOrder
                         |> sortedPoints
                         |> rankPointedPoints rankPointArray
 
@@ -519,11 +562,11 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                         |> totalPointsWithout1st
                         |> calculated1stPointPoints rankPointedPoints__
                         |> calculatedIntPoints
-                        |> calculatedIntStaticPoints points
+                        |> calculatedIntStaticPoints round_.points
             in
             IntRound4
-                { points = nextPoints
-                , seatingOrder = seatingOrder
+                { round_
+                    | points = nextPoints
                 }
 
         IntRound5 { points, seatingOrder } ->
@@ -797,6 +840,7 @@ isRadioButtonChecked round kaze playerIndex seatingOrderInput =
 test__intRound4 :
     { seatingOrder : Maybe SeatingOrder
     , points : StaticArray Index.Four Int
+    , tobiSho : StaticArray Index.Four Int
     }
     -> IntRound
 test__intRound4 =
