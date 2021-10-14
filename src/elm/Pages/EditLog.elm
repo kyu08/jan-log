@@ -26,12 +26,12 @@ import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
 import Pages.EditLog.Players as Players exposing (Players)
-import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
+import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
-import Route exposing (Route)
+import Route
 import Session exposing (Session)
-import StaticArray exposing (StaticArray)
+import StaticArray
 import StaticArray.Index as Index
 import StaticArray.Length as Length
 import Task exposing (Task)

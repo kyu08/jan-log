@@ -72,6 +72,7 @@ type Round
     = Round4
         { points : StaticArray Index.Four Point
         , seatingOrder : Maybe SeatingOrder
+        , tobiSho : StaticArray Index.Four Point
         }
     | Round5
         { points : StaticArray Index.Five Point
