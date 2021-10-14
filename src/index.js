@@ -19,27 +19,27 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-app.ports.fetchLog.subscribe((logId) => {
-  db.collection("logs")
+app.ports.fetchLog4.subscribe((logId) => {
+  db.collection("logs4players")
     .doc(logId)
     .get()
     .then((doc) => {
       if (doc.exists) {
-        app.ports.fetchedLog.send({ ...doc.data(), logId });
+        app.ports.fetchedLog4.send({ ...doc.data(), logId });
       } else {
         app.ports.fetchedLogButNoLog.send(null);
       }
     });
 });
 
-app.ports.updateLog.subscribe((dto) => {
-  db.collection("logs").doc(dto.logId).set(dto);
+app.ports.updateLog4.subscribe((dto) => {
+  db.collection("logs4players").doc(dto.logId).set(dto);
 });
 
-app.ports.listenLog.subscribe((logId) => {
-  db.doc(`logs/${logId}`).onSnapshot((doc) => {
+app.ports.listenLog4.subscribe((logId) => {
+  db.doc(`logs4players/${logId}`).onSnapshot((doc) => {
     if (doc.exists) {
-      app.ports.fetchedLog.send({ ...doc.data(), logId });
+      app.ports.fetchedLog4.send({ ...doc.data(), logId });
     }
   });
 });

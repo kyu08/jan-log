@@ -102,7 +102,7 @@ maybeRouteToModel url model =
 
         Just (Route.EditLog logId) ->
             ( EditLog (EditLog.initModel logId session)
-            , Cmd.map GotEditLogMsg <| EditLog.initCmd logId
+            , Cmd.map GotEditLogMsg <| EditLog.initCmd4 logId
             )
 
         Just Route.Home ->

@@ -1,17 +1,42 @@
 module Pages.EditLog.Dtos.LogDto exposing
     ( LogDto4
-    , RoundObj4Dto
+    , Round4Dto
+    , Round5Dto
+    , RoundDto
     )
 
 import Array exposing (Array)
 
 
-type alias RoundObj4Dto =
+type RoundDto
+    = Round4 Round4Dto
+    | Round5 Round5Dto
+
+
+type alias Round4Dto =
     { points :
         { data0 : Int
         , data1 : Int
         , data2 : Int
         , data3 : Int
+        }
+    , seatingOrder :
+        Maybe
+            { ton : Int
+            , nan : Int
+            , sha : Int
+            , pei : Int
+            }
+    }
+
+
+type alias Round5Dto =
+    { points :
+        { data0 : Int
+        , data1 : Int
+        , data2 : Int
+        , data3 : Int
+        , data4 : Int
         }
     , seatingOrder :
         Maybe
@@ -30,7 +55,7 @@ type alias LogDto4 =
     , rate : Int
     , chipRate : Int
     , players : Array String
-    , rounds : Array RoundObj4Dto
+    , rounds : Array Round4Dto
     , chips : Array Int
     , rankPoint : Array Int
     , havePoint : Int

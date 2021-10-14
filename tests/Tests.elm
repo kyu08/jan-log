@@ -1,22 +1,125 @@
 module Tests exposing (..)
 
-import Test exposing (..)
 import Expect
+import Pages.EditLog.Rounds as Rounds
+import StaticArray
+import StaticArray.Length as Length
+import Test exposing (..)
 
 
--- Check out https://package.elm-lang.org/packages/elm-explorations/test/latest to learn more about testing in Elm!
+rounds : Test
+rounds =
+    describe "Rounds.elm"
+        [ test "Round4 の順位点を計算する" <|
+            let
+                expectedValue =
+                    Rounds.test__intRound4ForTesting1Expected
 
-
-all : Test
-all =
-    describe "A Test Suite"
-        [ test "Addition" <|
+                testValue =
+                    Rounds.calculateRoundFromRawPoint
+                        { round = Rounds.test__intRound4ForTesting1
+                        , rankPoint = ( 10, 20 )
+                        , havePoint = 25
+                        , returnPoint = 30
+                        }
+            in
             \_ ->
-                Expect.equal 10 (3 + 7)
-        , test "String.left" <|
+                Expect.equal expectedValue testValue
+        , test "3万点返しする" <|
+            let
+                expectedValue =
+                    StaticArray.fromList Length.four ( 0, -20 ) [ ( 1, -10 ), ( 2, 0 ), ( 3, 10 ) ]
+
+                testValue =
+                    Rounds.returnedPoints 30 <|
+                        StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+            in
             \_ ->
-                Expect.equal "a" (String.left 1 "abcdefg")
-        , test "This test should fail" <|
+                Expect.equal expectedValue testValue
+        , test "座順データが存在すれば起家ソートを行う" <|
+            let
+                expectedValue =
+                    StaticArray.fromList Length.four ( 0, -20 ) [ ( 1, -10 ), ( 2, 0 ), ( 3, 10 ) ]
+
+                testValue =
+                    Rounds.chichaSortedPoints
+                        (Just { pei = 0, sha = 1, nan = 2, ton = 3 })
+                        (StaticArray.fromList
+                            Length.four
+                            ( 0, -20 )
+                            [ ( 1, -10 ), ( 2, 0 ), ( 3, 10 ) ]
+                        )
+            in
             \_ ->
-                Expect.fail "failed as expected!"
+                Expect.equal expectedValue testValue
+        , test "point でソート" <|
+            let
+                expectedValue =
+                    [ ( 3, 10 )
+                    , ( 2, 0 )
+                    , ( 1, -10 )
+                    , ( 0, -20 )
+                    ]
+
+                testValue =
+                    Rounds.sortedPoints
+                        (StaticArray.fromList
+                            Length.four
+                            ( 0, -20 )
+                            [ ( 1, -10 ), ( 2, 0 ), ( 3, 10 ) ]
+                        )
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "順位点を加算" <|
+            let
+                expectedValue =
+                    [ ( 0, ( 3, 30 ) )
+                    , ( 1, ( 2, 10 ) )
+                    , ( 2, ( 1, -20 ) )
+                    , ( 3, ( 0, -40 ) )
+                    ]
+
+                testValue =
+                    Rounds.rankPointedPoints
+                        [ 20, 10, -10, -20 ]
+                        [ ( 3, 10 ), ( 2, 0 ), ( 1, -10 ), ( 0, -20 ) ]
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)" <|
+            let
+                expectedValue =
+                    -50
+
+                testValue =
+                    Rounds.totalPointsWithout1st
+                        [ ( 0, ( 3, 30 ) )
+                        , ( 1, ( 2, 10 ) )
+                        , ( 2, ( 1, -20 ) )
+                        , ( 3, ( 0, -40 ) )
+                        ]
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2 ~ 3 着のポイント合計をマイナスしたものを1着のポイントとして計算する" <|
+            let
+                expectedValue =
+                    [ ( 3, 50 )
+                    , ( 2, 10 )
+                    , ( 1, -20 )
+                    , ( 0, -40 )
+                    ]
+
+                testValue =
+                    Rounds.calculated1stPointPoints
+                        [ ( 0, ( 3, 30 ) )
+                        , ( 1, ( 2, 10 ) )
+                        , ( 2, ( 1, -20 ) )
+                        , ( 3, ( 0, -40 ) )
+                        ]
+                        -50
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
         ]

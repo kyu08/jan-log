@@ -75,7 +75,7 @@ view model =
     div
         []
         [ UI.viewLinkButton phrases.history routes.history
-        , UI.viewLinkButton phrases.newLog (toNewRoomUrl routes.editLog model)
+        , UI.viewLinkButton phrases.newLog (toNewRoomUrl routes.editLog4 model)
         ]
 
 
@@ -92,6 +92,6 @@ toNewRoomUrl path model =
 
 
 phrases =
-    { newLog = "新規作成"
+    { newLog = "新規作成(4人)"
     , history = "今までの成績をみる"
     }
