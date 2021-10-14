@@ -514,6 +514,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                         |> rankPointedPoints rankPointArray
 
                 nextPoints =
+                    rankPointedPoints__
                         |> totalPointsWithout1st
                         |> calculated1stPointPoints rankPointedPoints__
                         |> calculatedIntPoints
