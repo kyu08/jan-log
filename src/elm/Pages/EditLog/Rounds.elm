@@ -12,26 +12,33 @@ module Pages.EditLog.Rounds exposing
     , calculateTotalBalanceIncludeGameFee
     , calculateTotalPoint
     , calculateTotalPointIncludeChip
+    , calculated1stPointPoints
+    , chichaSortedPoints
     , getPoints
     , getSeatingOrderInput
     , hasSamePoint
     , initPoint
     , initRound4
     , initRounds
-    , intRound4ForTesting1
-    , intRound4ForTesting1Expected
     , isDefaultPoints
     , isDoneInput
     , isRadioButtonChecked
     , kazeToSelecter
     , kazeToString
     , needsSeatingOrderInput
+    , rankPointedPoints
+    , returnedPoints
     , roundFromDto
+    , sortedPoints
+    , test__intRound4
+    , test__intRound4ForTesting1
+    , test__intRound4ForTesting1Expected
     , toIntRound
     , toRoundObj4
     , toStringRound
     , toStringRound4
     , totalPoint
+    , totalPointsWithout1st
     , unwrapRound
     , updatePoints
     , updateSeatingOrder
@@ -174,8 +181,8 @@ initRounds =
 -- For Test
 
 
-intRound4ForTesting1 : IntRound
-intRound4ForTesting1 =
+test__intRound4ForTesting1 : IntRound
+test__intRound4ForTesting1 =
     IntRound4
         { seatingOrder =
             Just
@@ -188,8 +195,10 @@ intRound4ForTesting1 =
         }
 
 
-intRound4ForTesting1Expected : IntRound
-intRound4ForTesting1Expected =
+{-| TODO: テスト用の値がここにあるのは不適切なのでバリアントだけ expose するなどする。
+-}
+test__intRound4ForTesting1Expected : IntRound
+test__intRound4ForTesting1Expected =
     IntRound4
         { seatingOrder =
             Just
@@ -458,6 +467,8 @@ calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
 
 type alias CalculateRoundFromRawPointConfig =
     { round : IntRound
+
+    -- TODO: tuple にするとわかりずらいのでレコードにしよう
     , rankPoint : ( Int, Int )
     , havePoint : Int
     , returnPoint : Int
@@ -479,84 +490,6 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
             , negate <| Tuple.second rankPoint
             ]
 
-        -- n万点返しした
-        returnedPoints points =
-            points
-                |> StaticArray.indexedMap
-                    (\index point -> ( Index.toInt index, point - returnPoint ))
-                |> StaticArray.toList
-                |> (\points_ ->
-                        case points_ of
-                            head :: tail ->
-                                StaticArray.fromList Length.four
-                                    head
-                                    (List.map
-                                        -- StaticArray.indexedMap だと index がうまくとれないので +2 している
-                                        (\( a, b ) -> ( a + 2, b ))
-                                        tail
-                                    )
-
-                            [] ->
-                                points
-                                    |> StaticArray.indexedMap
-                                        (\index point -> ( Index.toInt index, point - returnPoint ))
-                   )
-
-        -- 座順データが存在すれば起家ソートを行う
-        chichaSortedPoints seatingOrder returnedPoints_ =
-            case seatingOrder of
-                Just seatingOrder_ ->
-                    StaticArray.fromList Length.four
-                        (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) returnedPoints_)
-                        [ StaticArray.get (Index.fromModBy Length.four seatingOrder_.sha) returnedPoints_
-                        , StaticArray.get (Index.fromModBy Length.four seatingOrder_.nan) returnedPoints_
-                        , StaticArray.get (Index.fromModBy Length.four seatingOrder_.ton) returnedPoints_
-                        ]
-
-                Nothing ->
-                    returnedPoints_
-
-        -- point でソート
-        sortedPoints chichaSortedPoints_ =
-            List.reverse <|
-                List.sortBy
-                    Tuple.second
-                    (StaticArray.toList chichaSortedPoints_)
-
-        -- 順位点を加算
-        rankPointedPoints sortedPoints_ =
-            List.map2
-                (\rankPoint_ ( rank, ( index, point ) ) ->
-                    ( rank, ( index, point + rankPoint_ ) )
-                )
-                rankPointArray
-                (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedPoints_)
-
-        -- 2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)
-        totalPointsWithout1st rankPointedPoints_ =
-            List.foldl
-                (\( rank, ( _, point ) ) acumulator ->
-                    if rank == 0 then
-                        acumulator
-
-                    else
-                        point + acumulator
-                )
-                0
-                rankPointedPoints_
-
-        -- 2 ~ 3 着のポイント合計をマイナスしたものを1着のポイントとして計算する
-        calculated1stPointPoints rankPointedPoints_ totalPointsWithout1st_ =
-            List.map
-                (\( rank, ( index, point ) ) ->
-                    if rank == 0 then
-                        ( index, negate totalPointsWithout1st_ )
-
-                    else
-                        ( index, point )
-                )
-                rankPointedPoints_
-
         calculatedIntPoints calculated1stPointPoints_ =
             calculated1stPointPoints_
                 |> List.sortBy Tuple.first
@@ -575,13 +508,13 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
             let
                 rankPointedPoints__ =
                     points
-                        |> returnedPoints
+                        |> returnedPoints returnPoint
                         |> chichaSortedPoints seatingOrder
                         |> sortedPoints
-                        |> rankPointedPoints
+                        |> rankPointedPoints rankPointArray
 
                 nextPoints =
-                    rankPointedPoints__
+                    Debug.log "hoge" rankPointedPoints__
                         |> totalPointsWithout1st
                         |> calculated1stPointPoints rankPointedPoints__
                         |> calculatedIntPoints
@@ -597,6 +530,106 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 { points = points
                 , seatingOrder = seatingOrder
                 }
+
+
+
+-- TODO: この周辺の関数たち命名なおす
+
+
+{-| n万点返しした
+-}
+returnedPoints : Int -> StaticArray Index.Four Int -> StaticArray Index.Four ( Int, Int )
+returnedPoints returnPoint points =
+    points
+        |> StaticArray.indexedMap
+            (\index point -> ( Index.toInt index, point - returnPoint ))
+        |> StaticArray.toList
+        |> (\points_ ->
+                case points_ of
+                    head :: tail ->
+                        StaticArray.fromList Length.four
+                            head
+                            (List.map
+                                -- StaticArray.indexedMap だと index がうまくとれないので +2 している
+                                (\( a, b ) -> ( a + 2, b ))
+                                tail
+                            )
+
+                    [] ->
+                        points
+                            |> StaticArray.indexedMap
+                                (\index point -> ( Index.toInt index, point - returnPoint ))
+           )
+
+
+{-| 座順データが存在すれば起家ソートを行う
+-}
+chichaSortedPoints : Maybe { a | pei : Int, sha : Int, nan : Int, ton : Int } -> StaticArray Index.Four ( Int, Int ) -> StaticArray Index.Four ( Int, Int )
+chichaSortedPoints seatingOrder returnedPoints_ =
+    case seatingOrder of
+        Just seatingOrder_ ->
+            StaticArray.fromList Length.four
+                (StaticArray.get (Index.fromModBy Length.four seatingOrder_.pei) returnedPoints_)
+                [ StaticArray.get (Index.fromModBy Length.four seatingOrder_.sha) returnedPoints_
+                , StaticArray.get (Index.fromModBy Length.four seatingOrder_.nan) returnedPoints_
+                , StaticArray.get (Index.fromModBy Length.four seatingOrder_.ton) returnedPoints_
+                ]
+
+        Nothing ->
+            returnedPoints_
+
+
+{-| point でソート
+-}
+sortedPoints : StaticArray Index.Four ( Int, Int ) -> List ( Int, Int )
+sortedPoints chichaSortedPoints_ =
+    List.reverse <|
+        List.sortBy
+            Tuple.second
+            (StaticArray.toList chichaSortedPoints_)
+
+
+{-| 順位点を加算
+-}
+rankPointedPoints : List Int -> List ( Int, Int ) -> List ( Int, ( Int, Int ) )
+rankPointedPoints rankPointArray sortedPoints_ =
+    List.map2
+        (\rankPoint_ ( rank, ( index, point ) ) ->
+            ( rank, ( index, point + rankPoint_ ) )
+        )
+        rankPointArray
+        (List.indexedMap (\rank roundWithIndex -> ( rank, roundWithIndex )) sortedPoints_)
+
+
+{-| 2着 ~ 3着 のプレイヤーの合計(1着のポイント計算用に使う)
+-}
+totalPointsWithout1st : List ( Int, ( Int, Int ) ) -> Int
+totalPointsWithout1st rankPointedPoints_ =
+    List.foldl
+        (\( rank, ( _, point ) ) acumulator ->
+            if rank == 0 then
+                acumulator
+
+            else
+                point + acumulator
+        )
+        0
+        rankPointedPoints_
+
+
+{-| 2 ~ 3 着のポイント合計をマイナスしたものを1着のポイントとして計算する
+-}
+calculated1stPointPoints : List ( Int, ( Int, Int ) ) -> Int -> List ( Int, Int )
+calculated1stPointPoints rankPointedPoints_ totalPointsWithout1st_ =
+    List.map
+        (\( rank, ( index, point ) ) ->
+            if rank == 0 then
+                ( index, negate totalPointsWithout1st_ )
+
+            else
+                ( index, point )
+        )
+        rankPointedPoints_
 
 
 needsSeatingOrderInput : Round -> Bool
@@ -754,3 +787,16 @@ isRadioButtonChecked round kaze playerIndex seatingOrderInput =
 
                 Nothing ->
                     False
+
+
+
+-- test
+
+
+test__intRound4 :
+    { seatingOrder : Maybe SeatingOrder
+    , points : StaticArray Index.Four Int
+    }
+    -> IntRound
+test__intRound4 =
+    IntRound4

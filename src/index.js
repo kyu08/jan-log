@@ -39,7 +39,7 @@ app.ports.updateLog4.subscribe((dto) => {
 app.ports.listenLog4.subscribe((logId) => {
   db.doc(`logs4players/${logId}`).onSnapshot((doc) => {
     if (doc.exists) {
-      app.ports.fetchedLog.send({ ...doc.data(), logId });
+      app.ports.fetchedLog4.send({ ...doc.data(), logId });
     }
   });
 });
