@@ -146,7 +146,7 @@ view model =
                 viewContainer <|
                     div
                         [ class "main_container" ]
-                        [ text "history"
+                        [ text "Coming soon..."
                         ]
     }
 
