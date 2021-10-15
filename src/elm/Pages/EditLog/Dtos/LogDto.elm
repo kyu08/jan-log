@@ -27,6 +27,12 @@ type alias Round4Dto =
             , sha : Int
             , pei : Int
             }
+    , tobiSho :
+        { data0 : Int
+        , data1 : Int
+        , data2 : Int
+        , data3 : Int
+        }
     }
 
 

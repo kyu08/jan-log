@@ -26,12 +26,12 @@ import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
 import Pages.EditLog.Players as Players exposing (Players)
-import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round, SeatingOrder)
+import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
-import Route exposing (Route)
+import Route
 import Session exposing (Session)
-import StaticArray exposing (StaticArray)
+import StaticArray
 import StaticArray.Index as Index
 import StaticArray.Length as Length
 import Task exposing (Task)
@@ -171,6 +171,7 @@ type Msg
     = SetTime Time.Posix
     | ChangedPlayerName Int String
     | ChangedPoint Int Int Point
+    | ChangedTobisho Int Int String
     | ChangedChip Int String
     | ChangedRate String
     | ChangedChipRate String
@@ -252,6 +253,21 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         updatedRounds =
                             Rounds.updatePoints
                                 { point = point
+                                , rounds = rounds
+                                , roundIndex = roundIndex
+                                , playerIndex = playerIndex
+                                }
+
+                        nextLog =
+                            { log | rounds = updatedRounds }
+                    in
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
+
+                ChangedTobisho roundIndex playerIndex tobisho ->
+                    let
+                        updatedRounds =
+                            Rounds.updateTobisho
+                                { tobisho = tobisho
                                 , rounds = rounds
                                 , roundIndex = roundIndex
                                 , playerIndex = playerIndex
@@ -863,6 +879,12 @@ viewPointInputModal players round roundIndex seatingOrderInput =
                         (\index_ point -> viewInputPointCell roundIndex index_ point)
                         ((Rounds.unwrapRound >> .points >> Array.toList) round)
                     )
+                , div [] [ text "トビ賞" ]
+                , tr [ class "editLog_tr" ]
+                    (List.indexedMap
+                        (\index_ tobisho -> viewInputTobisho roundIndex index_ tobisho)
+                        ((Rounds.unwrapRound >> .tobisho >> Array.toList) round)
+                    )
                 ]
             , viewInputSeatingOrder roundIndex round seatingOrderInput
                 |> UI.viewIf
@@ -916,6 +938,25 @@ viewInputSeatingOrder roundIndex round seatingOrderInput =
             )
         , div [] [ text "同点者がいるため半荘開始時の座順を入力してください" ]
         , viewInvalidSeatingOrderMessage
+        ]
+
+
+{-| 点数入力マス
+-}
+viewInputTobisho : Int -> Int -> Point -> Html Msg
+viewInputTobisho roundIndex playerIndex tobisho =
+    td
+        [ class "editLog_td" ]
+        [ input
+            [ class "editLog_inputCellInput"
+            , value tobisho
+            , onInput <| ChangedTobisho roundIndex playerIndex
+            , type_ "number"
+
+            -- , pattern "[0-9]*" -- とすると SP で "-" を入力できないので仕方なく pattern を指定していない。
+            -- pattern "[0-9]*" として "+" "-" を入力するボタンを設置するのが今のところ考え得る最善策
+            ]
+            []
         ]
 
 
