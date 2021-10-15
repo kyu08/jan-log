@@ -548,8 +548,9 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                 |> List.sortBy Tuple.first
                 |> List.map Tuple.second
 
-        calculatedIntStaticPoints points calculatedIntPoints_ =
-            case calculatedIntPoints_ of
+        -- トビ賞を計算して StaticArray に戻す
+        calculatedIntStaticPoints points tobiSho calculatedIntPoints_ =
+            case List.map2 (+) calculatedIntPoints_ (StaticArray.toList tobiSho) of
                 head :: tail ->
                     StaticArray.fromList Length.four head tail
 
@@ -571,7 +572,7 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                         |> totalPointsWithout1st
                         |> calculated1stPointPoints rankPointedPoints__
                         |> calculatedIntPoints
-                        |> calculatedIntStaticPoints round_.points
+                        |> calculatedIntStaticPoints round_.points round_.tobiSho
             in
             IntRound4
                 { round_
