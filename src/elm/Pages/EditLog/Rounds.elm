@@ -31,8 +31,6 @@ module Pages.EditLog.Rounds exposing
     , roundFromDto
     , sortedPoints
     , test__intRound4
-    , test__intRound4ForTesting1
-    , test__intRound4ForTesting1Expected
     , toIntRound
     , toRoundObj4
     , toStringRound
@@ -196,38 +194,6 @@ initRounds =
 
 
 -- For Test
-
-
-test__intRound4ForTesting1 : IntRound
-test__intRound4ForTesting1 =
-    IntRound4
-        { seatingOrder =
-            Just
-                { ton = 0
-                , nan = 1
-                , sha = 2
-                , pei = 3
-                }
-        , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
-        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
-        }
-
-
-{-| TODO: テスト用の値がここにあるのは不適切なのでバリアントだけ expose するなどする。
--}
-test__intRound4ForTesting1Expected : IntRound
-test__intRound4ForTesting1Expected =
-    IntRound4
-        { seatingOrder =
-            Just
-                { ton = 0
-                , nan = 1
-                , sha = 2
-                , pei = 3
-                }
-        , points = StaticArray.fromList Length.four -40 [ -20, 10, 50 ]
-        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
-        }
 
 
 isDoneInput : Round -> Bool
