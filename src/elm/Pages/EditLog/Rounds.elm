@@ -42,6 +42,7 @@ module Pages.EditLog.Rounds exposing
     , unwrapRound
     , updatePoints
     , updateSeatingOrder
+    , updateTobisho
     )
 
 import Array exposing (Array)
@@ -69,15 +70,21 @@ type alias Rounds =
 chicha: PlayerIndex
 -}
 type Round
-    = Round4
-        { points : StaticArray Index.Four Point
-        , seatingOrder : Maybe SeatingOrder
-        , tobiSho : StaticArray Index.Four Point
-        }
-    | Round5
-        { points : StaticArray Index.Five Point
-        , seatingOrder : Maybe SeatingOrder
-        }
+    = Round4 Round4Value
+    | Round5 Round5Value
+
+
+type alias Round4Value =
+    { points : StaticArray Index.Four Point
+    , seatingOrder : Maybe SeatingOrder
+    , tobisho : StaticArray Index.Four Point
+    }
+
+
+type alias Round5Value =
+    { points : StaticArray Index.Five Point
+    , seatingOrder : Maybe SeatingOrder
+    }
 
 
 type alias Point =
@@ -138,7 +145,7 @@ initRound4 =
     Round4
         { points = initTobisho4
         , seatingOrder = Nothing
-        , tobiSho = initTobisho4
+        , tobisho = initTobisho4
         }
 
 
@@ -150,17 +157,19 @@ initRound5 =
         }
 
 
-unwrapRound : Round -> { points : Array String, seatingOrder : Maybe SeatingOrder }
+unwrapRound : Round -> { points : Array String, seatingOrder : Maybe SeatingOrder, tobisho : Array String }
 unwrapRound round =
     case round of
         Round4 round4 ->
             { points = StaticArray.toArray round4.points
             , seatingOrder = round4.seatingOrder
+            , tobisho = StaticArray.toArray round4.tobisho
             }
 
         Round5 round5 ->
             { points = StaticArray.toArray round5.points
             , seatingOrder = round5.seatingOrder
+            , tobisho = Array.fromList [ "" ] -- FIXME
             }
 
 
@@ -247,7 +256,7 @@ toStringRound intRound =
             Round4
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map String.fromInt points
-                , tobiSho = StaticArray.map String.fromInt tobiSho
+                , tobisho = StaticArray.map String.fromInt tobiSho
                 }
 
         IntRound5 { seatingOrder, points } ->
@@ -260,11 +269,11 @@ toStringRound intRound =
 toIntRound : Round -> IntRound
 toIntRound round =
     case round of
-        Round4 { seatingOrder, points, tobiSho } ->
+        Round4 { seatingOrder, points, tobisho } ->
             IntRound4
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map (\point -> Maybe.withDefault 0 (String.toInt point)) points
-                , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobiSho
+                , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobisho
                 }
 
         Round5 { seatingOrder, points } ->
@@ -296,20 +305,20 @@ toStringRound4 { points, seatingOrder, tobiSho } =
     Round4
         { seatingOrder = seatingOrder
         , points = points_
-        , tobiSho = tobisho_
+        , tobisho = tobisho_
         }
 
 
 toRoundObj4 : Round -> Round4Dto
 toRoundObj4 round =
     case round of
-        Round4 { points, seatingOrder, tobiSho } ->
+        Round4 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
                     StaticArray.map ExString.toIntValue points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobiSho
+                    StaticArray.map ExString.toIntValue tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -377,7 +386,7 @@ roundFromDto { points, seatingOrder, tobiSho } =
     Round4
         { points = points_
         , seatingOrder = seatingOrder
-        , tobiSho = tobiSho_
+        , tobisho = tobiSho_
         }
 
 
@@ -758,6 +767,35 @@ updatePoints { point, rounds, roundIndex, playerIndex } =
                                 (Index.fromModBy Length.four playerIndex)
                                 point
                                 round4.points
+                    }
+                )
+                rounds
+
+        _ ->
+            rounds
+
+
+type alias UpdateTobishoConfig =
+    { tobisho : Point
+    , rounds : Rounds
+    , roundIndex : Int
+    , playerIndex : Int
+    }
+
+
+updateTobisho : UpdateTobishoConfig -> Rounds
+updateTobisho { tobisho, rounds, roundIndex, playerIndex } =
+    case Array.get roundIndex rounds of
+        Just (Round4 round4) ->
+            Array.set
+                roundIndex
+                (Round4
+                    { round4
+                        | tobisho =
+                            StaticArray.set
+                                (Index.fromModBy Length.four playerIndex)
+                                tobisho
+                                round4.tobisho
                     }
                 )
                 rounds
