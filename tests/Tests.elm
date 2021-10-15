@@ -13,11 +13,104 @@ rounds =
         [ test "Round4 の順位点を計算する" <|
             let
                 expectedValue =
-                    Rounds.test__intRound4ForTesting1Expected
+                    Rounds.test__intRound4
+                        { seatingOrder =
+                            Just
+                                { ton = 0
+                                , nan = 1
+                                , sha = 2
+                                , pei = 3
+                                }
+                        , points = StaticArray.fromList Length.four -40 [ -20, 10, 50 ]
+                        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
+                        }
 
                 testValue =
                     Rounds.calculateRoundFromRawPoint
-                        { round = Rounds.test__intRound4ForTesting1
+                        { round =
+                            Rounds.test__intRound4
+                                { seatingOrder =
+                                    Just
+                                        { ton = 0
+                                        , nan = 1
+                                        , sha = 2
+                                        , pei = 3
+                                        }
+                                , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+                                , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
+                                }
+                        , rankPoint = ( 10, 20 )
+                        , havePoint = 25
+                        , returnPoint = 30
+                        }
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "Round4 の順位点を計算する(同点者がいる場合)" <|
+            let
+                expectedValue =
+                    Rounds.test__intRound4
+                        { seatingOrder =
+                            Just
+                                { ton = 0
+                                , nan = 2
+                                , sha = 1
+                                , pei = 3
+                                }
+                        , points = StaticArray.fromList Length.four -40 [ -20, 0, 60 ]
+                        , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
+                        }
+
+                testValue =
+                    Rounds.calculateRoundFromRawPoint
+                        { round =
+                            Rounds.test__intRound4
+                                { seatingOrder =
+                                    Just
+                                        { ton = 0
+                                        , nan = 2
+                                        , sha = 1
+                                        , pei = 3
+                                        }
+                                , points = StaticArray.fromList Length.four 10 [ 20, 20, 50 ]
+                                , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
+                                }
+                        , rankPoint = ( 10, 20 )
+                        , havePoint = 25
+                        , returnPoint = 30
+                        }
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "Round4 の順位点を計算する(トビ賞がある場合)" <|
+            let
+                expectedValue =
+                    Rounds.test__intRound4
+                        { seatingOrder =
+                            Just
+                                { ton = 0
+                                , nan = 1
+                                , sha = 2
+                                , pei = 3
+                                }
+                        , points = StaticArray.fromList Length.four -50 [ -10, 10, 50 ]
+                        , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                        }
+
+                testValue =
+                    Rounds.calculateRoundFromRawPoint
+                        { round =
+                            Rounds.test__intRound4
+                                { seatingOrder =
+                                    Just
+                                        { ton = 0
+                                        , nan = 1
+                                        , sha = 2
+                                        , pei = 3
+                                        }
+                                , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+                                , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                                }
                         , rankPoint = ( 10, 20 )
                         , havePoint = 25
                         , returnPoint = 30
