@@ -246,7 +246,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
@@ -261,7 +261,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextLog =
                             { log | rounds = updatedRounds }
                     in
-                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog logId nextLog )
 
                 ChangedTobisho roundIndex playerIndex tobisho ->
                     let
@@ -276,7 +276,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextLog =
                             { log | rounds = updatedRounds }
                     in
-                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog logId nextLog )
 
                 ChangedChip playerIndex chip ->
                     let
@@ -287,7 +287,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
                     -- TODO: ↓これをまとめてやってくれる関数を定義する
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedRate inputValue ->
                     let
@@ -297,7 +297,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedChipRate inputValue ->
                     let
@@ -307,7 +307,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedGameFee inputValue ->
                     let
@@ -317,7 +317,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ClickedAddRowButton ->
                     ( { m | pageStatus = Loaded { pageModel | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } } }, Cmd.none )
@@ -348,7 +348,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedRankPointSecond rankpointSecond ->
                     let
@@ -358,7 +358,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedReturnPoint returnPoint ->
                     let
@@ -368,7 +368,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedHavePoint havePoint ->
                     let
@@ -378,7 +378,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ClickedEditRoundButton roundIndex round_ ->
                     let
@@ -455,7 +455,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { modelSeatingOrderInputUpdated | pageStatus = nextPageStatus }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 _ ->
                     ( m, Cmd.none )
@@ -971,6 +971,23 @@ subscriptions =
         , listenedLog4 ListenedLog
         , fetchedLogButNoLog FetchedLogButNoLog
         ]
+
+
+
+-- Functions for Ports
+
+
+updateLog : LogId -> Log -> Cmd msg
+updateLog logId log =
+    if Rounds.isRounds4 log.rounds then
+        updateLog4 <| toLogDto4 logId log
+
+    else if Rounds.isRounds5 log.rounds then
+        updateLog4 <| toLogDto4 logId log
+        -- TODO: 5をつくる
+
+    else
+        Cmd.none
 
 
 

@@ -23,6 +23,8 @@ module Pages.EditLog.Rounds exposing
     , isDefaultPoints
     , isDoneInput
     , isRadioButtonChecked
+    , isRounds4
+    , isRounds5
     , kazeToSelecter
     , kazeToString
     , needsSeatingOrderInput
@@ -190,6 +192,32 @@ initPoint round =
 initRounds : Rounds
 initRounds =
     Array.initialize 4 (\_ -> initRound4)
+
+
+isRounds4 : Rounds -> Bool
+isRounds4 rounds =
+    case Array.get 0 rounds of
+        Just (Round4 _) ->
+            True
+
+        Just (Round5 _) ->
+            False
+
+        Nothing ->
+            False
+
+
+isRounds5 : Rounds -> Bool
+isRounds5 rounds =
+    case Array.get 0 rounds of
+        Just (Round4 _) ->
+            False
+
+        Just (Round5 _) ->
+            True
+
+        Nothing ->
+            False
 
 
 
