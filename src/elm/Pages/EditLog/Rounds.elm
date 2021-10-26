@@ -19,7 +19,8 @@ module Pages.EditLog.Rounds exposing
     , hasSamePoint
     , initPoint
     , initRound4
-    , initRounds
+    , initRounds4
+    , initRounds5
     , isDefaultPoints
     , isDoneInput
     , isRadioButtonChecked
@@ -49,7 +50,7 @@ import Array exposing (Array)
 import Expands.Array as ExArray
 import Expands.String as ExString
 import Expands.Tuple as ExTuple
-import Pages.EditLog.Chips exposing (Chips)
+import Pages.EditLog.Chips as Chips exposing (Chips)
 import Pages.EditLog.Dtos.LogDto exposing (Round4Dto)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import StaticArray exposing (StaticArray)
@@ -130,6 +131,11 @@ initTobisho4 =
     StaticArray.initialize Length.four (always "")
 
 
+initTobisho5 : StaticArray Index.Five Point
+initTobisho5 =
+    StaticArray.initialize Length.five (always "")
+
+
 initPoints4 : StaticArray Index.Four Point
 initPoints4 =
     StaticArray.initialize Length.four (always "")
@@ -143,7 +149,7 @@ initPoints5 =
 initRound4 : Round
 initRound4 =
     Round4
-        { points = initTobisho4
+        { points = initPoints4
         , seatingOrder = Nothing
         , tobisho = initTobisho4
         }
@@ -187,11 +193,16 @@ initPoint round =
                 |> .points
 
 
-{-| TODO: validation とかどうしよう
--}
-initRounds : Rounds
-initRounds =
+- playernameの更新が反映されない
+- point が入力できない
+initRounds4 : Rounds
+initRounds4 =
     Array.initialize 4 (\_ -> initRound4)
+
+
+initRounds5 : Rounds
+initRounds5 =
+    Array.initialize 5 (\_ -> initRound5)
 
 
 isRounds4 : Rounds -> Bool
@@ -492,7 +503,7 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
         (Array.initialize 1
             (\_ ->
                 chips
-                    |> StaticArray.toArray
+                    |> Chips.toArray
                     |> ExArray.toIntArray
             )
         )

@@ -1,5 +1,6 @@
 module Pages.EditLog.Dtos.LogDto exposing
     ( LogDto4
+    , LogDto5
     , Round4Dto
     , Round5Dto
     , RoundDto
@@ -62,6 +63,21 @@ type alias LogDto4 =
     , chipRate : Int
     , players : Array String
     , rounds : Array Round4Dto
+    , chips : Array Int
+    , rankPoint : Array Int
+    , havePoint : Int
+    , returnPoint : Int
+    }
+
+
+type alias LogDto5 =
+    { createdAt : Int
+    , logId : String
+    , gameFee : Int
+    , rate : Int
+    , chipRate : Int
+    , players : Array String
+    , rounds : Array Round5Dto
     , chips : Array Int
     , rankPoint : Array Int
     , havePoint : Int

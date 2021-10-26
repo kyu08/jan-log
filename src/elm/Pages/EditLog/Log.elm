@@ -1,7 +1,8 @@
 module Pages.EditLog.Log exposing
     ( Log
     , dto4ToLog
-    , initLog
+    , initLog4
+    , initLog5
     , toLogDto4
     )
 
@@ -29,13 +30,23 @@ type alias Log =
     }
 
 
-initLog : Time.Posix -> Log
-initLog currentTime =
+initLog4 : Time.Posix -> Log
+initLog4 currentTime =
     { createdAt = currentTime
-    , players = Players.initPlayers
+    , players = Players.initPlayers4
     , logConfig = LogConfig.initLogConfig
-    , rounds = Rounds.initRounds
-    , chips = Chips.initChips
+    , rounds = Rounds.initRounds4
+    , chips = Chips.initChips4
+    }
+
+
+initLog5 : Time.Posix -> Log
+initLog5 currentTime =
+    { createdAt = currentTime
+    , players = Players.initPlayers5
+    , logConfig = LogConfig.initLogConfig
+    , rounds = Rounds.initRounds5
+    , chips = Chips.initChips5
     }
 
 
@@ -82,6 +93,6 @@ toLogDto4 logId log =
     , rounds = Array.map Rounds.toRoundObj4 log.rounds
     , chips =
         log.chips
-            |> StaticArray.toArray
+            |> Chips.toArray
             |> ExArray.toIntArray
     }

@@ -2,6 +2,7 @@ port module Pages.EditLog exposing
     ( Model
     , Msg
     , initCmd4
+    , initCmd5
     , initModel
     , subscriptions
     , toSession
@@ -21,7 +22,7 @@ import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Pages.EditLog.Chips as Chips exposing (Chips)
-import Pages.EditLog.Dtos.LogDto exposing (LogDto4)
+import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
@@ -94,6 +95,15 @@ initCmd4 logId =
         ]
 
 
+initCmd5 : LogId -> Cmd Msg
+initCmd5 logId =
+    Cmd.batch
+        [ fetchLog5 logId
+        , listenLog5 logId
+        , Task.perform SetTime initTimeTask
+        ]
+
+
 initTimeTask : Task Never Time.Posix
 initTimeTask =
     Time.now
@@ -113,9 +123,16 @@ initUIStatus =
     }
 
 
-initPageModel : Time.Posix -> PageModel
-initPageModel currentTime =
-    { log = Log.initLog currentTime
+initPageModel4 : Time.Posix -> PageModel
+initPageModel4 currentTime =
+    { log = Log.initLog4 currentTime
+    , uiStatus = initUIStatus
+    }
+
+
+initPageModel5 : Time.Posix -> PageModel
+initPageModel5 currentTime =
+    { log = Log.initLog5 currentTime
     , uiStatus = initUIStatus
     }
 
@@ -181,7 +198,8 @@ type Msg
     | ClickedHowToUseButton
     | FetchedLog4 LogDto4
     | ListenedLog4 LogDto4
-    | FetchedLogButNoLog ()
+    | FetchedLogButNoLog4 ()
+    | FetchedLogButNoLog5 ()
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedHavePoint String
@@ -214,14 +232,23 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
 
-                FetchedLogButNoLog () ->
+                FetchedLogButNoLog4 () ->
                     case currentTime of
                         Just currentTime_ ->
-                            ( { m | pageStatus = Loaded <| initPageModel currentTime_ }, Cmd.none )
+                            ( { m | pageStatus = Loaded <| initPageModel4 currentTime_ }, Cmd.none )
 
                         Nothing ->
                             -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
-                            ( m, Task.perform (\_ -> FetchedLogButNoLog ()) sleep50ms )
+                            ( m, Task.perform (\_ -> FetchedLogButNoLog4 ()) sleep50ms )
+
+                FetchedLogButNoLog5 () ->
+                    case currentTime of
+                        Just currentTime_ ->
+                            ( { m | pageStatus = Loaded <| initPageModel5 currentTime_ }, Cmd.none )
+
+                        Nothing ->
+                            -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
+                            ( m, Task.perform (\_ -> FetchedLogButNoLog5 ()) sleep50ms )
 
                 _ ->
                     ( m, Cmd.none )
@@ -281,12 +308,11 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ChangedChip playerIndex chip ->
                     let
                         nextLog =
-                            { log | chips = StaticArray.set (Index.fromModBy Length.four playerIndex) chip log.chips }
+                            { log | chips = Chips.update playerIndex chip log.chips }
 
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    -- TODO: ↓これをまとめてやってくれる関数を定義する
                     ( nextModel, updateLog logId nextLog )
 
                 ChangedRate inputValue ->
@@ -723,7 +749,7 @@ viewInputChipsRow title chips =
             (ExHtml.stringToHtmlIncludingBr title)
             :: List.indexedMap
                 (\index chip -> viewInputChipsCell index chip)
-                (StaticArray.toList chips)
+                (Chips.toList chips)
         )
 
 
@@ -921,7 +947,8 @@ subscriptions =
     Sub.batch
         [ fetchedLog4 FetchedLog4
         , listenedLog4 ListenedLog4
-        , fetchedLogButNoLog FetchedLogButNoLog
+        , fetchedLogButNoLog4 FetchedLogButNoLog4
+        , fetchedLogButNoLog5 FetchedLogButNoLog5
         ]
 
 
@@ -952,13 +979,28 @@ port updateLog4 : LogDto4 -> Cmd msg
 port fetchLog4 : String -> Cmd msg
 
 
+port fetchLog5 : String -> Cmd msg
+
+
 port fetchedLog4 : (LogDto4 -> msg) -> Sub msg
 
 
-port fetchedLogButNoLog : (() -> msg) -> Sub msg
+port fetchedLog5 : (LogDto5 -> msg) -> Sub msg
+
+
+port fetchedLogButNoLog4 : (() -> msg) -> Sub msg
+
+
+port fetchedLogButNoLog5 : (() -> msg) -> Sub msg
 
 
 port listenLog4 : String -> Cmd msg
 
 
+port listenLog5 : String -> Cmd msg
+
+
 port listenedLog4 : (LogDto4 -> msg) -> Sub msg
+
+
+port listenedLog5 : (LogDto5 -> msg) -> Sub msg

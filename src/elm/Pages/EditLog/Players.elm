@@ -2,7 +2,8 @@ module Pages.EditLog.Players exposing
     ( Player
     , Players
     , fromDto
-    , initPlayers
+    , initPlayers4
+    , initPlayers5
     , toArray
     , updatePlayerName
     )
@@ -30,15 +31,22 @@ type alias Player =
 -- functions
 
 
-{-| TODO: Players.elm をつくってファクトリーメソッドをつくる?
--}
-initPlayers : Players
-initPlayers =
+initPlayers4 : Players
+initPlayers4 =
     Players4 <|
         fromList
             Length.four
             "A"
             [ "B", "C", "D" ]
+
+
+initPlayers5 : Players
+initPlayers5 =
+    Players4 <|
+        fromList
+            Length.four
+            "A"
+            [ "B", "C", "D", "E" ]
 
 
 fromDto : Array String -> Maybe Players
