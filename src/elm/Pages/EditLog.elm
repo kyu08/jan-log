@@ -179,8 +179,8 @@ type Msg
     | ClickedAddRowButton
     | ClickedToggleConfigButton
     | ClickedHowToUseButton
-    | FetchedLog LogDto4
-    | ListenedLog LogDto4
+    | FetchedLog4 LogDto4
+    | ListenedLog4 LogDto4
     | FetchedLogButNoLog ()
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
@@ -206,8 +206,8 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
                     ( { m | currentTime = Just now }, Cmd.none )
 
-                FetchedLog dto4 ->
-                    case dto4ToLog dto4 of
+                FetchedLog4 log4Dto ->
+                    case Log.dto4ToLog log4Dto of
                         Just log ->
                             ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -332,8 +332,8 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     , Cmd.none
                     )
 
-                ListenedLog dto4 ->
-                    case dto4ToLog dto4 of
+                ListenedLog4 dto4 ->
+                    case Log.dto4ToLog dto4 of
                         Just log_ ->
                             ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -459,54 +459,6 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                 _ ->
                     ( m, Cmd.none )
-
-
-
--- Dto
-
-
-dto4ToLog : LogDto4 -> Maybe Log
-dto4ToLog logDto4 =
-    Maybe.map2
-        (\players_ chips_ ->
-            { createdAt = Time.millisToPosix logDto4.createdAt
-            , players = players_
-            , logConfig =
-                { rate = String.fromInt logDto4.rate
-                , chipRate = String.fromInt logDto4.chipRate
-                , gameFee = String.fromInt logDto4.gameFee
-                , rankPoint =
-                    Tuple.pair
-                        (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                        (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-                , havePoint = String.fromInt logDto4.havePoint
-                , returnPoint = String.fromInt logDto4.returnPoint
-                }
-            , rounds = Array.map Rounds.roundFromDto logDto4.rounds
-            , chips = chips_
-            }
-        )
-        (Players.fromDto logDto4.players)
-        (Chips.fromDto logDto4.chips)
-
-
-toLogDto4 : LogId -> Log -> LogDto4
-toLogDto4 logId log =
-    { createdAt = Time.posixToMillis log.createdAt
-    , logId = logId
-    , players = Players.toArray log.players
-    , rate = ExString.toIntValue log.logConfig.rate
-    , chipRate = ExString.toIntValue log.logConfig.chipRate
-    , gameFee = ExString.toIntValue log.logConfig.gameFee
-    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first log.logConfig.rankPoint, ExString.toIntValue <| Tuple.second log.logConfig.rankPoint ]
-    , havePoint = ExString.toIntValue log.logConfig.havePoint
-    , returnPoint = ExString.toIntValue log.logConfig.returnPoint
-    , rounds = Array.map Rounds.toRoundObj4 log.rounds
-    , chips =
-        log.chips
-            |> StaticArray.toArray
-            |> ExArray.toIntArray
-    }
 
 
 
@@ -967,8 +919,8 @@ viewInputTobisho roundIndex playerIndex tobisho =
 subscriptions : Sub Msg
 subscriptions =
     Sub.batch
-        [ fetchedLog4 FetchedLog
-        , listenedLog4 ListenedLog
+        [ fetchedLog4 FetchedLog4
+        , listenedLog4 ListenedLog4
         , fetchedLogButNoLog FetchedLogButNoLog
         ]
 
@@ -980,10 +932,10 @@ subscriptions =
 updateLog : LogId -> Log -> Cmd msg
 updateLog logId log =
     if Rounds.isRounds4 log.rounds then
-        updateLog4 <| toLogDto4 logId log
+        updateLog4 <| Log.toLogDto4 logId log
 
     else if Rounds.isRounds5 log.rounds then
-        updateLog4 <| toLogDto4 logId log
+        updateLog4 <| Log.toLogDto4 logId log
         -- TODO: 5をつくる
 
     else

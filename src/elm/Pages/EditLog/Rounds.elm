@@ -680,6 +680,10 @@ calculated1stPointPoints rankPointedPoints_ totalPointsWithout1st_ =
         rankPointedPoints_
 
 
+{-| これUI都合なのにここにあっていいのかな
+命名がおかしい説もある
+needsSeatingOrder でいいかもしれない
+-}
 needsSeatingOrderInput : Round -> Bool
 needsSeatingOrderInput round =
     let
