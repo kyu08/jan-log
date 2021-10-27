@@ -197,7 +197,9 @@ type Msg
     | ClickedToggleConfigButton
     | ClickedHowToUseButton
     | FetchedLog4 LogDto4
+    | FetchedLog5 LogDto5
     | ListenedLog4 LogDto4
+    | ListenedLog5 LogDto5
     | FetchedLogButNoLog4 ()
     | FetchedLogButNoLog5 ()
     | ChangedRankPointFirst String
@@ -226,6 +228,14 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                 FetchedLog4 log4Dto ->
                     case Log.dto4ToLog log4Dto of
+                        Just log ->
+                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
+
+                FetchedLog5 log5Dto ->
+                    case Log.dto5ToLog log5Dto of
                         Just log ->
                             ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -360,6 +370,14 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                 ListenedLog4 dto4 ->
                     case Log.dto4ToLog dto4 of
+                        Just log_ ->
+                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
+
+                ListenedLog5 dto5 ->
+                    case Log.dto5ToLog dto5 of
                         Just log_ ->
                             ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -948,6 +966,8 @@ subscriptions =
         [ fetchedLog4 FetchedLog4
         , listenedLog4 ListenedLog4
         , fetchedLogButNoLog4 FetchedLogButNoLog4
+        , fetchedLog5 FetchedLog5
+        , listenedLog5 ListenedLog5
         , fetchedLogButNoLog5 FetchedLogButNoLog5
         ]
 
@@ -962,8 +982,7 @@ updateLog logId log =
         updateLog4 <| Log.toLogDto4 logId log
 
     else if Rounds.isRounds5 log.rounds then
-        updateLog4 <| Log.toLogDto4 logId log
-        -- TODO: 5をつくる
+        updateLog5 <| Log.toLogDto5 (Debug.log "" logId) log
 
     else
         Cmd.none
@@ -974,6 +993,9 @@ updateLog logId log =
 
 
 port updateLog4 : LogDto4 -> Cmd msg
+
+
+port updateLog5 : LogDto5 -> Cmd msg
 
 
 port fetchLog4 : String -> Cmd msg

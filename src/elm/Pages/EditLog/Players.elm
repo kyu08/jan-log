@@ -42,9 +42,9 @@ initPlayers4 =
 
 initPlayers5 : Players
 initPlayers5 =
-    Players4 <|
+    Players5 <|
         fromList
-            Length.four
+            Length.five
             "A"
             [ "B", "C", "D", "E" ]
 
