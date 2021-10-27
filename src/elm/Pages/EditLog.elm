@@ -982,7 +982,7 @@ updateLog logId log =
         updateLog4 <| Log.toLogDto4 logId log
 
     else if Rounds.isRounds5 log.rounds then
-        updateLog5 <| Log.toLogDto5 (Debug.log "" logId) log
+        updateLog5 <| Log.toLogDto5 logId log
 
     else
         Cmd.none

@@ -876,7 +876,21 @@ updatePoints { point, rounds, roundIndex, playerIndex } =
                 )
                 rounds
 
-        _ ->
+        Just (Round5 round5) ->
+            Array.set
+                roundIndex
+                (Round5
+                    { round5
+                        | points =
+                            StaticArray.set
+                                (Index.fromModBy Length.five playerIndex)
+                                point
+                                round5.points
+                    }
+                )
+                rounds
+
+        Nothing ->
             rounds
 
 
