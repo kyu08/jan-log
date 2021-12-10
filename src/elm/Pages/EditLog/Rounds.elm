@@ -33,6 +33,7 @@ module Pages.EditLog.Rounds exposing
     , returnedPoints
     , round4FromDto
     , round5FromDto
+    , roundPoint
     , sortedPoints
     , test__intRound4
     , toIntRound
@@ -711,6 +712,31 @@ returnedPoints returnPoint points =
                             |> StaticArray.indexedMap
                                 (\index point -> ( Index.toInt index, point - returnPoint ))
            )
+
+
+{-| 3ケタの整数の 1ケタ目を五捨六入 する関数
+丸める方の round
+-}
+roundPoint : Int -> Int
+roundPoint arg =
+    let
+        argMinusFirstDigit =
+            (arg
+                |> toFloat
+                |> (/)
+            )
+                10
+                |> floor
+                |> (*) 10
+
+        firstDigit =
+            arg - argMinusFirstDigit
+    in
+    if firstDigit > 5 then
+        argMinusFirstDigit + 10
+
+    else
+        argMinusFirstDigit
 
 
 {-| 座順データが存在すれば起家ソートを行う

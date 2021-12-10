@@ -215,4 +215,94 @@ rounds =
             in
             \_ ->
                 Expect.equal expectedValue testValue
+        , test "4桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    3550
+
+                testValue =
+                    Rounds.roundPoint 3555
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "4桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    2020
+
+                testValue =
+                    Rounds.roundPoint 2019
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "3桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    350
+
+                testValue =
+                    Rounds.roundPoint 355
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "3桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    360
+
+                testValue =
+                    Rounds.roundPoint 356
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    10
+
+                testValue =
+                    Rounds.roundPoint 13
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    40
+
+                testValue =
+                    Rounds.roundPoint 39
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    0
+
+                testValue =
+                    Rounds.roundPoint 2
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    10
+
+                testValue =
+                    Rounds.roundPoint 7
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること3" <|
+            let
+                expectedValue =
+                    0
+
+                testValue =
+                    Rounds.roundPoint 0
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
         ]
