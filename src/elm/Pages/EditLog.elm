@@ -2,6 +2,7 @@ port module Pages.EditLog exposing
     ( Model
     , Msg
     , initCmd4
+    , initCmd5
     , initModel
     , subscriptions
     , toSession
@@ -11,7 +12,6 @@ port module Pages.EditLog exposing
 
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
-import Expands.Array as ExArray
 import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
@@ -21,7 +21,7 @@ import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Pages.EditLog.Chips as Chips exposing (Chips)
-import Pages.EditLog.Dtos.LogDto exposing (LogDto4)
+import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
@@ -31,9 +31,6 @@ import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
-import StaticArray
-import StaticArray.Index as Index
-import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
 import UI
@@ -94,6 +91,15 @@ initCmd4 logId =
         ]
 
 
+initCmd5 : LogId -> Cmd Msg
+initCmd5 logId =
+    Cmd.batch
+        [ fetchLog5 logId
+        , listenLog5 logId
+        , Task.perform SetTime initTimeTask
+        ]
+
+
 initTimeTask : Task Never Time.Posix
 initTimeTask =
     Time.now
@@ -113,9 +119,16 @@ initUIStatus =
     }
 
 
-initPageModel : Time.Posix -> PageModel
-initPageModel currentTime =
-    { log = Log.initLog currentTime
+initPageModel4 : Time.Posix -> PageModel
+initPageModel4 currentTime =
+    { log = Log.initLog4 currentTime
+    , uiStatus = initUIStatus
+    }
+
+
+initPageModel5 : Time.Posix -> PageModel
+initPageModel5 currentTime =
+    { log = Log.initLog5 currentTime
     , uiStatus = initUIStatus
     }
 
@@ -179,9 +192,12 @@ type Msg
     | ClickedAddRowButton
     | ClickedToggleConfigButton
     | ClickedHowToUseButton
-    | FetchedLog LogDto4
-    | ListenedLog LogDto4
-    | FetchedLogButNoLog ()
+    | FetchedLog4 LogDto4
+    | FetchedLog5 LogDto5
+    | ListenedLog4 LogDto4
+    | ListenedLog5 LogDto5
+    | FetchedLogButNoLog4 ()
+    | FetchedLogButNoLog5 ()
     | ChangedRankPointFirst String
     | ChangedRankPointSecond String
     | ChangedHavePoint String
@@ -206,22 +222,39 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     -- ( { m | currentTime = Just now, pageStatus = Loaded { log = dto4ToLog Iphone.log, uiStatus = initUIStatus } }, fetchLog "asd" )
                     ( { m | currentTime = Just now }, Cmd.none )
 
-                FetchedLog dto4 ->
-                    case dto4ToLog dto4 of
+                FetchedLog4 log4Dto ->
+                    case Log.dto4ToLog log4Dto of
                         Just log ->
                             ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
 
-                FetchedLogButNoLog () ->
+                FetchedLog5 log5Dto ->
+                    case Log.dto5ToLog log5Dto of
+                        Just log ->
+                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
+
+                FetchedLogButNoLog4 () ->
                     case currentTime of
                         Just currentTime_ ->
-                            ( { m | pageStatus = Loaded <| initPageModel currentTime_ }, Cmd.none )
+                            ( { m | pageStatus = Loaded <| initPageModel4 currentTime_ }, Cmd.none )
 
                         Nothing ->
                             -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
-                            ( m, Task.perform (\_ -> FetchedLogButNoLog ()) sleep50ms )
+                            ( m, Task.perform (\_ -> FetchedLogButNoLog4 ()) sleep50ms )
+
+                FetchedLogButNoLog5 () ->
+                    case currentTime of
+                        Just currentTime_ ->
+                            ( { m | pageStatus = Loaded <| initPageModel5 currentTime_ }, Cmd.none )
+
+                        Nothing ->
+                            -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
+                            ( m, Task.perform (\_ -> FetchedLogButNoLog5 ()) sleep50ms )
 
                 _ ->
                     ( m, Cmd.none )
@@ -246,7 +279,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedPoint roundIndex playerIndex point ->
                     let
@@ -261,7 +294,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextLog =
                             { log | rounds = updatedRounds }
                     in
-                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog logId nextLog )
 
                 ChangedTobisho roundIndex playerIndex tobisho ->
                     let
@@ -276,18 +309,17 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextLog =
                             { log | rounds = updatedRounds }
                     in
-                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog4 <| toLogDto4 logId nextLog )
+                    ( { m | pageStatus = Loaded { pageModel | log = nextLog } }, updateLog logId nextLog )
 
                 ChangedChip playerIndex chip ->
                     let
                         nextLog =
-                            { log | chips = StaticArray.set (Index.fromModBy Length.four playerIndex) chip log.chips }
+                            { log | chips = Chips.update playerIndex chip log.chips }
 
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    -- TODO: ↓これをまとめてやってくれる関数を定義する
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedRate inputValue ->
                     let
@@ -297,7 +329,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedChipRate inputValue ->
                     let
@@ -307,7 +339,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedGameFee inputValue ->
                     let
@@ -317,7 +349,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ClickedAddRowButton ->
                     ( { m | pageStatus = Loaded { pageModel | log = { log | rounds = Array.push Rounds.initRound4 log.rounds } } }, Cmd.none )
@@ -332,8 +364,16 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     , Cmd.none
                     )
 
-                ListenedLog dto4 ->
-                    case dto4ToLog dto4 of
+                ListenedLog4 dto4 ->
+                    case Log.dto4ToLog dto4 of
+                        Just log_ ->
+                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+
+                        Nothing ->
+                            ( { m | pageStatus = Loading }, Cmd.none )
+
+                ListenedLog5 dto5 ->
+                    case Log.dto5ToLog dto5 of
                         Just log_ ->
                             ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
 
@@ -348,7 +388,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedRankPointSecond rankpointSecond ->
                     let
@@ -358,7 +398,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedReturnPoint returnPoint ->
                     let
@@ -368,7 +408,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ChangedHavePoint havePoint ->
                     let
@@ -378,7 +418,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { m | pageStatus = Loaded { pageModel | log = nextLog } }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 ClickedEditRoundButton roundIndex round_ ->
                     let
@@ -455,58 +495,10 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         nextModel =
                             { modelSeatingOrderInputUpdated | pageStatus = nextPageStatus }
                     in
-                    ( nextModel, updateLog4 <| toLogDto4 logId nextLog )
+                    ( nextModel, updateLog logId nextLog )
 
                 _ ->
                     ( m, Cmd.none )
-
-
-
--- Dto
-
-
-dto4ToLog : LogDto4 -> Maybe Log
-dto4ToLog logDto4 =
-    Maybe.map2
-        (\players_ chips_ ->
-            { createdAt = Time.millisToPosix logDto4.createdAt
-            , players = players_
-            , logConfig =
-                { rate = String.fromInt logDto4.rate
-                , chipRate = String.fromInt logDto4.chipRate
-                , gameFee = String.fromInt logDto4.gameFee
-                , rankPoint =
-                    Tuple.pair
-                        (String.fromInt <| ExArray.getArrayElement 0 logDto4.rankPoint)
-                        (String.fromInt <| ExArray.getArrayElement 1 logDto4.rankPoint)
-                , havePoint = String.fromInt logDto4.havePoint
-                , returnPoint = String.fromInt logDto4.returnPoint
-                }
-            , rounds = Array.map Rounds.roundFromDto logDto4.rounds
-            , chips = chips_
-            }
-        )
-        (Players.fromDto logDto4.players)
-        (Chips.fromDto logDto4.chips)
-
-
-toLogDto4 : LogId -> Log -> LogDto4
-toLogDto4 logId log =
-    { createdAt = Time.posixToMillis log.createdAt
-    , logId = logId
-    , players = Players.toArray log.players
-    , rate = ExString.toIntValue log.logConfig.rate
-    , chipRate = ExString.toIntValue log.logConfig.chipRate
-    , gameFee = ExString.toIntValue log.logConfig.gameFee
-    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first log.logConfig.rankPoint, ExString.toIntValue <| Tuple.second log.logConfig.rankPoint ]
-    , havePoint = ExString.toIntValue log.logConfig.havePoint
-    , returnPoint = ExString.toIntValue log.logConfig.returnPoint
-    , rounds = Array.map Rounds.toRoundObj4 log.rounds
-    , chips =
-        log.chips
-            |> StaticArray.toArray
-            |> ExArray.toIntArray
-    }
 
 
 
@@ -726,7 +718,7 @@ viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
-            if not <| Rounds.isDefaultPoints round then
+            if not <| Rounds.isDefaultRound round then
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
                     , round = Rounds.toIntRound round
@@ -771,7 +763,7 @@ viewInputChipsRow title chips =
             (ExHtml.stringToHtmlIncludingBr title)
             :: List.indexedMap
                 (\index chip -> viewInputChipsCell index chip)
-                (StaticArray.toList chips)
+                (Chips.toList chips)
         )
 
 
@@ -967,10 +959,29 @@ viewInputTobisho roundIndex playerIndex tobisho =
 subscriptions : Sub Msg
 subscriptions =
     Sub.batch
-        [ fetchedLog4 FetchedLog
-        , listenedLog4 ListenedLog
-        , fetchedLogButNoLog FetchedLogButNoLog
+        [ fetchedLog4 FetchedLog4
+        , listenedLog4 ListenedLog4
+        , fetchedLogButNoLog4 FetchedLogButNoLog4
+        , fetchedLog5 FetchedLog5
+        , listenedLog5 ListenedLog5
+        , fetchedLogButNoLog5 FetchedLogButNoLog5
         ]
+
+
+
+-- Functions for Ports
+
+
+updateLog : LogId -> Log -> Cmd msg
+updateLog logId log =
+    if Rounds.isRounds4 log.rounds then
+        updateLog4 <| Log.toLogDto4 logId log
+
+    else if Rounds.isRounds5 log.rounds then
+        updateLog5 <| Log.toLogDto5 logId log
+
+    else
+        Cmd.none
 
 
 
@@ -980,16 +991,34 @@ subscriptions =
 port updateLog4 : LogDto4 -> Cmd msg
 
 
+port updateLog5 : LogDto5 -> Cmd msg
+
+
 port fetchLog4 : String -> Cmd msg
+
+
+port fetchLog5 : String -> Cmd msg
 
 
 port fetchedLog4 : (LogDto4 -> msg) -> Sub msg
 
 
-port fetchedLogButNoLog : (() -> msg) -> Sub msg
+port fetchedLog5 : (LogDto5 -> msg) -> Sub msg
+
+
+port fetchedLogButNoLog4 : (() -> msg) -> Sub msg
+
+
+port fetchedLogButNoLog5 : (() -> msg) -> Sub msg
 
 
 port listenLog4 : String -> Cmd msg
 
 
+port listenLog5 : String -> Cmd msg
+
+
 port listenedLog4 : (LogDto4 -> msg) -> Sub msg
+
+
+port listenedLog5 : (LogDto5 -> msg) -> Sub msg

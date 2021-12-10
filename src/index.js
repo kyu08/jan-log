@@ -27,7 +27,20 @@ app.ports.fetchLog4.subscribe((logId) => {
       if (doc.exists) {
         app.ports.fetchedLog4.send({ ...doc.data(), logId });
       } else {
-        app.ports.fetchedLogButNoLog.send(null);
+        app.ports.fetchedLogButNoLog4.send(null);
+      }
+    });
+});
+
+app.ports.fetchLog5.subscribe((logId) => {
+  db.collection("logs5players")
+    .doc(logId)
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        app.ports.fetchedLog5.send({ ...doc.data(), logId });
+      } else {
+        app.ports.fetchedLogButNoLog5.send(null);
       }
     });
 });
@@ -36,10 +49,22 @@ app.ports.updateLog4.subscribe((dto) => {
   db.collection("logs4players").doc(dto.logId).set(dto);
 });
 
+app.ports.updateLog5.subscribe((dto) => {
+  db.collection("logs5players").doc(dto.logId).set(dto);
+});
+
 app.ports.listenLog4.subscribe((logId) => {
   db.doc(`logs4players/${logId}`).onSnapshot((doc) => {
     if (doc.exists) {
       app.ports.fetchedLog4.send({ ...doc.data(), logId });
+    }
+  });
+});
+
+app.ports.listenLog5.subscribe((logId) => {
+  db.doc(`logs5players/${logId}`).onSnapshot((doc) => {
+    if (doc.exists) {
+      app.ports.fetchedLog5.send({ ...doc.data(), logId });
     }
   });
 });

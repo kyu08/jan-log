@@ -19,22 +19,26 @@ module Pages.EditLog.Rounds exposing
     , hasSamePoint
     , initPoint
     , initRound4
-    , initRounds
-    , isDefaultPoints
+    , initRounds4
+    , initRounds5
+    , isDefaultRound
     , isDoneInput
     , isRadioButtonChecked
+    , isRounds4
+    , isRounds5
     , kazeToSelecter
     , kazeToString
     , needsSeatingOrderInput
     , rankPointedPoints
     , returnedPoints
-    , roundFromDto
+    , round4FromDto
+    , round5FromDto
     , sortedPoints
     , test__intRound4
     , toIntRound
-    , toRoundObj4
+    , toRound4Dto
+    , toRound5Dto
     , toStringRound
-    , toStringRound4
     , totalPoint
     , totalPointsWithout1st
     , unwrapRound
@@ -47,8 +51,8 @@ import Array exposing (Array)
 import Expands.Array as ExArray
 import Expands.String as ExString
 import Expands.Tuple as ExTuple
-import Pages.EditLog.Chips exposing (Chips)
-import Pages.EditLog.Dtos.LogDto exposing (Round4Dto)
+import Pages.EditLog.Chips as Chips exposing (Chips)
+import Pages.EditLog.Dtos.LogDto exposing (Round4DtoValue, Round5DtoValue, RoundDto(..))
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import StaticArray exposing (StaticArray)
 import StaticArray.Index as Index
@@ -82,6 +86,7 @@ type alias Round4Value =
 type alias Round5Value =
     { points : StaticArray Index.Five Point
     , seatingOrder : Maybe SeatingOrder
+    , tobisho : StaticArray Index.Five Point
     }
 
 
@@ -106,6 +111,7 @@ type IntRound
     | IntRound5
         { points : StaticArray Index.Five Int
         , seatingOrder : Maybe SeatingOrder
+        , tobiSho : StaticArray Index.Five Int
         }
 
 
@@ -113,8 +119,8 @@ type IntRound
 -- functions
 
 
-isDefaultPoints : Round -> Bool
-isDefaultPoints round =
+isDefaultRound : Round -> Bool
+isDefaultRound round =
     case round of
         Round4 _ ->
             round == initRound4
@@ -126,6 +132,11 @@ isDefaultPoints round =
 initTobisho4 : StaticArray Index.Four Point
 initTobisho4 =
     StaticArray.initialize Length.four (always "")
+
+
+initTobisho5 : StaticArray Index.Five Point
+initTobisho5 =
+    StaticArray.initialize Length.five (always "")
 
 
 initPoints4 : StaticArray Index.Four Point
@@ -141,7 +152,7 @@ initPoints5 =
 initRound4 : Round
 initRound4 =
     Round4
-        { points = initTobisho4
+        { points = initPoints4
         , seatingOrder = Nothing
         , tobisho = initTobisho4
         }
@@ -152,6 +163,7 @@ initRound5 =
     Round5
         { points = initPoints5
         , seatingOrder = Nothing
+        , tobisho = initTobisho5
         }
 
 
@@ -185,11 +197,40 @@ initPoint round =
                 |> .points
 
 
-{-| TODO: validation とかどうしよう
--}
-initRounds : Rounds
-initRounds =
+initRounds4 : Rounds
+initRounds4 =
     Array.initialize 4 (\_ -> initRound4)
+
+
+initRounds5 : Rounds
+initRounds5 =
+    Array.initialize 5 (\_ -> initRound5)
+
+
+isRounds4 : Rounds -> Bool
+isRounds4 rounds =
+    case Array.get 0 rounds of
+        Just (Round4 _) ->
+            True
+
+        Just (Round5 _) ->
+            False
+
+        Nothing ->
+            False
+
+
+isRounds5 : Rounds -> Bool
+isRounds5 rounds =
+    case Array.get 0 rounds of
+        Just (Round5 _) ->
+            True
+
+        Just (Round4 _) ->
+            False
+
+        Nothing ->
+            False
 
 
 
@@ -225,10 +266,11 @@ toStringRound intRound =
                 , tobisho = StaticArray.map String.fromInt tobiSho
                 }
 
-        IntRound5 { seatingOrder, points } ->
+        IntRound5 { seatingOrder, points, tobiSho } ->
             Round5
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map String.fromInt points
+                , tobisho = StaticArray.map String.fromInt tobiSho
                 }
 
 
@@ -242,41 +284,16 @@ toIntRound round =
                 , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobisho
                 }
 
-        Round5 { seatingOrder, points } ->
+        Round5 { seatingOrder, points, tobisho } ->
             IntRound5
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map (\point -> Maybe.withDefault 0 (String.toInt point)) points
+                , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobisho
                 }
 
 
-toStringRound4 : Round4Dto -> Round
-toStringRound4 { points, seatingOrder, tobiSho } =
-    let
-        points_ =
-            case List.map ExString.fromInt <| [ points.data0, points.data1, points.data2, points.data3 ] of
-                head :: tail ->
-                    StaticArray.fromList Length.four head tail
-
-                [] ->
-                    initTobisho4
-
-        tobisho_ =
-            case List.map ExString.fromInt <| [ tobiSho.data0, tobiSho.data1, tobiSho.data2, tobiSho.data3 ] of
-                head :: tail ->
-                    StaticArray.fromList Length.four head tail
-
-                [] ->
-                    initTobisho4
-    in
-    Round4
-        { seatingOrder = seatingOrder
-        , points = points_
-        , tobisho = tobisho_
-        }
-
-
-toRoundObj4 : Round -> Round4Dto
-toRoundObj4 round =
+toRound4Dto : Round -> Round4DtoValue
+toRound4Dto round =
     case round of
         Round4 { points, seatingOrder, tobisho } ->
             let
@@ -301,10 +318,14 @@ toRoundObj4 round =
                 }
             }
 
-        Round5 { points, seatingOrder } ->
+        -- 呼ばれないべき branch なので設計がよくなさそう・・・
+        Round5 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
                     StaticArray.map ExString.toIntValue points
+
+                tobiShoInt =
+                    StaticArray.map ExString.toIntValue tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -314,10 +335,65 @@ toRoundObj4 round =
                 , data3 = StaticArray.get (Index.fromModBy Length.five 3) pointsInt
                 }
             , tobiSho =
-                { data0 = 0
-                , data1 = 0
-                , data2 = 0
-                , data3 = 0
+                { data0 = StaticArray.get (Index.fromModBy Length.five 0) tobiShoInt
+                , data1 = StaticArray.get (Index.fromModBy Length.five 1) tobiShoInt
+                , data2 = StaticArray.get (Index.fromModBy Length.five 2) tobiShoInt
+                , data3 = StaticArray.get (Index.fromModBy Length.five 3) tobiShoInt
+                }
+            }
+
+
+toRound5Dto : Round -> Round5DtoValue
+toRound5Dto round =
+    case round of
+        Round4 { points, seatingOrder, tobisho } ->
+            let
+                pointsInt =
+                    StaticArray.map ExString.toIntValue points
+
+                tobiShoInt =
+                    StaticArray.map ExString.toIntValue tobisho
+            in
+            { seatingOrder = seatingOrder
+            , points =
+                { data0 = StaticArray.get (Index.fromModBy Length.four 0) pointsInt
+                , data1 = StaticArray.get (Index.fromModBy Length.four 1) pointsInt
+                , data2 = StaticArray.get (Index.fromModBy Length.four 2) pointsInt
+                , data3 = StaticArray.get (Index.fromModBy Length.four 3) pointsInt
+                , data4 = StaticArray.get (Index.fromModBy Length.four 4) pointsInt
+                }
+            , tobiSho =
+                { data0 = StaticArray.get (Index.fromModBy Length.four 0) tobiShoInt
+                , data1 = StaticArray.get (Index.fromModBy Length.four 1) tobiShoInt
+                , data2 = StaticArray.get (Index.fromModBy Length.four 2) tobiShoInt
+                , data3 = StaticArray.get (Index.fromModBy Length.four 3) tobiShoInt
+                , data4 = StaticArray.get (Index.fromModBy Length.four 4) tobiShoInt
+                }
+            }
+
+        -- 呼ばれないべき branch なので設計がよくなさそう・・・
+        Round5 { points, seatingOrder, tobisho } ->
+            let
+                pointsInt =
+                    StaticArray.map ExString.toIntValue points
+
+                tobiShoInt =
+                    StaticArray.map ExString.toIntValue tobisho
+            in
+            { seatingOrder = seatingOrder
+            , points =
+                { data0 = StaticArray.get (Index.fromModBy Length.five 0) pointsInt
+                , data1 = StaticArray.get (Index.fromModBy Length.five 1) pointsInt
+                , data2 = StaticArray.get (Index.fromModBy Length.five 2) pointsInt
+                , data3 = StaticArray.get (Index.fromModBy Length.five 3) pointsInt
+                , data4 = StaticArray.get (Index.fromModBy Length.five 4) pointsInt
+                }
+            , tobiSho =
+                { data0 = StaticArray.get (Index.fromModBy Length.five 0) tobiShoInt
+                , data1 = StaticArray.get (Index.fromModBy Length.five 1) tobiShoInt
+                , data2 = StaticArray.get (Index.fromModBy Length.five 2) tobiShoInt
+                , data3 = StaticArray.get (Index.fromModBy Length.five 3) tobiShoInt
+                , data4 = StaticArray.get (Index.fromModBy Length.five 4) tobiShoInt
                 }
             }
 
@@ -332,27 +408,85 @@ getSeatingOrder round =
             round5.seatingOrder
 
 
-roundFromDto : Round4Dto -> Round
-roundFromDto { points, seatingOrder, tobiSho } =
+toPoints4FromDto : Round4DtoValue -> StaticArray Index.Four Point
+toPoints4FromDto round4DtoValue =
     let
-        points_ =
-            StaticArray.map ExString.fromInt <|
-                StaticArray.fromList
-                    Length.four
-                    points.data0
-                    [ points.data1, points.data2, points.data3 ]
+        fromInt : Round4DtoValue -> Int -> String
+        fromInt round4Value =
+            if
+                -- すべて 0 だったら
+                [ round4Value.points.data0, round4Value.points.data1, round4Value.points.data2, round4Value.points.data3 ]
+                    |> List.filter ((==) 0)
+                    |> List.length
+                    |> (==) 4
+            then
+                ExString.fromInt
 
-        tobiSho_ =
+            else
+                String.fromInt
+    in
+    StaticArray.map
+        (fromInt round4DtoValue)
+        (StaticArray.fromList
+            Length.four
+            round4DtoValue.points.data0
+            [ round4DtoValue.points.data1, round4DtoValue.points.data2, round4DtoValue.points.data3 ]
+        )
+
+
+toPoints5FromDto : Round5DtoValue -> StaticArray Index.Five Point
+toPoints5FromDto round5DtoValue =
+    let
+        fromInt : Round5DtoValue -> Int -> String
+        fromInt round5Value =
+            if
+                -- すべて 0 だったら
+                [ round5Value.points.data0, round5Value.points.data1, round5Value.points.data2, round5Value.points.data3, round5Value.points.data4 ]
+                    |> List.filter ((==) 0)
+                    |> List.length
+                    |> (==) 5
+            then
+                ExString.fromInt
+
+            else
+                String.fromInt
+    in
+    StaticArray.map
+        (fromInt round5DtoValue)
+        (StaticArray.fromList
+            Length.five
+            round5DtoValue.points.data0
+            [ round5DtoValue.points.data1, round5DtoValue.points.data2, round5DtoValue.points.data3, round5DtoValue.points.data4 ]
+        )
+
+
+round4FromDto : Round4DtoValue -> Round
+round4FromDto round4Value =
+    Round4
+        { points =
+            toPoints4FromDto round4Value
+        , seatingOrder = round4Value.seatingOrder
+        , tobisho =
             StaticArray.map ExString.fromInt <|
                 StaticArray.fromList
                     Length.four
-                    tobiSho.data0
-                    [ tobiSho.data1, tobiSho.data2, tobiSho.data3 ]
-    in
-    Round4
-        { points = points_
-        , seatingOrder = seatingOrder
-        , tobisho = tobiSho_
+                    round4Value.tobiSho.data0
+                    [ round4Value.tobiSho.data1, round4Value.tobiSho.data2, round4Value.tobiSho.data3 ]
+        }
+
+
+round5FromDto : Round5DtoValue -> Round
+round5FromDto round5Value =
+    Round5
+        { points =
+            toPoints5FromDto round5Value
+        , seatingOrder = round5Value.seatingOrder
+        , tobisho =
+            StaticArray.map ExString.fromInt <|
+                StaticArray.fromList
+                    Length.five
+                    round5Value.tobiSho.data0
+                    [ round5Value.tobiSho.data1, round5Value.tobiSho.data2, round5Value.tobiSho.data3, round5Value.tobiSho.data4 ]
         }
 
 
@@ -464,7 +598,7 @@ calculateTotalPointIncludeChip chipRate totalPoints chips =
         (Array.initialize 1
             (\_ ->
                 chips
-                    |> StaticArray.toArray
+                    |> Chips.toArray
                     |> ExArray.toIntArray
             )
         )
@@ -545,11 +679,8 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
                     | points = nextPoints
                 }
 
-        IntRound5 { points, seatingOrder } ->
-            IntRound5
-                { points = points
-                , seatingOrder = seatingOrder
-                }
+        IntRound5 round_ ->
+            IntRound5 round_
 
 
 
@@ -652,6 +783,10 @@ calculated1stPointPoints rankPointedPoints_ totalPointsWithout1st_ =
         rankPointedPoints_
 
 
+{-| これUI都合なのにここにあっていいのかな
+命名がおかしい説もある
+needsSeatingOrder でいいかもしれない
+-}
 needsSeatingOrderInput : Round -> Bool
 needsSeatingOrderInput round =
     let
@@ -738,7 +873,21 @@ updatePoints { point, rounds, roundIndex, playerIndex } =
                 )
                 rounds
 
-        _ ->
+        Just (Round5 round5) ->
+            Array.set
+                roundIndex
+                (Round5
+                    { round5
+                        | points =
+                            StaticArray.set
+                                (Index.fromModBy Length.five playerIndex)
+                                point
+                                round5.points
+                    }
+                )
+                rounds
+
+        Nothing ->
             rounds
 
 

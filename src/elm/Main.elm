@@ -100,9 +100,14 @@ maybeRouteToModel url model =
         Just Route.History ->
             ( History session, Cmd.none )
 
-        Just (Route.EditLog logId) ->
+        Just (Route.EditLog4 logId) ->
             ( EditLog (EditLog.initModel logId session)
             , Cmd.map GotEditLogMsg <| EditLog.initCmd4 logId
+            )
+
+        Just (Route.EditLog5 logId) ->
+            ( EditLog (EditLog.initModel logId session)
+            , Cmd.map GotEditLogMsg <| EditLog.initCmd5 logId
             )
 
         Just Route.Home ->
@@ -156,7 +161,7 @@ view model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.map GotEditLogMsg EditLog.subscriptions
 
 
