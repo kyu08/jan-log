@@ -21,7 +21,7 @@ module Pages.EditLog.Rounds exposing
     , initRound4
     , initRounds4
     , initRounds5
-    , isDefaultPoints
+    , isDefaultRound
     , isDoneInput
     , isRadioButtonChecked
     , isRounds4
@@ -39,7 +39,6 @@ module Pages.EditLog.Rounds exposing
     , toRound4Dto
     , toRound5Dto
     , toStringRound
-    , toStringRound4
     , totalPoint
     , totalPointsWithout1st
     , unwrapRound
@@ -120,8 +119,8 @@ type IntRound
 -- functions
 
 
-isDefaultPoints : Round -> Bool
-isDefaultPoints round =
+isDefaultRound : Round -> Bool
+isDefaultRound round =
     case round of
         Round4 _ ->
             round == initRound4
@@ -196,10 +195,6 @@ initPoint round =
             initRound5
                 |> unwrapRound
                 |> .points
-
-
-
--- - point が入力できない
 
 
 initRounds4 : Rounds
@@ -294,48 +289,6 @@ toIntRound round =
                 { seatingOrder = seatingOrder
                 , points = StaticArray.map (\point -> Maybe.withDefault 0 (String.toInt point)) points
                 , tobiSho = StaticArray.map (\tobisho_ -> Maybe.withDefault 0 (String.toInt tobisho_)) tobisho
-                }
-
-
-toStringRound4 : RoundDto -> Round
-toStringRound4 roundDto =
-    case roundDto of
-        Round4Dto round4Value ->
-            Round4
-                { seatingOrder = round4Value.seatingOrder
-                , points =
-                    case List.map ExString.fromInt <| [ round4Value.points.data0, round4Value.points.data1, round4Value.points.data2, round4Value.points.data3 ] of
-                        head :: tail ->
-                            StaticArray.fromList Length.four head tail
-
-                        [] ->
-                            initPoints4
-                , tobisho =
-                    case List.map ExString.fromInt <| [ round4Value.tobiSho.data0, round4Value.tobiSho.data1, round4Value.tobiSho.data2, round4Value.tobiSho.data3 ] of
-                        head :: tail ->
-                            StaticArray.fromList Length.four head tail
-
-                        [] ->
-                            initTobisho4
-                }
-
-        Round5Dto round5Value ->
-            Round5
-                { seatingOrder = round5Value.seatingOrder
-                , points =
-                    case List.map ExString.fromInt <| [ round5Value.points.data0, round5Value.points.data1, round5Value.points.data2, round5Value.points.data3 ] of
-                        head :: tail ->
-                            StaticArray.fromList Length.five head tail
-
-                        [] ->
-                            initPoints5
-                , tobisho =
-                    case List.map ExString.fromInt <| [ round5Value.tobiSho.data0, round5Value.tobiSho.data1, round5Value.tobiSho.data2, round5Value.tobiSho.data3 ] of
-                        head :: tail ->
-                            StaticArray.fromList Length.five head tail
-
-                        [] ->
-                            initTobisho5
                 }
 
 
@@ -455,15 +408,63 @@ getSeatingOrder round =
             round5.seatingOrder
 
 
+toPoints4FromDto : Round4DtoValue -> StaticArray Index.Four Point
+toPoints4FromDto round4DtoValue =
+    let
+        fromInt : Round4DtoValue -> Int -> String
+        fromInt round4Value =
+            if
+                -- すべて 0 だったら
+                [ round4Value.points.data0, round4Value.points.data1, round4Value.points.data2, round4Value.points.data3 ]
+                    |> List.filter ((==) 0)
+                    |> List.length
+                    |> (==) 4
+            then
+                ExString.fromInt
+
+            else
+                String.fromInt
+    in
+    StaticArray.map
+        (fromInt round4DtoValue)
+        (StaticArray.fromList
+            Length.four
+            round4DtoValue.points.data0
+            [ round4DtoValue.points.data1, round4DtoValue.points.data2, round4DtoValue.points.data3 ]
+        )
+
+
+toPoints5FromDto : Round5DtoValue -> StaticArray Index.Five Point
+toPoints5FromDto round5DtoValue =
+    let
+        fromInt : Round5DtoValue -> Int -> String
+        fromInt round5Value =
+            if
+                -- すべて 0 だったら
+                [ round5Value.points.data0, round5Value.points.data1, round5Value.points.data2, round5Value.points.data3, round5Value.points.data4 ]
+                    |> List.filter ((==) 0)
+                    |> List.length
+                    |> (==) 5
+            then
+                ExString.fromInt
+
+            else
+                String.fromInt
+    in
+    StaticArray.map
+        (fromInt round5DtoValue)
+        (StaticArray.fromList
+            Length.five
+            round5DtoValue.points.data0
+            [ round5DtoValue.points.data1, round5DtoValue.points.data2, round5DtoValue.points.data3, round5DtoValue.points.data4 ]
+        )
+
+
 round4FromDto : Round4DtoValue -> Round
 round4FromDto round4Value =
     Round4
         { points =
-            StaticArray.map ExString.fromInt <|
-                StaticArray.fromList
-                    Length.four
-                    round4Value.points.data0
-                    [ round4Value.points.data1, round4Value.points.data2, round4Value.points.data3 ]
+            toPoints4FromDto round4Value
         , seatingOrder = round4Value.seatingOrder
         , tobisho =
             StaticArray.map ExString.fromInt <|
@@ -478,11 +479,7 @@ round5FromDto : Round5DtoValue -> Round
 round5FromDto round5Value =
     Round5
         { points =
-            StaticArray.map ExString.fromInt <|
-                StaticArray.fromList
-                    Length.five
-                    round5Value.points.data0
-                    [ round5Value.points.data1, round5Value.points.data2, round5Value.points.data3, round5Value.points.data4 ]
+            toPoints5FromDto round5Value
         , seatingOrder = round5Value.seatingOrder
         , tobisho =
             StaticArray.map ExString.fromInt <|

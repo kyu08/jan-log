@@ -76,7 +76,9 @@ view model =
         []
         [ UI.viewLinkButton phrases.history routes.history
         , UI.viewLinkButton phrases.newLog4 (toNewLogUrl routes.editLog4 model)
-        , UI.viewLinkButton phrases.newLog5 (toNewLogUrl routes.editLog5 model)
+
+        -- バグ修正を先にリリースするためにコメントアウト(コンフリクト修正めんどくさい)
+        -- , UI.viewLinkButton phrases.newLog5 (toNewLogUrl routes.editLog5 model)
         ]
 
 

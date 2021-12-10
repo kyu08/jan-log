@@ -12,7 +12,6 @@ port module Pages.EditLog exposing
 
 import Array exposing (Array)
 import Common.LogId exposing (LogId)
-import Expands.Array as ExArray
 import Expands.Html as ExHtml
 import Expands.Maybe as ExMaybe
 import Expands.String as ExString
@@ -32,9 +31,6 @@ import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
-import StaticArray
-import StaticArray.Index as Index
-import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
 import UI
@@ -722,7 +718,7 @@ viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
 viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
     let
         points =
-            if not <| Rounds.isDefaultPoints round then
+            if not <| Rounds.isDefaultRound round then
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
                     , round = Rounds.toIntRound round
