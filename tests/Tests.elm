@@ -94,7 +94,7 @@ rounds =
                                 , pei = 3
                                 }
                         , points = StaticArray.fromList Length.four -50 [ -10, 10, 50 ]
-                        , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                        , tobiSho = StaticArray.fromList Length.four -100 [ 100, 0, 0 ]
                         }
 
                 testValue =
@@ -109,7 +109,7 @@ rounds =
                                         , pei = 3
                                         }
                                 , points = StaticArray.fromList Length.four 100 [ 200, 300, 400 ]
-                                , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                                , tobiSho = StaticArray.fromList Length.four -100 [ 100, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
                         , havePoint = 25

@@ -651,7 +651,8 @@ calculateRoundFromRawPoint { round_, rankPoint, havePoint, returnPoint } =
 
         -- トビ賞を計算して StaticArray に戻す
         calculatedIntStaticPoints points tobiSho calculatedIntPoints_ =
-            case List.map2 (+) calculatedIntPoints_ (StaticArray.toList tobiSho) of
+            --
+            case List.map2 (\calculatedIntPoint tobisho -> calculatedIntPoint + round (toFloat tobisho / 10)) calculatedIntPoints_ (StaticArray.toList tobiSho) of
                 head :: tail ->
                     StaticArray.fromList Length.four head tail
 
