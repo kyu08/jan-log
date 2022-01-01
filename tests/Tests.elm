@@ -27,7 +27,7 @@ rounds =
 
                 testValue =
                     Rounds.calculateRoundFromRawPoint
-                        { round =
+                        { round_ =
                             Rounds.test__intRound4
                                 { seatingOrder =
                                     Just
@@ -36,7 +36,7 @@ rounds =
                                         , sha = 2
                                         , pei = 3
                                         }
-                                , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+                                , points = StaticArray.fromList Length.four 100 [ 200, 300, 400 ]
                                 , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
@@ -63,7 +63,7 @@ rounds =
 
                 testValue =
                     Rounds.calculateRoundFromRawPoint
-                        { round =
+                        { round_ =
                             Rounds.test__intRound4
                                 { seatingOrder =
                                     Just
@@ -72,7 +72,7 @@ rounds =
                                         , sha = 1
                                         , pei = 3
                                         }
-                                , points = StaticArray.fromList Length.four 10 [ 20, 20, 50 ]
+                                , points = StaticArray.fromList Length.four 100 [ 200, 200, 500 ]
                                 , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
@@ -94,12 +94,12 @@ rounds =
                                 , pei = 3
                                 }
                         , points = StaticArray.fromList Length.four -50 [ -10, 10, 50 ]
-                        , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                        , tobiSho = StaticArray.fromList Length.four -100 [ 100, 0, 0 ]
                         }
 
                 testValue =
                     Rounds.calculateRoundFromRawPoint
-                        { round =
+                        { round_ =
                             Rounds.test__intRound4
                                 { seatingOrder =
                                     Just
@@ -108,8 +108,8 @@ rounds =
                                         , sha = 2
                                         , pei = 3
                                         }
-                                , points = StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
-                                , tobiSho = StaticArray.fromList Length.four -10 [ 10, 0, 0 ]
+                                , points = StaticArray.fromList Length.four 100 [ 200, 300, 400 ]
+                                , tobiSho = StaticArray.fromList Length.four -100 [ 100, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
                         , havePoint = 25
@@ -121,11 +121,11 @@ rounds =
         , test "3万点返しする" <|
             let
                 expectedValue =
-                    StaticArray.fromList Length.four ( 0, -20 ) [ ( 1, -10 ), ( 2, 0 ), ( 3, 10 ) ]
+                    StaticArray.fromList Length.four ( 0, -200 ) [ ( 1, -100 ), ( 2, 0 ), ( 3, 100 ) ]
 
                 testValue =
                     Rounds.returnedPoints 30 <|
-                        StaticArray.fromList Length.four 10 [ 20, 30, 40 ]
+                        StaticArray.fromList Length.four 100 [ 200, 300, 400 ]
             in
             \_ ->
                 Expect.equal expectedValue testValue
@@ -174,7 +174,7 @@ rounds =
                     ]
 
                 testValue =
-                    Rounds.rankPointedPoints
+                    Rounds.addRankPointPoints
                         [ 20, 10, -10, -20 ]
                         [ ( 3, 10 ), ( 2, 0 ), ( 1, -10 ), ( 0, -20 ) ]
             in
@@ -212,6 +212,96 @@ rounds =
                         , ( 3, ( 0, -40 ) )
                         ]
                         -50
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "4桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    3550
+
+                testValue =
+                    Rounds.roundFirstDegit 3555
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "4桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    2020
+
+                testValue =
+                    Rounds.roundFirstDegit 2019
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "3桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    350
+
+                testValue =
+                    Rounds.roundFirstDegit 355
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "3桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    360
+
+                testValue =
+                    Rounds.roundFirstDegit 356
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    10
+
+                testValue =
+                    Rounds.roundFirstDegit 13
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "2桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    40
+
+                testValue =
+                    Rounds.roundFirstDegit 39
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること1" <|
+            let
+                expectedValue =
+                    0
+
+                testValue =
+                    Rounds.roundFirstDegit 2
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること2" <|
+            let
+                expectedValue =
+                    10
+
+                testValue =
+                    Rounds.roundFirstDegit 7
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "1桁の整数の五捨六入が正しくできること3" <|
+            let
+                expectedValue =
+                    0
+
+                testValue =
+                    Rounds.roundFirstDegit 0
             in
             \_ ->
                 Expect.equal expectedValue testValue

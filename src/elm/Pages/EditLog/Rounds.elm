@@ -5,6 +5,7 @@ module Pages.EditLog.Rounds exposing
     , Round
     , Rounds
     , SeatingOrder
+    , addRankPointPoints
     , allKazes
     , calculateFrom2Arrays
     , calculateRoundFromRawPoint
@@ -29,10 +30,10 @@ module Pages.EditLog.Rounds exposing
     , kazeToSelecter
     , kazeToString
     , needsSeatingOrderInput
-    , rankPointedPoints
     , returnedPoints
     , round4FromDto
     , round5FromDto
+    , roundFirstDegit
     , sortedPoints
     , test__intRound4
     , toIntRound
@@ -619,7 +620,7 @@ calculateTotalBalanceIncludeGameFee gameFee totalBalanceExcludeGameFee =
 
 
 type alias CalculateRoundFromRawPointConfig =
-    { round : IntRound
+    { round_ : IntRound
 
     -- TODO: tuple にするとわかりずらいのでレコードにしよう
     , rankPoint : ( Int, Int )
@@ -633,7 +634,7 @@ type alias CalculateRoundFromRawPointConfig =
 トビは現状の実装だと場外で(チップなどで)やりとりするしかないので微妙ではある
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
-calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
+calculateRoundFromRawPoint { round_, rankPoint, havePoint, returnPoint } =
     let
         -- 順位点が入ってる List
         rankPointArray =
@@ -650,37 +651,43 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
         -- トビ賞を計算して StaticArray に戻す
         calculatedIntStaticPoints points tobiSho calculatedIntPoints_ =
-            case List.map2 (+) calculatedIntPoints_ (StaticArray.toList tobiSho) of
+            --
+            case List.map2 (\calculatedIntPoint tobisho -> calculatedIntPoint + round (toFloat tobisho / 10)) calculatedIntPoints_ (StaticArray.toList tobiSho) of
                 head :: tail ->
                     StaticArray.fromList Length.four head tail
 
                 [] ->
                     points
     in
-    case round of
-        IntRound4 round_ ->
+    case round_ of
+        IntRound4 round__ ->
             let
+                -- 順位点を加算した Points
                 rankPointedPoints__ =
-                    round_.points
+                    round__.points
                         |> returnedPoints returnPoint
-                        |> chichaSortedPoints round_.seatingOrder
+                        |> chichaSortedPoints round__.seatingOrder
                         |> sortedPoints
-                        |> rankPointedPoints rankPointArray
+                        -- 五捨六入
+                        |> List.map (Tuple.mapSecond roundFirstDegit)
+                        -- 10で割る
+                        |> List.map (Tuple.mapSecond (\a -> round (toFloat a / 10)))
+                        |> addRankPointPoints rankPointArray
 
                 nextPoints =
                     rankPointedPoints__
                         |> totalPointsWithout1st
                         |> calculated1stPointPoints rankPointedPoints__
                         |> calculatedIntPoints
-                        |> calculatedIntStaticPoints round_.points round_.tobiSho
+                        |> calculatedIntStaticPoints round__.points round__.tobiSho
             in
             IntRound4
-                { round_
+                { round__
                     | points = nextPoints
                 }
 
-        IntRound5 round_ ->
-            IntRound5 round_
+        IntRound5 round__ ->
+            IntRound5 round__
 
 
 
@@ -688,12 +695,13 @@ calculateRoundFromRawPoint { round, rankPoint, havePoint, returnPoint } =
 
 
 {-| n万点返しした
+returnPointは 1000点単位だが、100点単位の入力を受け付けたいため10倍している
 -}
 returnedPoints : Int -> StaticArray Index.Four Int -> StaticArray Index.Four ( Int, Int )
 returnedPoints returnPoint points =
     points
         |> StaticArray.indexedMap
-            (\index point -> ( Index.toInt index, point - returnPoint ))
+            (\index point -> ( Index.toInt index, point - returnPoint * 10 ))
         |> StaticArray.toList
         |> (\points_ ->
                 case points_ of
@@ -711,6 +719,37 @@ returnedPoints returnPoint points =
                             |> StaticArray.indexedMap
                                 (\index point -> ( Index.toInt index, point - returnPoint ))
            )
+
+
+
+-- a5sha6nyu : List ( Int, Int ) -> List ( Int, Int )
+-- a5sha6nyu input =
+--     List.map roundFirstDegit input
+
+
+{-| 3ケタの整数の 1ケタ目を五捨六入 する関数
+丸める方の round
+-}
+roundFirstDegit : Int -> Int
+roundFirstDegit arg =
+    let
+        argMinusFirstDigit =
+            (arg
+                |> toFloat
+                |> (/)
+            )
+                10
+                |> floor
+                |> (*) 10
+
+        firstDigit =
+            arg - argMinusFirstDigit
+    in
+    if firstDigit > 5 then
+        argMinusFirstDigit + 10
+
+    else
+        argMinusFirstDigit
 
 
 {-| 座順データが存在すれば起家ソートを行う
@@ -740,10 +779,10 @@ sortedPoints chichaSortedPoints_ =
             (StaticArray.toList chichaSortedPoints_)
 
 
-{-| 順位点を加算
+{-| Points に順位点を加算
 -}
-rankPointedPoints : List Int -> List ( Int, Int ) -> List ( Int, ( Int, Int ) )
-rankPointedPoints rankPointArray sortedPoints_ =
+addRankPointPoints : List Int -> List ( Int, Int ) -> List ( Int, ( Int, Int ) )
+addRankPointPoints rankPointArray sortedPoints_ =
     List.map2
         (\rankPoint_ ( rank, ( index, point ) ) ->
             ( rank, ( index, point + rankPoint_ ) )
@@ -829,7 +868,7 @@ totalPoint rounds rankPoint havePoint returnPoint =
                     (\round ->
                         calculateRoundFromRawPoint
                             { rankPoint = ExTuple.toIntTuple rankPoint
-                            , round = toIntRound round
+                            , round_ = toIntRound round
                             , havePoint = ExString.toIntValue havePoint
                             , returnPoint = ExString.toIntValue returnPoint
                             }
@@ -985,6 +1024,35 @@ isRadioButtonChecked round kaze playerIndex seatingOrderInput =
 
                 Nothing ->
                     False
+
+
+
+-- 使われてないかも
+
+
+filterStaticArray : StaticArray Index.Four String -> StaticArray Index.Four String
+filterStaticArray staticArray =
+    let
+        filteredArray =
+            staticArray
+                |> StaticArray.toArray
+                |> Array.filter ((/=) "")
+
+        head =
+            Maybe.withDefault "undefined" <|
+                Array.get
+                    0
+                    filteredArray
+
+        tail =
+            filteredArray
+                |> Array.slice 1 (Array.length filteredArray)
+                |> Array.toList
+    in
+    StaticArray.fromList
+        Length.four
+        head
+        tail
 
 
 
