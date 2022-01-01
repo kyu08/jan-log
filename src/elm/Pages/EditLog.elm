@@ -721,7 +721,7 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
             if not <| Rounds.isDefaultRound round then
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
-                    , round = Rounds.toIntRound round
+                    , round_ = Rounds.toIntRound round
                     , havePoint = ExString.toIntValue havePoint
                     , returnPoint = ExString.toIntValue returnPoint
                     }
