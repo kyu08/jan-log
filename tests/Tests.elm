@@ -1,10 +1,50 @@
 module Tests exposing (..)
 
 import Expect
+import IO.Miyabq as Miyabq
+import Json.Encode as E
 import Pages.EditLog.Rounds as Rounds
 import StaticArray
 import StaticArray.Length as Length
 import Test exposing (..)
+
+
+jsonEncode : Test
+jsonEncode =
+    describe "Miyabq.elm"
+        [ test "json Encode" <|
+            let
+                expectedValue =
+                    "{\"match_date\":\"2021-10-11\",\"results\":[{\"user_id\":1,\"scores\":[1,2,3,4,5,67,3,-10],\"chip\":10},{\"user_id\":2,\"scores\":[-1,-2,-3,-4,-5,-67,-3,-10],\"chip\":11},{\"user_id\":3,\"scores\":[10,20,30,40,50,670,30,-100],\"chip\":12},{\"user_id\":4,\"scores\":[11,21,31,41,51,671,31,-110],\"chip\":13}]}"
+
+                resultDto =
+                    { match_date = "2021-10-11"
+                    , results =
+                        [ { user_id = 1
+                          , scores = Array.fromList [ここにデータいれるところから]
+                          , chip = Int
+                          }
+                        , { user_id = 2
+                          , scores = Array.fromList []
+                          , chip = Int
+                          }
+                        , { user_id = 3
+                          , scores = Array.fromList []
+                          , chip = Int
+                          }
+                        , { user_id = 4
+                          , scores = Array.fromList []
+                          , chip = Int
+                          }
+                        ]
+                    }
+
+                testValue =
+                    E.encode 0 <| Miyabq.resultsDecoder resultDto
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        ]
 
 
 rounds : Test
