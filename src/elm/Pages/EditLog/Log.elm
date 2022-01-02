@@ -20,6 +20,8 @@ import Pages.EditLog.LogConfig as LogConfig exposing (LogConfig)
 import Pages.EditLog.Players as Players exposing (Players)
 import Pages.EditLog.Rounds as Rounds exposing (Rounds)
 import StaticArray exposing (StaticArray)
+import StaticArray.Index as Index
+import StaticArray.Length as Length
 import Time
 
 
@@ -150,7 +152,7 @@ type alias ToResultDto4Config =
     { createdAt : Time.Posix
     , playerIds : StaticArray Index.Four Int
     , rounds : Rounds
-    , chips : Chips
+    , chips : StaticArray Index.Four Int
     }
 
 
@@ -158,20 +160,15 @@ toResultDto4 : ToResultDto4Config -> ResultsDto
 toResultDto4 toResultDto4Config =
     { match_date = ExTime.posixToYmdhM toResultDto4Config.createdAt
     , results =
-        StaticArray.indexedMap
-            (\index playerId ->
-                { user_id = playerId
-                , scores = toScores index toResultDto4Config.rounds
-                , chip = StaticArray.get (Index.fromModBy Length.four 0) toResultDto4Config.chips
-                }
-            )
-            toResultDto4Config.playerIds
+        toResultDto4Config.playerIds
+            |> StaticArray.indexedMap
+                (\index playerId ->
+                    { user_id = playerId
+                    , scores = Rounds.toScores (Index.toInt index) toResultDto4Config.rounds
+                    , chip =
+                        toResultDto4Config.chips
+                            |> StaticArray.get (Index.fromModBy Length.four (Index.toInt index))
+                    }
+                )
+            |> StaticArray.toList
     }
-
-
-toScores : Int -> Rounds -> Array Int
-
-
-
--- toScores =
---     index rounds

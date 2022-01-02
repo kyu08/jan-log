@@ -39,6 +39,7 @@ module Pages.EditLog.Rounds exposing
     , toIntRound
     , toRound4Dto
     , toRound5Dto
+    , toScores
     , toStringRound
     , totalPoint
     , totalPointsWithout1st
@@ -1053,6 +1054,34 @@ filterStaticArray staticArray =
         Length.four
         head
         tail
+
+
+toScores : Int -> Rounds -> Array Int
+toScores index rounds =
+    rounds
+        |> Array.map
+            (\round ->
+                calculateRoundFromRawPoint
+                    { round_ = toIntRound round
+                    , rankPoint = ( 10, 20 )
+                    , havePoint = 25
+                    , returnPoint = 30
+                    }
+            )
+        |> Array.map
+            (toScore index)
+
+
+toScore : Int -> IntRound -> Int
+toScore index intRound =
+    case intRound of
+        IntRound4 intRound4 ->
+            StaticArray.get (Index.fromModBy Length.four index)
+                intRound4.points
+
+        IntRound5 intRound5 ->
+            StaticArray.get (Index.fromModBy Length.five index)
+                intRound5.points
 
 
 
