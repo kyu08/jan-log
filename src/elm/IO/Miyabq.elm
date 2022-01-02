@@ -1,20 +1,7 @@
 module IO.Miyabq exposing (resultsDecoder)
 
-import Array exposing (Array)
 import Json.Encode as E
-
-
-type alias ResultsDto =
-    { match_date : String
-    , results : List ResultDto
-    }
-
-
-type alias ResultDto =
-    { user_id : Int
-    , scores : Array Int
-    , chip : Int
-    }
+import Pages.EditLog.Dtos.ResultsDto exposing (ResultDto, ResultsDto)
 
 
 resultsDecoder : ResultsDto -> E.Value

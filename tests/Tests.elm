@@ -1,5 +1,6 @@
 module Tests exposing (..)
 
+import Array
 import Expect
 import IO.Miyabq as Miyabq
 import Json.Encode as E
@@ -21,20 +22,20 @@ jsonEncode =
                     { match_date = "2021-10-11"
                     , results =
                         [ { user_id = 1
-                          , scores = Array.fromList [ここにデータいれるところから]
-                          , chip = Int
+                          , scores = Array.fromList [ 1, 2, 3, 4, 5, 67, 3, -10 ]
+                          , chip = 10
                           }
                         , { user_id = 2
-                          , scores = Array.fromList []
-                          , chip = Int
+                          , scores = Array.fromList [ -1, -2, -3, -4, -5, -67, -3, -10 ]
+                          , chip = 11
                           }
                         , { user_id = 3
-                          , scores = Array.fromList []
-                          , chip = Int
+                          , scores = Array.fromList [ 10, 20, 30, 40, 50, 670, 30, -100 ]
+                          , chip = 12
                           }
                         , { user_id = 4
-                          , scores = Array.fromList []
-                          , chip = Int
+                          , scores = Array.fromList [ 11, 21, 31, 41, 51, 671, 31, -110 ]
+                          , chip = 13
                           }
                         ]
                     }
