@@ -41,7 +41,7 @@ jsonEncode =
                     }
 
                 testValue =
-                    E.encode 0 <| Miyabq.resultsDecoder resultDto
+                    E.encode 0 <| Miyabq.resultsEncoder resultDto
             in
             \_ ->
                 Expect.equal expectedValue testValue

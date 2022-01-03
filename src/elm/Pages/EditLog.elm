@@ -17,13 +17,14 @@ import Expands.Maybe as ExMaybe
 import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
-import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
+import Html exposing (Html, div, img, input, label, option, p, select, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Http.Miyabq as HttpMiyabq
 import Pages.EditLog.Chips as Chips exposing (Chips)
 import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
+import Pages.EditLog.Dtos.UserDto exposing (UserDto)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Phrase as Phrase
@@ -60,6 +61,7 @@ type PageStatus
 type alias PageModel =
     { log : Log
     , uiStatus : UIStatus
+    , miyabqUsers : List UserDto
     }
 
 
@@ -92,6 +94,7 @@ initCmd4 logId =
         [ fetchLog4 logId
         , listenLog4 logId
         , Task.perform SetTime initTimeTask
+        , HttpMiyabq.getUserIds GotUsersFromMiyabq
         ]
 
 
@@ -127,6 +130,7 @@ initPageModel4 : Time.Posix -> PageModel
 initPageModel4 currentTime =
     { log = Log.initLog4 currentTime
     , uiStatus = initUIStatus
+    , miyabqUsers = []
     }
 
 
@@ -134,6 +138,7 @@ initPageModel5 : Time.Posix -> PageModel
 initPageModel5 currentTime =
     { log = Log.initLog5 currentTime
     , uiStatus = initUIStatus
+    , miyabqUsers = []
     }
 
 
@@ -211,6 +216,7 @@ type Msg
     | ClickedSeatingOrderRadio Int Int Round Kaze
     | ClickedExportToMiyabqButton
     | MiyabqPostResponse (Result Http.Error String)
+    | GotUsersFromMiyabq (Result Http.Error (List UserDto))
 
 
 sleep50ms : Task Never ()
@@ -231,7 +237,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 FetchedLog4 log4Dto ->
                     case Log.dto4ToLog log4Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -239,7 +245,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 FetchedLog5 log5Dto ->
                     case Log.dto5ToLog log5Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -373,7 +379,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog4 dto4 ->
                     case Log.dto4ToLog dto4 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -381,7 +387,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog5 dto5 ->
                     case Log.dto5ToLog dto5 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -524,6 +530,16 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         }
                     )
 
+                GotUsersFromMiyabq users ->
+                    case users of
+                        Ok users_ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabqUsers = users_ } }
+                            , Cmd.none
+                            )
+
+                        Err _ ->
+                            ( m, Cmd.none )
+
                 _ ->
                     ( m, Cmd.none )
 
@@ -540,7 +556,7 @@ view { pageStatus } =
 
         Loaded pageModel ->
             let
-                { uiStatus, log } =
+                { uiStatus, log, miyabqUsers } =
                     pageModel
 
                 viewPointInputModal_ =
@@ -570,6 +586,7 @@ view { pageStatus } =
                     uiStatus.isOpenedConfigArea
                 , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
                 , viewToggleExportToMiyabqButton
+                , viewUserSelector miyabqUsers
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
                 , viewPointInputModal_
                 ]
@@ -639,6 +656,11 @@ viewToggleExportToMiyabqButton =
         , size = UI.Default
         , isDisabled = False
         }
+
+
+viewUserSelector : List UserDto -> Html Msg
+viewUserSelector userDtos =
+    div [] [ select [] (List.map (\userDto -> option [ value <| String.fromInt userDto.id ] [ text userDto.name ]) userDtos) ]
 
 
 viewToggleLogConfigAreaBottun : Bool -> Html Msg
