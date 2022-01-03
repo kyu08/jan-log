@@ -630,8 +630,7 @@ type alias CalculateRoundFromRawPointConfig =
 
 
 {-| 入力された round, config をもとに順位点を加算した round を返す関数
-トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-トビは現状の実装だと場外で(チップなどで)やりとりするしかないので微妙ではある
+1着のポイント計算方法を - (2~4着のトータルポイント) としている
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
 calculateRoundFromRawPoint { round_, rankPoint, returnPoint } =

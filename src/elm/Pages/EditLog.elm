@@ -28,7 +28,7 @@ import Pages.EditLog.Dtos.UserDto exposing (UserDto)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
 import Pages.EditLog.Miyabq exposing (isCorrectPassword)
-import Pages.EditLog.Phrase as Phrase
+import Pages.EditLog.Phrase as Phrase exposing (phrase)
 import Pages.EditLog.Players as Players exposing (Players)
 import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
@@ -796,8 +796,7 @@ viewMiyabq viewMiyabqConfig =
 viewToggleExportToMiyabqButton : Html Msg
 viewToggleExportToMiyabqButton =
     UI.viewButton
-        -- TODO: phrase に移動
-        { phrase = "export to miyabq"
+        { phrase = phrase.exportToMiyabq
         , onClickMsg = ClickedExportToMiyabqButton
         , size = UI.Default
         , isDisabled = False
