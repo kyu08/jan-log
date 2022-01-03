@@ -81,7 +81,6 @@ rounds =
                                 , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
-                        , havePoint = 25
                         , returnPoint = 30
                         }
             in
@@ -117,7 +116,6 @@ rounds =
                                 , tobiSho = StaticArray.fromList Length.four 0 [ 0, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
-                        , havePoint = 25
                         , returnPoint = 30
                         }
             in
@@ -153,7 +151,6 @@ rounds =
                                 , tobiSho = StaticArray.fromList Length.four -100 [ 100, 0, 0 ]
                                 }
                         , rankPoint = ( 10, 20 )
-                        , havePoint = 25
                         , returnPoint = 30
                         }
             in
