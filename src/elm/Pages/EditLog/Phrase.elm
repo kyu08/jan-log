@@ -21,4 +21,5 @@ phrase =
     , addRow = "行を追加する"
     , inputPoint = "🖋"
     , logo = "Jan Log"
+    , exportToMiyabq = "Export To miyabq"
     }

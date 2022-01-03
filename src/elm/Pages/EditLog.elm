@@ -17,20 +17,27 @@ import Expands.Maybe as ExMaybe
 import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
-import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
+import Html exposing (Html, div, img, input, label, option, p, select, table, td, text, th, tr)
+import Html.Attributes exposing (checked, class, for, id, name, selected, src, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Http
+import Http.Miyabq as HttpMiyabq
 import Pages.EditLog.Chips as Chips exposing (Chips)
 import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
+import Pages.EditLog.Dtos.UserDto exposing (UserDto)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
-import Pages.EditLog.Phrase as Phrase
+import Pages.EditLog.Miyabq exposing (isCorrectPassword)
+import Pages.EditLog.Phrase as Phrase exposing (phrase)
 import Pages.EditLog.Players as Players exposing (Players)
 import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round)
 import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
+import StaticArray exposing (StaticArray)
+import StaticArray.Index as Index
+import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
 import UI
@@ -56,6 +63,9 @@ type PageStatus
 type alias PageModel =
     { log : Log
     , uiStatus : UIStatus
+
+    -- グループ機能を追加して通算成績を見れるようにする構想があるため、捨てやすいように独立したプロパティにしている
+    , miyabq : MiyaBq
     }
 
 
@@ -64,6 +74,13 @@ type alias UIStatus =
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
     , seatingOrderInput : SeatingOrderInput
+    }
+
+
+type alias MiyaBq =
+    { users : List UserDto
+    , relation : StaticArray Index.Four Int
+    , enteredPassword : String
     }
 
 
@@ -123,6 +140,11 @@ initPageModel4 : Time.Posix -> PageModel
 initPageModel4 currentTime =
     { log = Log.initLog4 currentTime
     , uiStatus = initUIStatus
+    , miyabq =
+        { users = []
+        , relation = StaticArray.initialize Length.four (\_ -> 1)
+        , enteredPassword = ""
+        }
     }
 
 
@@ -130,6 +152,11 @@ initPageModel5 : Time.Posix -> PageModel
 initPageModel5 currentTime =
     { log = Log.initLog5 currentTime
     , uiStatus = initUIStatus
+    , miyabq =
+        { users = []
+        , relation = StaticArray.initialize Length.four (\_ -> 1)
+        , enteredPassword = ""
+        }
     }
 
 
@@ -205,6 +232,12 @@ type Msg
     | ClickedEditRoundButton Int Round
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
+    | ClickedExportToMiyabqButton
+      -- TODO: Error ちゃんとハンドリングしような
+    | MiyabqPostResponse (Result Http.Error String)
+    | GotUsersFromMiyabq (Result Http.Error (List UserDto))
+    | ChangedMiyabqUser Int String
+    | ChangedPW String
 
 
 sleep50ms : Task Never ()
@@ -225,15 +258,42 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 FetchedLog4 log4Dto ->
                     case Log.dto4ToLog log4Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
+                                            }
+                                        }
+                              }
+                            , HttpMiyabq.getUsers GotUsersFromMiyabq
+                            )
 
                         Nothing ->
+                            -- データが壊れている場合
                             ( { m | pageStatus = Loading }, Cmd.none )
 
                 FetchedLog5 log5Dto ->
                     case Log.dto5ToLog log5Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -367,7 +427,20 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog4 dto4 ->
                     case Log.dto4ToLog dto4 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log_
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -375,7 +448,20 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog5 dto5 ->
                     case Log.dto5ToLog dto5 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log_
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -497,6 +583,81 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     in
                     ( nextModel, updateLog logId nextLog )
 
+                ClickedExportToMiyabqButton ->
+                    ( m
+                    , HttpMiyabq.postResult
+                        { resultsDto =
+                            Log.toResultDto4
+                                { createdAt = pageModel.log.createdAt
+                                , playerIds = pageModel.miyabq.relation
+                                , rounds = pageModel.log.rounds
+                                , chips =
+                                    pageModel.log.chips
+                                        |> Chips.toArray
+                                        |> Array.map ExString.toInt
+                                , rankPoint = Tuple.mapBoth ExString.toInt ExString.toInt pageModel.log.logConfig.rankPoint
+                                , returnPoint = ExString.toInt pageModel.log.logConfig.returnPoint
+                                }
+                        , onResponseMsg = MiyabqPostResponse
+                        }
+                    )
+
+                GotUsersFromMiyabq users ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    case users of
+                        Ok users_ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = users_ } } }
+                            , Cmd.none
+                            )
+
+                        Err _ ->
+                            ( m
+                            , Cmd.none
+                            )
+
+                ChangedMiyabqUser index userId ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    ( { m
+                        | pageStatus =
+                            Loaded
+                                { pageModel
+                                    | miyabq =
+                                        { currentMiyabq
+                                            | relation =
+                                                StaticArray.set
+                                                    (Index.fromModBy Length.four index)
+                                                    (ExString.toInt userId)
+                                                    currentMiyabq.relation
+                                        }
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                ChangedPW input ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    ( { m
+                        | pageStatus =
+                            Loaded
+                                { pageModel
+                                    | miyabq =
+                                        { currentMiyabq
+                                            | enteredPassword = input
+                                        }
+                                }
+                      }
+                    , Cmd.none
+                    )
+
                 _ ->
                     ( m, Cmd.none )
 
@@ -513,7 +674,7 @@ view { pageStatus } =
 
         Loaded pageModel ->
             let
-                { uiStatus, log } =
+                { uiStatus, log, miyabq } =
                     pageModel
 
                 viewPointInputModal_ =
@@ -543,6 +704,11 @@ view { pageStatus } =
                     uiStatus.isOpenedConfigArea
                 , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
+                , viewEnterPW miyabq.enteredPassword
+                , viewMiyabq
+                    { miyaBq = miyabq
+                    , players = pageModel.log.players
+                    }
                 , viewPointInputModal_
                 ]
 
@@ -567,7 +733,7 @@ viewBackToHome =
 
 viewCreatedAt : Time.Posix -> Html msg
 viewCreatedAt currentTime =
-    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmdhM |> text ]
+    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmd |> text ]
 
 
 viewHowToUse : Bool -> Html msg
@@ -600,6 +766,69 @@ viewToggleHowToUseButton isOpened =
         , size = UI.Default
         , isDisabled = False
         }
+
+
+viewEnterPW : String -> Html Msg
+viewEnterPW inputPW =
+    div []
+        [ input [ value inputPW, onInput ChangedPW ] []
+        ]
+
+
+type alias ViewMiyabqConfig =
+    { miyaBq : MiyaBq
+    , players : Players
+    }
+
+
+viewMiyabq : ViewMiyabqConfig -> Html Msg
+viewMiyabq viewMiyabqConfig =
+    if isCorrectPassword viewMiyabqConfig.miyaBq.enteredPassword then
+        div []
+            [ viewMiyabqUserSelector viewMiyabqConfig.miyaBq viewMiyabqConfig.players
+            , viewToggleExportToMiyabqButton
+            ]
+
+    else
+        UI.viewBlank
+
+
+viewToggleExportToMiyabqButton : Html Msg
+viewToggleExportToMiyabqButton =
+    UI.viewButton
+        { phrase = phrase.exportToMiyabq
+        , onClickMsg = ClickedExportToMiyabqButton
+        , size = UI.Default
+        , isDisabled = False
+        }
+
+
+viewMiyabqUserSelector : MiyaBq -> Players -> Html Msg
+viewMiyabqUserSelector miyaBqData players =
+    div
+        []
+        (players
+            |> Players.toList
+            |> List.indexedMap
+                (\index p ->
+                    div []
+                        [ text (p ++ ": ")
+                        , select [ onInput <| ChangedMiyabqUser index ]
+                            (List.map
+                                (\userDto ->
+                                    option
+                                        [ value <| String.fromInt userDto.id
+                                        , selected <|
+                                            userDto.id
+                                                == StaticArray.get (Index.fromModBy Length.four index) miyaBqData.relation
+                                        ]
+                                        [ text userDto.name ]
+                                )
+                                miyaBqData.users
+                            )
+                        ]
+                )
+        )
 
 
 viewToggleLogConfigAreaBottun : Bool -> Html Msg
@@ -656,17 +885,16 @@ viewEditLog { players, chips, rounds, logConfig } =
             Rounds.totalPoint
                 rounds
                 logConfig.rankPoint
-                logConfig.havePoint
                 logConfig.returnPoint
 
         totalPointIncludeChip =
-            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
+            Rounds.calculateTotalPointIncludeChip (ExString.toInt logConfig.chipRate) totalPoint chips
 
         totalBalanceExcludeGameFee =
-            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue logConfig.rate) totalPointIncludeChip
+            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toInt logConfig.rate) totalPointIncludeChip
 
         totalBalanceIncludeGameFee =
-            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
+            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toInt logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
@@ -722,8 +950,7 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
                     , round_ = Rounds.toIntRound round
-                    , havePoint = ExString.toIntValue havePoint
-                    , returnPoint = ExString.toIntValue returnPoint
+                    , returnPoint = ExString.toInt returnPoint
                     }
                     |> Rounds.toStringRound
                     |> Rounds.getPoints

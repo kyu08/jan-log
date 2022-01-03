@@ -5,6 +5,7 @@ module Pages.EditLog.Players exposing
     , initPlayers4
     , initPlayers5
     , toArray
+    , toList
     , updatePlayerName
     )
 
@@ -67,6 +68,16 @@ toArray players =
 
         Players5 players_ ->
             StaticArray.toArray players_
+
+
+toList : Players -> List String
+toList players =
+    case players of
+        Players4 players_ ->
+            StaticArray.toList players_
+
+        Players5 players_ ->
+            StaticArray.toList players_
 
 
 updatePlayerName : Int -> String -> Players -> Players

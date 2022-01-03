@@ -11,7 +11,7 @@ import Expands.String as ExString
 toIntArray : Array String -> Array Int
 toIntArray stringArray =
     Array.map
-        ExString.toIntValue
+        ExString.toInt
         stringArray
 
 

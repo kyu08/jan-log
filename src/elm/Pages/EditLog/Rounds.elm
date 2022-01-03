@@ -39,6 +39,7 @@ module Pages.EditLog.Rounds exposing
     , toIntRound
     , toRound4Dto
     , toRound5Dto
+    , toScores
     , toStringRound
     , totalPoint
     , totalPointsWithout1st
@@ -299,10 +300,10 @@ toRound4Dto round =
         Round4 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -323,10 +324,10 @@ toRound4Dto round =
         Round5 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -350,10 +351,10 @@ toRound5Dto round =
         Round4 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -376,10 +377,10 @@ toRound5Dto round =
         Round5 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -624,17 +625,15 @@ type alias CalculateRoundFromRawPointConfig =
 
     -- TODO: tuple にするとわかりずらいのでレコードにしよう
     , rankPoint : ( Int, Int )
-    , havePoint : Int
     , returnPoint : Int
     }
 
 
 {-| 入力された round, config をもとに順位点を加算した round を返す関数
-トビを考慮するために1着のポイント計算方法を - (2~4着のトータルポイント) としている
-トビは現状の実装だと場外で(チップなどで)やりとりするしかないので微妙ではある
+1着のポイント計算方法を - (2~4着のトータルポイント) としている
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
-calculateRoundFromRawPoint { round_, rankPoint, havePoint, returnPoint } =
+calculateRoundFromRawPoint { round_, rankPoint, returnPoint } =
     let
         -- 順位点が入ってる List
         rankPointArray =
@@ -858,8 +857,8 @@ hasSamePoint points =
                 hasSamePoint <| Array.fromList tail
 
 
-totalPoint : Rounds -> ( String, String ) -> String -> String -> Stats
-totalPoint rounds rankPoint havePoint returnPoint =
+totalPoint : Rounds -> ( String, String ) -> String -> Stats
+totalPoint rounds rankPoint returnPoint =
     let
         calculatedRounds =
             rounds
@@ -869,8 +868,7 @@ totalPoint rounds rankPoint havePoint returnPoint =
                         calculateRoundFromRawPoint
                             { rankPoint = ExTuple.toIntTuple rankPoint
                             , round_ = toIntRound round
-                            , havePoint = ExString.toIntValue havePoint
-                            , returnPoint = ExString.toIntValue returnPoint
+                            , returnPoint = ExString.toInt returnPoint
                             }
                     )
     in
@@ -1053,6 +1051,41 @@ filterStaticArray staticArray =
         Length.four
         head
         tail
+
+
+type alias ToScoresConfig =
+    { index : Int
+    , rankPoint : ( Int, Int )
+    , returnPoint : Int
+    , rounds : Rounds
+    }
+
+
+toScores : ToScoresConfig -> Array Int
+toScores toScoresConfig =
+    toScoresConfig.rounds
+        |> Array.map
+            (\round ->
+                calculateRoundFromRawPoint
+                    { round_ = toIntRound round
+                    , rankPoint = toScoresConfig.rankPoint
+                    , returnPoint = toScoresConfig.returnPoint
+                    }
+            )
+        |> Array.map
+            (toScore toScoresConfig.index)
+
+
+toScore : Int -> IntRound -> Int
+toScore index intRound =
+    case intRound of
+        IntRound4 intRound4 ->
+            StaticArray.get (Index.fromModBy Length.four index)
+                intRound4.points
+
+        IntRound5 intRound5 ->
+            StaticArray.get (Index.fromModBy Length.five index)
+                intRound5.points
 
 
 

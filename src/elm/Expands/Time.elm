@@ -1,4 +1,7 @@
-module Expands.Time exposing (posixToYmdhM)
+module Expands.Time exposing
+    ( posixToYmd
+    , posixToYmdWithHyphenDelimiter
+    )
 
 import Time exposing (Month(..))
 import TimeZone exposing (asia__tokyo)
@@ -11,8 +14,8 @@ zone =
 
 {-| 2021/2/2
 -}
-posixToYmdhM : Time.Posix -> String
-posixToYmdhM posix =
+posixToYmd : Time.Posix -> String
+posixToYmd posix =
     (posix
         |> Time.toYear zone
         |> String.fromInt
@@ -24,6 +27,36 @@ posixToYmdhM posix =
                 |> Time.toDay zone
                 |> String.fromInt
            )
+
+
+{-| 2021/02/02
+-}
+posixToYmdWithHyphenDelimiter : Time.Posix -> String
+posixToYmdWithHyphenDelimiter posix =
+    (posix
+        |> Time.toYear zone
+        |> String.fromInt
+    )
+        ++ "-"
+        ++ (posixToMonth posix
+                |> toDoubleDegit
+           )
+        ++ "-"
+        ++ (posix
+                |> Time.toDay zone
+                |> String.fromInt
+                |> toDoubleDegit
+           )
+
+
+toDoubleDegit : String -> String
+toDoubleDegit str =
+    case String.length str of
+        1 ->
+            "0" ++ str
+
+        _ ->
+            str
 
 
 posixToMonth : Time.Posix -> String

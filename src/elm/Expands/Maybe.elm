@@ -1,5 +1,7 @@
 module Expands.Maybe exposing (isJust)
 
+import Json.Decode exposing (maybe)
+
 
 isJust : Maybe a -> Bool
 isJust maybe =
