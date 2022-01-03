@@ -589,9 +589,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         { resultsDto =
                             Log.toResultDto4
                                 { createdAt = pageModel.log.createdAt
-
-                                -- TODO: これをUIから取得する
-                                , playerIds = StaticArray.fromList Length.four 1 [ 2, 3, 4 ]
+                                , playerIds = pageModel.miyabq.relation
                                 , rounds = pageModel.log.rounds
                                 , chips =
                                     pageModel.log.chips
