@@ -1,5 +1,5 @@
 module Http.Miyabq exposing
-    ( getUserIds
+    ( getUsers
     , postResult
     )
 
@@ -16,8 +16,8 @@ type alias PostResultConfig msg =
     }
 
 
-getUserIds : (Result Http.Error (List UserDto) -> msg) -> Cmd msg
-getUserIds gotMsg =
+getUsers : (Result Http.Error (List UserDto) -> msg) -> Cmd msg
+getUsers gotMsg =
     Http.get
         { url = miyabqBaseUrl ++ "/users"
         , expect = Http.expectJson gotMsg (D.list userDecoder)

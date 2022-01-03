@@ -34,7 +34,8 @@ import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
-import StaticArray
+import StaticArray exposing (StaticArray, fromList)
+import StaticArray.Index as Index
 import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
@@ -61,7 +62,9 @@ type PageStatus
 type alias PageModel =
     { log : Log
     , uiStatus : UIStatus
-    , miyabqUsers : List UserDto
+
+    -- グループ機能を追加して通算成績を見れるようにする構想があるため、捨てやすいように独立したプロパティにしている
+    , miyabq : MiyaBq
     }
 
 
@@ -70,6 +73,12 @@ type alias UIStatus =
     , isOpenedHowToUseArea : Bool
     , editRoundModalState : ModalStatus
     , seatingOrderInput : SeatingOrderInput
+    }
+
+
+type alias MiyaBq =
+    { users : List UserDto
+    , relation : StaticArray Index.Four (Maybe Int)
     }
 
 
@@ -94,7 +103,6 @@ initCmd4 logId =
         [ fetchLog4 logId
         , listenLog4 logId
         , Task.perform SetTime initTimeTask
-        , HttpMiyabq.getUserIds GotUsersFromMiyabq
         ]
 
 
@@ -130,7 +138,10 @@ initPageModel4 : Time.Posix -> PageModel
 initPageModel4 currentTime =
     { log = Log.initLog4 currentTime
     , uiStatus = initUIStatus
-    , miyabqUsers = []
+    , miyabq =
+        { users = []
+        , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+        }
     }
 
 
@@ -138,7 +149,10 @@ initPageModel5 : Time.Posix -> PageModel
 initPageModel5 currentTime =
     { log = Log.initLog5 currentTime
     , uiStatus = initUIStatus
-    , miyabqUsers = []
+    , miyabq =
+        { users = []
+        , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+        }
     }
 
 
@@ -217,6 +231,7 @@ type Msg
     | ClickedExportToMiyabqButton
     | MiyabqPostResponse (Result Http.Error String)
     | GotUsersFromMiyabq (Result Http.Error (List UserDto))
+    | ChangedMiyabqUser Int Int
 
 
 sleep50ms : Task Never ()
@@ -237,15 +252,40 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 FetchedLog4 log4Dto ->
                     case Log.dto4ToLog log4Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            }
+                                        }
+                              }
+                            , HttpMiyabq.getUsers GotUsersFromMiyabq
+                            )
 
                         Nothing ->
+                            -- データが壊れている場合
                             ( { m | pageStatus = Loading }, Cmd.none )
 
                 FetchedLog5 log5Dto ->
                     case Log.dto5ToLog log5Dto of
                         Just log ->
-                            ( { m | pageStatus = Loaded { log = log, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -379,7 +419,19 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog4 dto4 ->
                     case Log.dto4ToLog dto4 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log_
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -387,7 +439,19 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 ListenedLog5 dto5 ->
                     case Log.dto5ToLog dto5 of
                         Just log_ ->
-                            ( { m | pageStatus = Loaded { log = log_, uiStatus = initUIStatus, miyabqUsers = [] } }, Cmd.none )
+                            ( { m
+                                | pageStatus =
+                                    Loaded
+                                        { log = log_
+                                        , uiStatus = initUIStatus
+                                        , miyabq =
+                                            { users = []
+                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            }
+                                        }
+                              }
+                            , Cmd.none
+                            )
 
                         Nothing ->
                             ( { m | pageStatus = Loading }, Cmd.none )
@@ -531,14 +595,28 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     )
 
                 GotUsersFromMiyabq users ->
+                    let
+                        userDtosForDev =
+                            [ { id = 1, name = "ForDevさいとう" }
+                            , { id = 2, name = "ForDevきゅう" }
+                            , { id = 3, name = "ForDevふじたすすむ" }
+                            , { id = 4, name = "ForDevさっしー" }
+                            ]
+
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
                     case users of
-                        Ok users_ ->
-                            ( { m | pageStatus = Loaded { pageModel | miyabqUsers = users_ } }
+                        -- いったん開発用にベタガキのデータを渡している
+                        Ok _ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = userDtosForDev } } }
                             , Cmd.none
                             )
 
                         Err _ ->
-                            ( m, Cmd.none )
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = userDtosForDev } } }
+                            , Cmd.none
+                            )
 
                 _ ->
                     ( m, Cmd.none )
@@ -556,7 +634,7 @@ view { pageStatus } =
 
         Loaded pageModel ->
             let
-                { uiStatus, log, miyabqUsers } =
+                { uiStatus, log, miyabq } =
                     pageModel
 
                 viewPointInputModal_ =
@@ -586,7 +664,7 @@ view { pageStatus } =
                     uiStatus.isOpenedConfigArea
                 , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
                 , viewToggleExportToMiyabqButton
-                , viewUserSelector miyabqUsers
+                , viewMiyabqUserSelector miyabq pageModel.log.players
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
                 , viewPointInputModal_
                 ]
@@ -651,16 +729,34 @@ viewToggleExportToMiyabqButton : Html Msg
 viewToggleExportToMiyabqButton =
     UI.viewButton
         -- TODO: phrase に移動
-        { phrase = "miyabq"
+        { phrase = "export to miyabq"
         , onClickMsg = ClickedExportToMiyabqButton
         , size = UI.Default
         , isDisabled = False
         }
 
 
-viewUserSelector : List UserDto -> Html Msg
-viewUserSelector userDtos =
-    div [] [ select [] (List.map (\userDto -> option [ value <| String.fromInt userDto.id ] [ text userDto.name ]) userDtos) ]
+viewMiyabqUserSelector : MiyaBq -> Players -> Html Msg
+viewMiyabqUserSelector miyaBqData players =
+    div
+        []
+        (players
+            |> Players.toList
+            |> List.map
+                (\p ->
+                    div []
+                        [ text (p ++ ": ")
+                        , select []
+                            (List.map
+                                (\userDto ->
+                                    option [ value <| String.fromInt userDto.id ]
+                                        [ text userDto.name ]
+                                )
+                                miyaBqData.users
+                            )
+                        ]
+                )
+        )
 
 
 viewToggleLogConfigAreaBottun : Bool -> Html Msg
