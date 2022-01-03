@@ -27,6 +27,7 @@ import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
 import Pages.EditLog.Dtos.UserDto exposing (UserDto)
 import Pages.EditLog.Log as Log exposing (Log)
 import Pages.EditLog.LogConfig exposing (LogConfig, RankPoint)
+import Pages.EditLog.Miyabq exposing (isCorrectPassword)
 import Pages.EditLog.Phrase as Phrase
 import Pages.EditLog.Players as Players exposing (Players)
 import Pages.EditLog.Rounds as Rounds exposing (Kaze, Point, Round)
@@ -79,6 +80,7 @@ type alias UIStatus =
 type alias MiyaBq =
     { users : List UserDto
     , relation : StaticArray Index.Four Int
+    , enteredPassword : String
     }
 
 
@@ -141,6 +143,7 @@ initPageModel4 currentTime =
     , miyabq =
         { users = []
         , relation = StaticArray.initialize Length.four (\_ -> 1)
+        , enteredPassword = ""
         }
     }
 
@@ -152,6 +155,7 @@ initPageModel5 currentTime =
     , miyabq =
         { users = []
         , relation = StaticArray.initialize Length.four (\_ -> 1)
+        , enteredPassword = ""
         }
     }
 
@@ -233,6 +237,7 @@ type Msg
     | MiyabqPostResponse (Result Http.Error String)
     | GotUsersFromMiyabq (Result Http.Error (List UserDto))
     | ChangedMiyabqUser Int String
+    | ChangedPW String
 
 
 sleep50ms : Task Never ()
@@ -261,6 +266,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , miyabq =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
                                             }
                                         }
                               }
@@ -282,6 +288,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , miyabq =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
                                             }
                                         }
                               }
@@ -428,6 +435,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , miyabq =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
                                             }
                                         }
                               }
@@ -448,6 +456,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , miyabq =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
+                                            , enteredPassword = ""
                                             }
                                         }
                               }
@@ -633,6 +642,24 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     , Cmd.none
                     )
 
+                ChangedPW input ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    ( { m
+                        | pageStatus =
+                            Loaded
+                                { pageModel
+                                    | miyabq =
+                                        { currentMiyabq
+                                            | enteredPassword = input
+                                        }
+                                }
+                      }
+                    , Cmd.none
+                    )
+
                 _ ->
                     ( m, Cmd.none )
 
@@ -678,9 +705,12 @@ view { pageStatus } =
                     log.logConfig
                     uiStatus.isOpenedConfigArea
                 , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
-                , viewToggleExportToMiyabqButton
-                , viewMiyabqUserSelector miyabq pageModel.log.players
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
+                , viewEnterPW miyabq.enteredPassword
+                , viewMiyabq
+                    { miyaBq = miyabq
+                    , players = pageModel.log.players
+                    }
                 , viewPointInputModal_
                 ]
 
@@ -738,6 +768,31 @@ viewToggleHowToUseButton isOpened =
         , size = UI.Default
         , isDisabled = False
         }
+
+
+viewEnterPW : String -> Html Msg
+viewEnterPW inputPW =
+    div []
+        [ input [ value inputPW, onInput ChangedPW ] []
+        ]
+
+
+type alias ViewMiyabqConfig =
+    { miyaBq : MiyaBq
+    , players : Players
+    }
+
+
+viewMiyabq : ViewMiyabqConfig -> Html Msg
+viewMiyabq viewMiyabqConfig =
+    if isCorrectPassword viewMiyabqConfig.miyaBq.enteredPassword then
+        div []
+            [ viewMiyabqUserSelector viewMiyabqConfig.miyaBq viewMiyabqConfig.players
+            , viewToggleExportToMiyabqButton
+            ]
+
+    else
+        UI.viewBlank
 
 
 viewToggleExportToMiyabqButton : Html Msg
