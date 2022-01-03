@@ -18,7 +18,7 @@ import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
 import Html exposing (Html, div, img, input, label, option, p, select, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
+import Html.Attributes exposing (checked, class, for, id, name, selected, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Http.Miyabq as HttpMiyabq
@@ -34,7 +34,7 @@ import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
-import StaticArray exposing (StaticArray, fromList)
+import StaticArray exposing (StaticArray)
 import StaticArray.Index as Index
 import StaticArray.Length as Length
 import Task exposing (Task)
@@ -78,7 +78,7 @@ type alias UIStatus =
 
 type alias MiyaBq =
     { users : List UserDto
-    , relation : StaticArray Index.Four (Maybe Int)
+    , relation : StaticArray Index.Four Int
     }
 
 
@@ -140,7 +140,7 @@ initPageModel4 currentTime =
     , uiStatus = initUIStatus
     , miyabq =
         { users = []
-        , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+        , relation = StaticArray.initialize Length.four (\_ -> 1)
         }
     }
 
@@ -151,7 +151,7 @@ initPageModel5 currentTime =
     , uiStatus = initUIStatus
     , miyabq =
         { users = []
-        , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+        , relation = StaticArray.initialize Length.four (\_ -> 1)
         }
     }
 
@@ -229,9 +229,10 @@ type Msg
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
     | ClickedExportToMiyabqButton
+      -- TODO: Error ちゃんとハンドリングしような
     | MiyabqPostResponse (Result Http.Error String)
     | GotUsersFromMiyabq (Result Http.Error (List UserDto))
-    | ChangedMiyabqUser Int Int
+    | ChangedMiyabqUser Int String
 
 
 sleep50ms : Task Never ()
@@ -259,7 +260,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , uiStatus = initUIStatus
                                         , miyabq =
                                             { users = []
-                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             }
                                         }
                               }
@@ -280,7 +281,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , uiStatus = initUIStatus
                                         , miyabq =
                                             { users = []
-                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             }
                                         }
                               }
@@ -426,7 +427,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , uiStatus = initUIStatus
                                         , miyabq =
                                             { users = []
-                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             }
                                         }
                               }
@@ -446,7 +447,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                         , uiStatus = initUIStatus
                                         , miyabq =
                                             { users = []
-                                            , relation = StaticArray.initialize Length.four (\_ -> Nothing)
+                                            , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             }
                                         }
                               }
@@ -596,27 +597,41 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                 GotUsersFromMiyabq users ->
                     let
-                        userDtosForDev =
-                            [ { id = 1, name = "ForDevさいとう" }
-                            , { id = 2, name = "ForDevきゅう" }
-                            , { id = 3, name = "ForDevふじたすすむ" }
-                            , { id = 4, name = "ForDevさっしー" }
-                            ]
-
                         currentMiyabq =
                             pageModel.miyabq
                     in
                     case users of
-                        -- いったん開発用にベタガキのデータを渡している
-                        Ok _ ->
-                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = userDtosForDev } } }
+                        Ok users_ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = users_ } } }
                             , Cmd.none
                             )
 
                         Err _ ->
-                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | users = userDtosForDev } } }
+                            ( m
                             , Cmd.none
                             )
+
+                ChangedMiyabqUser index userId ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    ( { m
+                        | pageStatus =
+                            Loaded
+                                { pageModel
+                                    | miyabq =
+                                        { currentMiyabq
+                                            | relation =
+                                                StaticArray.set
+                                                    (Index.fromModBy Length.four index)
+                                                    (ExString.toInt userId)
+                                                    currentMiyabq.relation
+                                        }
+                                }
+                      }
+                    , Cmd.none
+                    )
 
                 _ ->
                     ( m, Cmd.none )
@@ -690,7 +705,7 @@ viewBackToHome =
 
 viewCreatedAt : Time.Posix -> Html msg
 viewCreatedAt currentTime =
-    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmdhM |> text ]
+    div [ class "editLog_createdAt" ] [ currentTime |> ExTime.posixToYmd |> text ]
 
 
 viewHowToUse : Bool -> Html msg
@@ -742,14 +757,19 @@ viewMiyabqUserSelector miyaBqData players =
         []
         (players
             |> Players.toList
-            |> List.map
-                (\p ->
+            |> List.indexedMap
+                (\index p ->
                     div []
                         [ text (p ++ ": ")
-                        , select []
+                        , select [ onInput <| ChangedMiyabqUser index ]
                             (List.map
                                 (\userDto ->
-                                    option [ value <| String.fromInt userDto.id ]
+                                    option
+                                        [ value <| String.fromInt userDto.id
+                                        , selected <|
+                                            userDto.id
+                                                == StaticArray.get (Index.fromModBy Length.four index) miyaBqData.relation
+                                        ]
                                         [ text userDto.name ]
                                 )
                                 miyaBqData.users

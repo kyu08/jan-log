@@ -161,7 +161,7 @@ type alias ToResultDto4Config =
 
 toResultDto4 : ToResultDto4Config -> ResultsDto
 toResultDto4 toResultDto4Config =
-    { match_date = ExTime.posixToYmdhM toResultDto4Config.createdAt
+    { match_date = ExTime.posixToYmdWithHyphenDelimiter toResultDto4Config.createdAt
     , results =
         toResultDto4Config.playerIds
             |> StaticArray.indexedMap

@@ -1,6 +1,7 @@
 module Tests exposing (..)
 
 import Array
+import Expands.Time exposing (posixToYmdWithHyphenDelimiter)
 import Expect
 import IO.Miyabq as Miyabq
 import Json.Encode as E
@@ -8,6 +9,7 @@ import Pages.EditLog.Rounds as Rounds
 import StaticArray
 import StaticArray.Length as Length
 import Test exposing (..)
+import Time
 
 
 jsonEncode : Test
@@ -42,6 +44,22 @@ jsonEncode =
 
                 testValue =
                     E.encode 0 <| Miyabq.resultsEncoder resultDto
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        ]
+
+
+exTime : Test
+exTime =
+    describe "ExTime.elm"
+        [ test "posixToYmdWithHyphenDelimiter" <|
+            let
+                expectedValue =
+                    "2022-01-03"
+
+                testValue =
+                    posixToYmdWithHyphenDelimiter (Time.millisToPosix 1641221202000)
             in
             \_ ->
                 Expect.equal expectedValue testValue
