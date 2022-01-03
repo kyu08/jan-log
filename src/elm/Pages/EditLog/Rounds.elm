@@ -300,10 +300,10 @@ toRound4Dto round =
         Round4 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -324,10 +324,10 @@ toRound4Dto round =
         Round5 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -351,10 +351,10 @@ toRound5Dto round =
         Round4 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -377,10 +377,10 @@ toRound5Dto round =
         Round5 { points, seatingOrder, tobisho } ->
             let
                 pointsInt =
-                    StaticArray.map ExString.toIntValue points
+                    StaticArray.map ExString.toInt points
 
                 tobiShoInt =
-                    StaticArray.map ExString.toIntValue tobisho
+                    StaticArray.map ExString.toInt tobisho
             in
             { seatingOrder = seatingOrder
             , points =
@@ -625,7 +625,6 @@ type alias CalculateRoundFromRawPointConfig =
 
     -- TODO: tuple にするとわかりずらいのでレコードにしよう
     , rankPoint : ( Int, Int )
-    , havePoint : Int
     , returnPoint : Int
     }
 
@@ -635,7 +634,7 @@ type alias CalculateRoundFromRawPointConfig =
 トビは現状の実装だと場外で(チップなどで)やりとりするしかないので微妙ではある
 -}
 calculateRoundFromRawPoint : CalculateRoundFromRawPointConfig -> IntRound
-calculateRoundFromRawPoint { round_, rankPoint, havePoint, returnPoint } =
+calculateRoundFromRawPoint { round_, rankPoint, returnPoint } =
     let
         -- 順位点が入ってる List
         rankPointArray =
@@ -859,8 +858,8 @@ hasSamePoint points =
                 hasSamePoint <| Array.fromList tail
 
 
-totalPoint : Rounds -> ( String, String ) -> String -> String -> Stats
-totalPoint rounds rankPoint havePoint returnPoint =
+totalPoint : Rounds -> ( String, String ) -> String -> Stats
+totalPoint rounds rankPoint returnPoint =
     let
         calculatedRounds =
             rounds
@@ -870,8 +869,7 @@ totalPoint rounds rankPoint havePoint returnPoint =
                         calculateRoundFromRawPoint
                             { rankPoint = ExTuple.toIntTuple rankPoint
                             , round_ = toIntRound round
-                            , havePoint = ExString.toIntValue havePoint
-                            , returnPoint = ExString.toIntValue returnPoint
+                            , returnPoint = ExString.toInt returnPoint
                             }
                     )
     in
@@ -1056,20 +1054,27 @@ filterStaticArray staticArray =
         tail
 
 
-toScores : Int -> Rounds -> Array Int
-toScores index rounds =
-    rounds
+type alias ToScoresConfig =
+    { index : Int
+    , rankPoint : ( Int, Int )
+    , returnPoint : Int
+    , rounds : Rounds
+    }
+
+
+toScores : ToScoresConfig -> Array Int
+toScores toScoresConfig =
+    toScoresConfig.rounds
         |> Array.map
             (\round ->
                 calculateRoundFromRawPoint
                     { round_ = toIntRound round
-                    , rankPoint = ( 10, 20 )
-                    , havePoint = 25
-                    , returnPoint = 30
+                    , rankPoint = toScoresConfig.rankPoint
+                    , returnPoint = toScoresConfig.returnPoint
                     }
             )
         |> Array.map
-            (toScore index)
+            (toScore toScoresConfig.index)
 
 
 toScore : Int -> IntRound -> Int

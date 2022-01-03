@@ -20,6 +20,8 @@ import Expands.Tuple as ExTuple
 import Html exposing (Html, div, img, input, label, p, table, td, text, th, tr)
 import Html.Attributes exposing (checked, class, for, id, name, src, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Http
+import Http.Miyabq as HttpMiyabq
 import Pages.EditLog.Chips as Chips exposing (Chips)
 import Pages.EditLog.Dtos.LogDto exposing (LogDto4, LogDto5)
 import Pages.EditLog.Log as Log exposing (Log)
@@ -31,6 +33,8 @@ import Pages.EditLog.SeatingOrderInput exposing (SeatingOrderInput)
 import Process
 import Route
 import Session exposing (Session)
+import StaticArray
+import StaticArray.Length as Length
 import Task exposing (Task)
 import Time
 import UI
@@ -205,6 +209,8 @@ type Msg
     | ClickedEditRoundButton Int Round
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
+    | ClickedExportToMiyabqButton
+    | MiyabqPostResponse (Result Http.Error String)
 
 
 sleep50ms : Task Never ()
@@ -497,6 +503,27 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     in
                     ( nextModel, updateLog logId nextLog )
 
+                ClickedExportToMiyabqButton ->
+                    ( m
+                    , HttpMiyabq.postResult
+                        { resultsDto =
+                            Log.toResultDto4
+                                { createdAt = pageModel.log.createdAt
+
+                                -- TODO: これをUIから取得する
+                                , playerIds = StaticArray.fromList Length.four 1 [ 2, 3, 4 ]
+                                , rounds = pageModel.log.rounds
+                                , chips =
+                                    pageModel.log.chips
+                                        |> Chips.toArray
+                                        |> Array.map ExString.toInt
+                                , rankPoint = Tuple.mapBoth ExString.toInt ExString.toInt pageModel.log.logConfig.rankPoint
+                                , returnPoint = ExString.toInt pageModel.log.logConfig.returnPoint
+                                }
+                        , onResponseMsg = MiyabqPostResponse
+                        }
+                    )
+
                 _ ->
                     ( m, Cmd.none )
 
@@ -542,6 +569,7 @@ view { pageStatus } =
                     log.logConfig
                     uiStatus.isOpenedConfigArea
                 , viewToggleHowToUseButton uiStatus.isOpenedHowToUseArea
+                , viewToggleExportToMiyabqButton
                 , viewHowToUse uiStatus.isOpenedHowToUseArea
                 , viewPointInputModal_
                 ]
@@ -602,6 +630,17 @@ viewToggleHowToUseButton isOpened =
         }
 
 
+viewToggleExportToMiyabqButton : Html Msg
+viewToggleExportToMiyabqButton =
+    UI.viewButton
+        -- TODO: phrase に移動
+        { phrase = "miyabq"
+        , onClickMsg = ClickedExportToMiyabqButton
+        , size = UI.Default
+        , isDisabled = False
+        }
+
+
 viewToggleLogConfigAreaBottun : Bool -> Html Msg
 viewToggleLogConfigAreaBottun isOpened =
     let
@@ -656,17 +695,16 @@ viewEditLog { players, chips, rounds, logConfig } =
             Rounds.totalPoint
                 rounds
                 logConfig.rankPoint
-                logConfig.havePoint
                 logConfig.returnPoint
 
         totalPointIncludeChip =
-            Rounds.calculateTotalPointIncludeChip (ExString.toIntValue logConfig.chipRate) totalPoint chips
+            Rounds.calculateTotalPointIncludeChip (ExString.toInt logConfig.chipRate) totalPoint chips
 
         totalBalanceExcludeGameFee =
-            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toIntValue logConfig.rate) totalPointIncludeChip
+            Rounds.calculateTotalBalanceExcludeGameFee (ExString.toInt logConfig.rate) totalPointIncludeChip
 
         totalBalanceIncludeGameFee =
-            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toIntValue logConfig.gameFee) totalBalanceExcludeGameFee
+            Rounds.calculateTotalBalanceIncludeGameFee (ExString.toInt logConfig.gameFee) totalBalanceExcludeGameFee
     in
     table
         [ class "editLog_table" ]
@@ -722,8 +760,7 @@ viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
                 Rounds.calculateRoundFromRawPoint
                     { rankPoint = ExTuple.toIntTuple rankPoint
                     , round_ = Rounds.toIntRound round
-                    , havePoint = ExString.toIntValue havePoint
-                    , returnPoint = ExString.toIntValue returnPoint
+                    , returnPoint = ExString.toInt returnPoint
                     }
                     |> Rounds.toStringRound
                     |> Rounds.getPoints

@@ -1,11 +1,11 @@
 module Expands.String exposing
     ( fromInt
-    , toIntValue
+    , toInt
     )
 
 
-toIntValue : String -> Int
-toIntValue string =
+toInt : String -> Int
+toInt string =
     Maybe.withDefault 0 (String.toInt string)
 
 

@@ -6,6 +6,7 @@ module Pages.EditLog.Log exposing
     , initLog5
     , toLogDto4
     , toLogDto5
+    , toResultDto4
     )
 
 import Array exposing (Array)
@@ -115,12 +116,12 @@ toLogDto4 logId log =
     { createdAt = Time.posixToMillis log.createdAt
     , logId = logId
     , players = Players.toArray log.players
-    , rate = ExString.toIntValue log.logConfig.rate
-    , chipRate = ExString.toIntValue log.logConfig.chipRate
-    , gameFee = ExString.toIntValue log.logConfig.gameFee
-    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first log.logConfig.rankPoint, ExString.toIntValue <| Tuple.second log.logConfig.rankPoint ]
-    , havePoint = ExString.toIntValue log.logConfig.havePoint
-    , returnPoint = ExString.toIntValue log.logConfig.returnPoint
+    , rate = ExString.toInt log.logConfig.rate
+    , chipRate = ExString.toInt log.logConfig.chipRate
+    , gameFee = ExString.toInt log.logConfig.gameFee
+    , rankPoint = Array.fromList [ ExString.toInt <| Tuple.first log.logConfig.rankPoint, ExString.toInt <| Tuple.second log.logConfig.rankPoint ]
+    , havePoint = ExString.toInt log.logConfig.havePoint
+    , returnPoint = ExString.toInt log.logConfig.returnPoint
     , rounds = Array.map Rounds.toRound4Dto log.rounds
     , chips =
         log.chips
@@ -134,12 +135,12 @@ toLogDto5 logId log =
     { createdAt = Time.posixToMillis log.createdAt
     , logId = logId
     , players = Players.toArray log.players
-    , rate = ExString.toIntValue log.logConfig.rate
-    , chipRate = ExString.toIntValue log.logConfig.chipRate
-    , gameFee = ExString.toIntValue log.logConfig.gameFee
-    , rankPoint = Array.fromList [ ExString.toIntValue <| Tuple.first log.logConfig.rankPoint, ExString.toIntValue <| Tuple.second log.logConfig.rankPoint ]
-    , havePoint = ExString.toIntValue log.logConfig.havePoint
-    , returnPoint = ExString.toIntValue log.logConfig.returnPoint
+    , rate = ExString.toInt log.logConfig.rate
+    , chipRate = ExString.toInt log.logConfig.chipRate
+    , gameFee = ExString.toInt log.logConfig.gameFee
+    , rankPoint = Array.fromList [ ExString.toInt <| Tuple.first log.logConfig.rankPoint, ExString.toInt <| Tuple.second log.logConfig.rankPoint ]
+    , havePoint = ExString.toInt log.logConfig.havePoint
+    , returnPoint = ExString.toInt log.logConfig.returnPoint
     , rounds = Array.map Rounds.toRound5Dto log.rounds
     , chips =
         log.chips
@@ -152,7 +153,9 @@ type alias ToResultDto4Config =
     { createdAt : Time.Posix
     , playerIds : StaticArray Index.Four Int
     , rounds : Rounds
-    , chips : StaticArray Index.Four Int
+    , chips : Array Int
+    , rankPoint : ( Int, Int )
+    , returnPoint : Int
     }
 
 
@@ -164,10 +167,19 @@ toResultDto4 toResultDto4Config =
             |> StaticArray.indexedMap
                 (\index playerId ->
                     { user_id = playerId
-                    , scores = Rounds.toScores (Index.toInt index) toResultDto4Config.rounds
+                    , scores =
+                        Rounds.toScores
+                            { index = Index.toInt index
+                            , rankPoint = toResultDto4Config.rankPoint
+                            , returnPoint = toResultDto4Config.returnPoint
+                            , rounds = toResultDto4Config.rounds
+                            }
                     , chip =
-                        toResultDto4Config.chips
-                            |> StaticArray.get (Index.fromModBy Length.four (Index.toInt index))
+                        -- FIXME: 0なのかエラーなのかわからないのでよくない
+                        Maybe.withDefault 0 <|
+                            Array.get
+                                (Index.toInt index)
+                                toResultDto4Config.chips
                     }
                 )
             |> StaticArray.toList
