@@ -275,7 +275,9 @@ update msg ({ logId, pageStatus, currentTime } as m) =
 
                         Nothing ->
                             -- データが壊れている場合
-                            ( { m | pageStatus = Loading }, Cmd.none )
+                            ( { m | pageStatus = Loading }
+                            , HttpMiyabq.getUsers GotUsersFromMiyabq
+                            )
 
                 FetchedLog5 log5Dto ->
                     case Log.dto5ToLog log5Dto of
@@ -301,11 +303,18 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                 FetchedLogButNoLog4 () ->
                     case currentTime of
                         Just currentTime_ ->
-                            ( { m | pageStatus = Loaded <| initPageModel4 currentTime_ }, Cmd.none )
+                            ( { m | pageStatus = Loaded <| initPageModel4 currentTime_ }
+                            , HttpMiyabq.getUsers GotUsersFromMiyabq
+                            )
 
                         Nothing ->
                             -- ないとは思うけど現在時刻の取得よりも firebase への fetch が早かったら 50ms 待ってリトライ
-                            ( m, Task.perform (\_ -> FetchedLogButNoLog4 ()) sleep50ms )
+                            ( m
+                            , Cmd.batch
+                                [ Task.perform (\_ -> FetchedLogButNoLog4 ()) sleep50ms
+                                , HttpMiyabq.getUsers GotUsersFromMiyabq
+                                ]
+                            )
 
                 FetchedLogButNoLog5 () ->
                     case currentTime of
