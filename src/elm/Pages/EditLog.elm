@@ -18,7 +18,7 @@ import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
 import Html exposing (Html, div, img, input, label, option, p, select, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, for, id, name, selected, src, type_, value)
+import Html.Attributes exposing (checked, class, classList, for, id, name, selected, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Http.Miyabq as HttpMiyabq
@@ -81,7 +81,15 @@ type alias MiyaBq =
     { users : List UserDto
     , relation : StaticArray Index.Four Int
     , enteredPassword : String
+    , requestStatus : RequestStatus
     }
+
+
+type RequestStatus
+    = None
+    | Sending
+    | Success
+    | Failed
 
 
 type ModalStatus
@@ -144,6 +152,7 @@ initPageModel4 currentTime =
         { users = []
         , relation = StaticArray.initialize Length.four (\_ -> 1)
         , enteredPassword = ""
+        , requestStatus = None
         }
     }
 
@@ -156,6 +165,7 @@ initPageModel5 currentTime =
         { users = []
         , relation = StaticArray.initialize Length.four (\_ -> 1)
         , enteredPassword = ""
+        , requestStatus = None
         }
     }
 
@@ -267,6 +277,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             , enteredPassword = ""
+                                            , requestStatus = None
                                             }
                                         }
                               }
@@ -291,6 +302,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             , enteredPassword = ""
+                                            , requestStatus = None
                                             }
                                         }
                               }
@@ -445,6 +457,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             , enteredPassword = ""
+                                            , requestStatus = None
                                             }
                                         }
                               }
@@ -466,6 +479,7 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                                             { users = []
                                             , relation = StaticArray.initialize Length.four (\_ -> 1)
                                             , enteredPassword = ""
+                                            , requestStatus = None
                                             }
                                         }
                               }
@@ -593,7 +607,11 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                     ( nextModel, updateLog logId nextLog )
 
                 ClickedExportToMiyabqButton ->
-                    ( m
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | requestStatus = Sending } } }
                     , HttpMiyabq.postResult
                         { resultsDto =
                             Log.toResultDto4
@@ -610,6 +628,22 @@ update msg ({ logId, pageStatus, currentTime } as m) =
                         , onResponseMsg = MiyabqPostResponse
                         }
                     )
+
+                MiyabqPostResponse response ->
+                    let
+                        currentMiyabq =
+                            pageModel.miyabq
+                    in
+                    case response of
+                        Ok _ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | requestStatus = Success } } }
+                            , Cmd.none
+                            )
+
+                        Err _ ->
+                            ( { m | pageStatus = Loaded { pageModel | miyabq = { currentMiyabq | requestStatus = Failed } } }
+                            , Cmd.none
+                            )
 
                 GotUsersFromMiyabq users ->
                     let
@@ -793,23 +827,49 @@ type alias ViewMiyabqConfig =
 viewMiyabq : ViewMiyabqConfig -> Html Msg
 viewMiyabq viewMiyabqConfig =
     if isCorrectPassword viewMiyabqConfig.miyaBq.enteredPassword then
-        div []
+        div [ class "editLog_miyabqContainer" ]
             [ viewMiyabqUserSelector viewMiyabqConfig.miyaBq viewMiyabqConfig.players
-            , viewToggleExportToMiyabqButton
+            , viewMiyabqMessage viewMiyabqConfig.miyaBq.requestStatus
+            , viewToggleExportToMiyabqButton viewMiyabqConfig.miyaBq.requestStatus
             ]
 
     else
         UI.viewBlank
 
 
-viewToggleExportToMiyabqButton : Html Msg
-viewToggleExportToMiyabqButton =
-    UI.viewButton
-        { phrase = phrase.exportToMiyabq
-        , onClickMsg = ClickedExportToMiyabqButton
-        , size = UI.Default
-        , isDisabled = False
-        }
+viewMiyabqMessage : RequestStatus -> Html Msg
+viewMiyabqMessage requestStatus =
+    let
+        ( phrase_, cls ) =
+            case requestStatus of
+                None ->
+                    ( "", "" )
+
+                Sending ->
+                    ( phrase.exportToMiyabqSending, "" )
+
+                Success ->
+                    ( phrase.exportToMiyabqSuccess, "editLog_miyabqMessageSuccess" )
+
+                Failed ->
+                    ( phrase.exportToMiyabqFailed, "editLog_miyabqMessageFailed" )
+    in
+    div
+        [ class "editLog_miyabqMessage"
+        , class cls
+        ]
+        [ text phrase_ ]
+
+
+viewToggleExportToMiyabqButton : RequestStatus -> Html Msg
+viewToggleExportToMiyabqButton requestStatus =
+    UI.viewIf (not <| requestStatus == Success) <|
+        UI.viewButton
+            { phrase = phrase.exportToMiyabq
+            , onClickMsg = ClickedExportToMiyabqButton
+            , size = UI.Default
+            , isDisabled = False
+            }
 
 
 viewMiyabqUserSelector : MiyaBq -> Players -> Html Msg

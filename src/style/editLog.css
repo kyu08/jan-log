@@ -122,3 +122,24 @@
   font-weight: 800;
 }
 
+.editLog_miyabqContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.editLog_miyabqMessage {
+  font-weight: 800;
+  margin: 20px 0;
+}
+
+.editLog_miyabqMessageSuccess {
+  font-weight: 800;
+  color: blue;
+}
+
+.editLog_miyabqMessageFailed {
+  font-weight: 800;
+  color: red;
+}
+
