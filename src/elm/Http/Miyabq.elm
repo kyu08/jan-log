@@ -27,7 +27,10 @@ getUsers gotMsg =
 postResult : PostResultConfig msg -> Cmd msg
 postResult postResultConfig =
     Http.post
-        { url = miyabqBaseUrl ++ "/result_json"
+        { url = localhost ++ "/result_json"
+
+        -- 開発完了したら戻す
+        -- { url = miyabqBaseUrl ++ "/result_json"
         , body = Http.jsonBody <| resultsEncoder postResultConfig.resultsDto
         , expect = Http.expectJson postResultConfig.onResponseMsg D.string
         }
@@ -40,3 +43,7 @@ postResult postResultConfig =
 miyabqBaseUrl : String
 miyabqBaseUrl =
     "https://asia-northeast1-miyabq.cloudfunctions.net/mahjong"
+
+
+localhost =
+    "http://localhost:3000/"

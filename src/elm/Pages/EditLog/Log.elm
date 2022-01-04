@@ -164,12 +164,13 @@ toResultDto4 toResultDto4Config =
     { match_date = ExTime.posixToYmdWithHyphenDelimiter toResultDto4Config.createdAt
     , results =
         toResultDto4Config.playerIds
-            |> StaticArray.indexedMap
+            |> StaticArray.toList
+            |> List.indexedMap
                 (\index playerId ->
                     { user_id = playerId
                     , scores =
                         Rounds.toScores
-                            { index = Index.toInt index
+                            { index = index
                             , rankPoint = toResultDto4Config.rankPoint
                             , returnPoint = toResultDto4Config.returnPoint
                             , rounds = toResultDto4Config.rounds
@@ -178,9 +179,9 @@ toResultDto4 toResultDto4Config =
                         -- FIXME: 0なのかエラーなのかわからないのでよくない
                         Maybe.withDefault 0 <|
                             Array.get
-                                (Index.toInt index)
-                                toResultDto4Config.chips
+                                (Debug.log "index" index)
+                                (Debug.log "chip" toResultDto4Config.chips)
                     }
                 )
-            |> StaticArray.toList
+            |> List.sortBy .user_id
     }
