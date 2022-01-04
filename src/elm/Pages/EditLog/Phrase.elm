@@ -22,4 +22,7 @@ phrase =
     , inputPoint = "🖋"
     , logo = "Jan Log"
     , exportToMiyabq = "Export To miyabq"
+    , exportToMiyabqSending = "Sending..."
+    , exportToMiyabqSuccess = "Success!"
+    , exportToMiyabqFailed = "Request Failed.(時間をおいてもう一度試してください)"
     }

@@ -36,6 +36,7 @@ module Pages.EditLog.Rounds exposing
     , roundFirstDegit
     , sortedPoints
     , test__intRound4
+    , test__round4
     , toIntRound
     , toRound4Dto
     , toRound5Dto
@@ -1073,11 +1074,11 @@ toScores toScoresConfig =
                     }
             )
         |> Array.map
-            (toScore toScoresConfig.index)
+            (getOwnScore toScoresConfig.index)
 
 
-toScore : Int -> IntRound -> Int
-toScore index intRound =
+getOwnScore : Int -> IntRound -> Int
+getOwnScore index intRound =
     case intRound of
         IntRound4 intRound4 ->
             StaticArray.get (Index.fromModBy Length.four index)
@@ -1100,3 +1101,7 @@ test__intRound4 :
     -> IntRound
 test__intRound4 =
     IntRound4
+
+
+test__round4 =
+    Round4
