@@ -179,8 +179,8 @@ toResultDto4 toResultDto4Config =
                         -- FIXME: 0なのかエラーなのかわからないのでよくない
                         Maybe.withDefault 0 <|
                             Array.get
-                                (Debug.log "index" index)
-                                (Debug.log "chip" toResultDto4Config.chips)
+                                index
+                                toResultDto4Config.chips
                     }
                 )
             |> List.sortBy .user_id
