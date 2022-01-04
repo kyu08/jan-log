@@ -51,7 +51,7 @@ chipRate : チップ収支 = チップ枚数 \* m としたときの m
 initLogConfig : LogConfig
 initLogConfig =
     { rate = "100"
-    , chipRate = "2"
+    , chipRate = "1"
     , gameFee = "0"
     , rankPoint = ( "10", "20" )
     , havePoint = "25"
