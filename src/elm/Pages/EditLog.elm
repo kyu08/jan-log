@@ -782,10 +782,10 @@ viewHowToUse : Bool -> Html msg
 viewHowToUse isOpened =
     if isOpened then
         div [ class "editLog_howToUseContainer" ]
-            [ p [] [ text "1. 半荘が終了したら 🖋 をタップして素点を入力する" ]
-            , p [] [ text "2. 素点の100の位を五捨六入して1000で割った値を入力する" ]
-            , p [] [ text "3. 同点の場合は起家を入力する" ]
-            , p [] [ text "4. 入力が完了したら再度🖋をタップして入力を終了する。(順位点を加味した値が表示されます)" ]
+            [ p [] [ text phrase.howToUse1 ]
+            , p [] [ text phrase.howToUse2 ]
+            , p [] [ text phrase.howToUse3 ]
+            , p [] [ text phrase.howToUse4 ]
             ]
 
     else
