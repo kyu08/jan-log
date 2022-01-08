@@ -243,7 +243,6 @@ type Msg
     | ClickedCloseInputPointModalButton
     | ClickedSeatingOrderRadio Int Int Round Kaze
     | ClickedExportToMiyabqButton
-      -- TODO: Error ちゃんとハンドリングしような
     | MiyabqPostResponse (Result Http.Error String)
     | GotUsersFromMiyabq (Result Http.Error (List UserDto))
     | ChangedMiyabqUser Int String

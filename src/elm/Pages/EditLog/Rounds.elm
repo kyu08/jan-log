@@ -202,7 +202,7 @@ initPoint round =
 
 initRounds4 : Rounds
 initRounds4 =
-    Array.initialize 4 (\_ -> initRound4)
+    Array.initialize 1 (\_ -> initRound4)
 
 
 initRounds5 : Rounds
