@@ -29,7 +29,7 @@ postResult postResultConfig =
     Http.post
         { url = miyabqBaseUrl ++ "/result_json"
         , body = Http.jsonBody <| resultsEncoder postResultConfig.resultsDto
-        , expect = Http.expectJson postResultConfig.onResponseMsg D.string
+        , expect = Http.expectString postResultConfig.onResponseMsg
         }
 
 
