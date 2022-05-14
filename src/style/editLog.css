@@ -37,6 +37,8 @@
 .editLog_th {
   font-size: 12px;
   font-weight: normal;
+  position: sticky;
+  top: 0;
 }
 
 .editLog_title {
