@@ -2,13 +2,13 @@ module Pages.EditLog.Phrase exposing (phrase)
 
 
 phrase =
-    { pointBalance = "ポイント\n収支"
-    , pointBalanceIncludeChip = "チップ\n込収支"
+    { pointBalance = "合計"
+    , pointBalanceIncludeChip = "合計\n(チップ込み)"
     , chip = "チップ\n(枚数)"
-    , balance = "収支"
-    , totalBalance = "ゲーム代\n込み収支"
-    , editLogConfigRate = "レート"
-    , editLogConfigChipRate = "レート(チップ)"
+    , balance = "ポイント合計"
+    , totalBalance = "ポイント合計\n(場代込み)"
+    , editLogConfigRate = "倍率"
+    , editLogConfigChipRate = "倍率(チップ)"
     , editLogConfigGameFee = "ゲーム代(一人当たり)"
     , editLogConfigHavePoint = "持ち点"
     , editLogConfigReturnPoint = "返し"
