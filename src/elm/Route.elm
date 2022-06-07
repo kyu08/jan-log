@@ -30,6 +30,12 @@ fromUrl url =
         url
 
 
+routes :
+    { editLog4 : String
+    , editLog5 : String
+    , history : String
+    , home : String
+    }
 routes =
     { editLog4 = "editLog4"
     , editLog5 = "editLog5"

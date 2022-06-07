@@ -94,6 +94,7 @@ toNewLogUrl path model =
                 ++ UUID.toString uuid
 
 
+phrases : { newLog4 : String, newLog5 : String, history : String }
 phrases =
     { newLog4 = "新規作成(4人)"
     , newLog5 = "新規作成(5人)"

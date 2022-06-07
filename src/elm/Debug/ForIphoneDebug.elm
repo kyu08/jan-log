@@ -3,6 +3,7 @@ module Debug.ForIphoneDebug exposing (log)
 import Array
 
 
+round : { points : { data0 : number, data1 : number, data2 : number, data3 : number }, seatingOrder : Maybe a }
 round =
     { points =
         { data0 = 10
@@ -14,6 +15,19 @@ round =
     }
 
 
+log :
+    { createdAt : number
+    , logId : String
+    , gameFee : number
+    , rate : number
+    , chipRate : number
+    , players : Array.Array String
+    , rounds : Array.Array { points : { data0 : number, data1 : number, data2 : number, data3 : number }, seatingOrder : Maybe a }
+    , chips : Array.Array number
+    , rankPoint : Array.Array number
+    , havePoint : number
+    , returnPoint : number
+    }
 log =
     { createdAt = 0
     , logId = "a"

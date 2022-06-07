@@ -1,6 +1,35 @@
 module Pages.EditLog.Phrase exposing (phrase)
 
 
+phrase :
+    { pointBalance : String
+    , pointBalanceIncludeChip : String
+    , chip : String
+    , balance : String
+    , totalBalance : String
+    , editLogConfigRate : String
+    , editLogConfigChipRate : String
+    , editLogConfigGameFee : String
+    , editLogConfigHavePoint : String
+    , editLogConfigReturnPoint : String
+    , editLogConfigRankPointFirst : String
+    , editLogConfigRankPointSecond : String
+    , openEditLogConfigArea : String
+    , closeEditLogConfigArea : String
+    , openHowToUseArea : String
+    , closeHowToUseArea : String
+    , addRow : String
+    , inputPoint : String
+    , logo : String
+    , exportToMiyabq : String
+    , exportToMiyabqSending : String
+    , exportToMiyabqSuccess : String
+    , exportToMiyabqFailed : String
+    , howToUse1 : String
+    , howToUse2 : String
+    , howToUse3 : String
+    , howToUse4 : String
+    }
 phrase =
     { pointBalance = "合計"
     , pointBalanceIncludeChip = "合計\n(チップ込み)"
