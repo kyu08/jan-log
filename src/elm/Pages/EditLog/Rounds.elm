@@ -1025,35 +1025,6 @@ isRadioButtonChecked round kaze playerIndex seatingOrderInput =
                     False
 
 
-
--- 使われてないかも
-
-
-filterStaticArray : StaticArray Index.Four String -> StaticArray Index.Four String
-filterStaticArray staticArray =
-    let
-        filteredArray =
-            staticArray
-                |> StaticArray.toArray
-                |> Array.filter ((/=) "")
-
-        head =
-            Maybe.withDefault "undefined" <|
-                Array.get
-                    0
-                    filteredArray
-
-        tail =
-            filteredArray
-                |> Array.slice 1 (Array.length filteredArray)
-                |> Array.toList
-    in
-    StaticArray.fromList
-        Length.four
-        head
-        tail
-
-
 type alias ToScoresConfig =
     { index : Int
     , rankPoint : ( Int, Int )
@@ -1103,5 +1074,6 @@ test__intRound4 =
     IntRound4
 
 
+test__round4 : Round4Value -> Round
 test__round4 =
     Round4

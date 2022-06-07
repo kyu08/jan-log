@@ -18,7 +18,7 @@ import Expands.String as ExString
 import Expands.Time as ExTime
 import Expands.Tuple as ExTuple
 import Html exposing (Html, div, img, input, label, option, p, select, table, td, text, th, tr)
-import Html.Attributes exposing (checked, class, classList, for, id, name, selected, src, type_, value)
+import Html.Attributes exposing (checked, class, for, id, name, selected, src, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Http.Miyabq as HttpMiyabq
@@ -974,7 +974,6 @@ viewEditLog { players, chips, rounds, logConfig } =
                                 { roundIndex = roundIndex
                                 , round = round
                                 , rankPoint = logConfig.rankPoint
-                                , havePoint = logConfig.havePoint
                                 , returnPoint = logConfig.returnPoint
                                 }
                         )
@@ -1003,7 +1002,6 @@ type alias ViewInputRoundRowConfig =
     { roundIndex : Int
     , round : Round
     , rankPoint : RankPoint
-    , havePoint : Point
     , returnPoint : Point
     }
 
@@ -1011,7 +1009,7 @@ type alias ViewInputRoundRowConfig =
 {-| 点数表示行
 -}
 viewInputRoundRow : ViewInputRoundRowConfig -> Html Msg
-viewInputRoundRow { roundIndex, round, rankPoint, havePoint, returnPoint } =
+viewInputRoundRow { roundIndex, round, rankPoint, returnPoint } =
     let
         points =
             if not <| Rounds.isDefaultRound round then

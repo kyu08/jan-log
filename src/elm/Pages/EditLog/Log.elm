@@ -22,7 +22,6 @@ import Pages.EditLog.Players as Players exposing (Players)
 import Pages.EditLog.Rounds as Rounds exposing (Rounds)
 import StaticArray exposing (StaticArray)
 import StaticArray.Index as Index
-import StaticArray.Length as Length
 import Time
 
 
