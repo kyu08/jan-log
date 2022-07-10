@@ -1036,31 +1036,7 @@ type alias ToScoresConfig =
 toScores : ToScoresConfig -> Array Int
 toScores toScoresConfig =
     toScoresConfig.rounds
-        |> Array.filter
-            (\round ->
-                case round of
-                    Round4 round4Value ->
-                        (round4Value.points
-                            |> StaticArray.toArray
-                            |> Array.filter
-                                (\point ->
-                                    point == ""
-                                )
-                            |> Array.length
-                        )
-                            == 0
-
-                    Round5 round5Value ->
-                        (round5Value.points
-                            |> StaticArray.toArray
-                            |> Array.filter
-                                (\point ->
-                                    point == ""
-                                )
-                            |> Array.length
-                        )
-                            == 0
-            )
+        |> Array.filter hasNoEmptyRound
         |> Array.map
             (\round ->
                 calculateRoundFromRawPoint
@@ -1071,6 +1047,32 @@ toScores toScoresConfig =
             )
         |> Array.map
             (getOwnScore toScoresConfig.index)
+
+
+hasNoEmptyRound : Round -> Bool
+hasNoEmptyRound round =
+    case round of
+        Round4 round4Value ->
+            (round4Value.points
+                |> StaticArray.toArray
+                |> Array.filter
+                    (\point ->
+                        point == ""
+                    )
+                |> Array.length
+            )
+                == 0
+
+        Round5 round5Value ->
+            (round5Value.points
+                |> StaticArray.toArray
+                |> Array.filter
+                    (\point ->
+                        point == ""
+                    )
+                |> Array.length
+            )
+                == 0
 
 
 getOwnScore : Int -> IntRound -> Int
