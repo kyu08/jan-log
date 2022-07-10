@@ -128,6 +128,166 @@ log =
             in
             \_ ->
                 Expect.equal expectedValue testValue
+        , test "toResultDto4 ポイントが1人分しか入力されていない round が削除されること" <|
+            let
+                expectedValue =
+                    { match_date = "2022-01-03"
+                    , results =
+                        [ { user_id = 1
+
+                          -- miya
+                          -- 69
+                          , scores = Array.fromList [ 86, -26, 1, 8 ]
+                          , chip = 12
+                          }
+                        , { user_id = 2
+
+                          -- とも
+                          -- -37
+                          , scores = Array.fromList [ 6, 31, -23, -51 ]
+                          , chip = 27
+                          }
+                        , { user_id = 4
+
+                          -- きっしー
+                          -- -93
+                          , scores = Array.fromList [ -23, -64, -62, 56 ]
+                          , chip = -57
+                          }
+                        , { user_id = 5
+
+                          -- さっしー
+                          -- 61
+                          , scores = Array.fromList [ -69, 59, 84, -13 ]
+                          , chip = 18
+                          }
+                        ]
+                    }
+
+                testValue =
+                    Log.toResultDto4
+                        { createdAt = Time.millisToPosix 1641221202000
+                        , playerIds = StaticArray.fromList Length.four 5 [ 4, 1, 2 ]
+                        , rounds =
+                            Array.fromList
+                                [ Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "-85" [ "167", "661", "257" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "-100" [ "0", "100", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "483" [ "-38", "142", "413" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "-100", "0", "100" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "641" [ "-17", "207", "169" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "100" [ "-100", "0", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "268" [ "460", "281", "-9" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "0", "0", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "268" [ "", "", "" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "0", "0", "0" ]
+                                    }
+                                ]
+                        , chips = Array.fromList [ 18, -57, 12, 27 ]
+                        , rankPoint = ( 10, 20 )
+                        , returnPoint = 30
+                        }
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
+        , test "toResultDto4 ポイントが1人分も入力されていない round が削除されること" <|
+            let
+                expectedValue =
+                    { match_date = "2022-01-03"
+                    , results =
+                        [ { user_id = 1
+
+                          -- miya
+                          -- 69
+                          , scores = Array.fromList [ 86, -26, 1, 8 ]
+                          , chip = 12
+                          }
+                        , { user_id = 2
+
+                          -- とも
+                          -- -37
+                          , scores = Array.fromList [ 6, 31, -23, -51 ]
+                          , chip = 27
+                          }
+                        , { user_id = 4
+
+                          -- きっしー
+                          -- -93
+                          , scores = Array.fromList [ -23, -64, -62, 56 ]
+                          , chip = -57
+                          }
+                        , { user_id = 5
+
+                          -- さっしー
+                          -- 61
+                          , scores = Array.fromList [ -69, 59, 84, -13 ]
+                          , chip = 18
+                          }
+                        ]
+                    }
+
+                testValue =
+                    Log.toResultDto4
+                        { createdAt = Time.millisToPosix 1641221202000
+                        , playerIds = StaticArray.fromList Length.four 5 [ 4, 1, 2 ]
+                        , rounds =
+                            Array.fromList
+                                [ Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "-85" [ "167", "661", "257" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "-100" [ "0", "100", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "483" [ "-38", "142", "413" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "-100", "0", "100" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "641" [ "-17", "207", "169" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "100" [ "-100", "0", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "268" [ "460", "281", "-9" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "0", "0", "0" ]
+                                    }
+                                , Rounds.test__round4
+                                    { points =
+                                        StaticArray.fromList Length.four "268" [ "", "", "" ]
+                                    , seatingOrder = Nothing
+                                    , tobisho = StaticArray.fromList Length.four "0" [ "0", "0", "0" ]
+                                    }
+                                ]
+                        , chips = Array.fromList [ 18, -57, 12, 27 ]
+                        , rankPoint = ( 10, 20 )
+                        , returnPoint = 30
+                        }
+            in
+            \_ ->
+                Expect.equal expectedValue testValue
         ]
 
 
